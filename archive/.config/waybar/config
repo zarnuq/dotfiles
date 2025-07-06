@@ -1,0 +1,133 @@
+{
+  "layer": "top", 
+    "position": "top",
+    "height": 5,
+    "modules-left": [
+    "hyprland/workspaces",
+    "custom/space",
+    "hyprland/window"
+    ],
+    "modules-center": [
+      "clock",         
+    ],
+    "modules-right": [
+      "tray",
+    "network", 
+    "backlight",
+    "cpu",
+    "memory",
+    "pulseaudio",
+    "pulseaudio#input",
+    "battery", 
+    "custom/power"
+    ],
+    "hyprland/workspaces": {
+      "disable-scroll": true,
+      "all-outputs": false,
+      "format-icons": ["{id}", "{id}"],
+      "on-click": "hyprctl dispatch workspace {id}",
+      "on-output": true,
+      "ws-sort": "true",
+      "ws-order": "ascending",
+      "ws-rename": true,
+      "format": " {id} "
+    },
+      "memory": {
+        "interval": 5,
+        "format": "󰍛 {}%",
+        "max-length": 10
+      },
+      "cpu": { 
+        "interval": 5,
+        "format": "󰍛 {}%",
+        "max-length": 10
+      },
+      "tray": {
+        "spacing": 10
+      },
+      "clock": {
+        "tooltip-format": "{calendar}",
+        "format-alt": "{:%a, %d %b %Y}",
+        "format": "  {:%I:%M %p %m/%d/%Y}"
+      },
+      "backlight": {
+        "device": "intel_backlight",
+        "format": "{icon} {percent}%",
+        "format-icons": ["☀️", ""],
+        "on-scroll-down": "brightnessctl -c backlight set 1%-",
+        "on-scroll-up": "brightnessctl -c backlight set +1%"
+      },
+      "battery": {
+        "format": "{icon} {capacity}%",
+        "format-icons": {
+          "charging": [
+            "󰢜",
+          "󰂆",
+          "󰂇",
+          "󰂈",
+          "󰢝",
+          "󰂉",
+          "󰢞",
+          "󰂊",
+          "󰂋",
+          "󰂅"
+          ],
+          "default": [
+            "󰁺",
+          "󰁻",
+          "󰁼",
+          "󰁽",
+          "󰁾",
+          "󰁿",
+          "󰂀",
+          "󰂁",
+          "󰂂",
+          "󰁹"
+          ]
+        },
+        "format-full": "Charged ",
+        "interval": 5,
+        "states": {
+          "warning": 20,
+          "critical": 10
+        },
+        "tooltip": false
+      },
+      "network": {
+        "format-wifi": "  {essid} ({signalStrength}%)",
+        "format-ethernet": "  {ifname}: {ipaddr}/{cidr}",
+        "format-linked": "  {ifname} (No IP)",
+        "format-disconnected": "Disconnected ",
+        "format-alt": "{ifname}: {ipaddr}/{cidr}"
+      },
+      "pulseaudio#input": {
+        "format-source": " {volume}%",
+        "format-source-muted": "  off",
+        "format": "{format_source}",
+        "max-volume": 100,
+        "on-click": "pactl set-source-mute @DEFAULT_SOURCE@ toggle",
+        "on-click-middle": "pavucontrol",
+        "scroll-step": 5, 
+        "on-scroll-up": "pactl set-source-volume @DEFAULT_SOURCE@ +1%",
+        "on-scroll-down": "pactl set-source-volume @DEFAULT_SOURCE@ -1%"
+      },
+      "pulseaudio": {
+        "format-icons": {
+          "default": ["", "", ""]
+        },
+        "scroll-step": 5, 
+        "format": "{icon}  {volume}%",
+        "format-muted": "  {format_source}",
+        "on-click": "pavucontrol",
+        "ignored-sinks": ["Easy Effects Sink"]
+      },
+      "custom/space": {
+        "format": "  "
+      },
+      "custom/power": {
+        "format": "",
+        "tooltip": false,
+        "on-click-middle": "shutdown now"
+      }
+
+}

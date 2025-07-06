@@ -1,0 +1,4 @@
+export PROTON_LOG=1
+export WINEPREFIX=~/.steam/steam/steamapps/compatdata/960090/pfx\ winetricks dotnet48
+
+PROTON_NO_ESYNC=1 WINEDLLOVERRIDES="winhttp=n,b" %command%

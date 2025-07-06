@@ -1,0 +1,10 @@
+nvim/.config/nvim/plugin/
+tmux/.config/tmux/plugins/
+*.uuid
+
+*.m3u
+de/.config/mpd/mpd.log
+de/.config/mpd/mpd.state
+de/.config/mpd/mpd.db
+de/.config/mpd/mpd.pid
+shell/.config/nvim/lazy-lock.json

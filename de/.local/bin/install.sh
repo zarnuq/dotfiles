@@ -1,0 +1,73 @@
+#!/bin/sh
+set -e
+
+#needed packages
+sudo pacman -Syu --noconfirm
+sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep hyprshot wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
+echo "arch repo packages installed"
+
+
+
+#paru
+cd ~
+git clone https://aur.archlinux.org/paru.git
+cd paru
+makepkg -si
+cd ~
+rm -rf ~/paru
+echo "paru installed"
+
+
+
+#paru packages
+paru -S --noconfirm zen-browser-bin brave-bin mpdris vscodium xremap catppuccin-sddm-theme-mocha yambar catppuccin-gtk-theme-mocha bibata-cursor-theme
+echo "AUR packages added"
+
+
+
+#change shell
+sudo chsh "$USER" -s /bin/zsh
+sudo mkdir -p /etc/zsh
+echo "export ZDOTDIR=/home/miles/.config/zsh" | sudo tee /etc/zsh/zshenv
+echo "shell changed"
+
+
+
+#swap
+if [ ! -f "/swapfile" ]; then
+    sudo dd if=/dev/zero of=/swapfile bs=1G count=16 status=progress
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo "/swapfile none swap defaults 0 0" | sudo tee -a /etc/fstab
+    echo "swapfile created"
+fi
+
+
+
+#greetd
+sudo mkdir /etc/greetd
+sudo tee /etc/greetd/config.toml > /dev/null <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "/usr/bin/tuigreet -r -c river"
+user = "greeter"
+EOF
+echo "greetd configured"
+
+
+
+#services
+systemctl --user enable --now mpd
+systemctl --user enable --now mpdris
+systemctl --user enable --now xdg-desktop-portal 
+systemctl --user enable --now xdg-desktop-portal-wlr
+sudo systemctl enable --now ufw
+sudo systemctl enable --now dbus 
+sudo systemctl enable --now udisks2 
+sudo systemctl enable greetd
+sudo ufw enable
+echo "services started"
+

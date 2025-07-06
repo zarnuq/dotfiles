@@ -1,0 +1,7 @@
+modmap: 
+  - name: main remaps
+    remap:
+      KEY_CAPSLOCK: KEY_ESC
+      KEY_KPSLASH: KEY_PREVIOUSSONG
+      KEY_KPASTERISK: KEY_PLAYPAUSE
+      KEY_KPMINUS: KEY_NEXTSONG

@@ -1,0 +1,104 @@
+* {
+    border: none;
+    font-family: "Clarity City";
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 0;
+    padding: 0px; 
+    margin: 0px;
+    border-radius: 0px;
+  }
+  window#waybar {
+    background: rgba(0,0,0,0.9);
+    color: #cba6f7;
+  }
+  #workspaces button {
+    color: #ffffff;
+  }
+  
+  #workspaces button.active {
+    color: #1e1e2e;
+    background-color: #cdd6f4;
+  }
+  
+  #workspaces button:hover {
+    box-shadow: inherit;
+    text-shadow: inherit;
+    color: #1e1e2e;
+    background-color: #cdd6f4;
+  }
+  
+  #workspaces button.urgent {
+    background-color: #f38ba8;
+  }
+ 
+  #memory,
+  #cpu,
+  #custom-power,
+  #custom-brightness,
+  #battery,
+  #pulseaudio,
+  #network,
+  #clock,
+  #tray{
+    margin-right: 6px;
+    color: #ffffff;
+  }
+  #memory {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #89dceb;
+  }
+  #cpu {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #a6e3a1;
+  }
+  
+  #backlight{
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #ffffff;
+  }
+  #battery{
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #ffffff;
+  }
+  #pulseaudio {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #fab387;
+  }
+  
+  #network {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #cba6f7;
+  }
+  
+  #clock {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #f2cdcd;
+  }
+  
+  #custom-power {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #f38ba8;
+  }
+  #custom-brightness {
+    background-color: #000000;
+    color: white;
+    margin-right: 10px;
+    color: #ffffff;
+  }

@@ -1,0 +1,112 @@
+* {
+    font:   "JetBrainsMonoNerdFont 16";
+rosewater: #f5e0dcff;
+flamingo:  #f2cdcdff;
+pink:      #f5c2e7ff;
+mauve:     #cba6f7ff;
+red:       #f38ba8ff;
+maroon:    #eba0acff;
+peach:     #fab387ff;
+yellow:    #f9e2afff;
+green:     #a6e3a1ff;
+teal:      #94e2d5ff;
+sky:       #89dcebff;
+sapphire:  #74c7ecff;
+blue:      #89b4faff;
+lavender:  #b4befeff;
+fg0:      #cdd6f4ff;
+fg1:  #bac2deff;
+fg2:  #a6adc8ff;
+overlay2:  #9399b2ff;
+overlay1:  #7f849cff;
+overlay0:  #6c7086ff;
+surface2:  #585b70ff;
+surface1:  #45475aff;
+surface0:  #313244ff;
+bg0:      #1e1e2eff;
+bg1:    #181825ff;
+bg2:     #11111bff;
+
+    background-color:   transparent;
+    text-color:         @fg0;
+    margin:     0;
+    padding:    0;
+    spacing:    0;
+}
+
+window {
+    background-color:   @bg0;
+
+    location:       center;
+    width:          640;
+    border-radius:  0;
+}
+
+inputbar {
+    font:       "JetBrainsMonoNerdFont 18";
+    padding:    0px;
+    spacing:    0px;
+    children:   [ entry ];
+}
+
+icon-search {
+    expand:     false;
+    filename:   "search";
+    size: 0px;
+}
+
+icon-search, entry, element-icon, element-text {
+    vertical-align: 0;
+}
+
+entry {
+    font:   inherit;
+    placeholder         : "";
+    placeholder-color   : @fg2;
+}
+
+message {
+    border:             0px 0 0;
+    border-color:       @bg1;
+    background-color:   @bg1;
+}
+
+textbox {
+    padding:    0px 0px;
+}
+
+listview {
+    lines:      10;
+    columns:    1;
+
+    fixed-height:   true;
+    border:         0px 0 0;
+    border-color:   @bg1;
+}
+
+element {
+    padding:            0px 0px;
+    spacing:            0px;
+    background-color:   transparent;
+}
+
+element normal active {
+    text-color: @bg2;
+}
+
+element alternate active {
+    text-color: @bg2;
+}
+
+element selected normal, element selected active {
+    background-color:   @bg2;
+    text-color:         @fg1;
+}
+
+element-icon {
+    size:   1em;
+}
+
+element-text {
+    text-color: inherit;
+}
