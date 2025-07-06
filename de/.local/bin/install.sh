@@ -20,7 +20,7 @@ echo "paru installed"
 
 
 #paru packages
-paru -S --noconfirm zen-browser-bin brave-bin mpdris vscodium xremap catppuccin-sddm-theme-mocha yambar catppuccin-gtk-theme-mocha bibata-cursor-theme
+paru -S --noconfirm zen-browser-bin brave-bin mpdris vscodium xremap catppuccin-sddm-theme-mocha yambar catppuccin-gtk-theme-mocha bibata-cursor-theme legcord
 echo "AUR packages added"
 
 

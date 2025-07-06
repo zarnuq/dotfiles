@@ -26,7 +26,7 @@ mantle:    &mantle 	  	"181825ff"
 crust:     &crust 	  	"11111bff"
 
 fonts: &fonts "JetBrainsMono Nerd Font:size=14"
-std_underline: &std_underline {underline: { size: 3, color: *red}}
+std_underline: &std_underline {underline: { size: 1, color: *red}}
 
 bar:
   height: 18 
@@ -95,7 +95,7 @@ bar:
               conditions:
                 ~activated: {empty: {}}
                 activated:
-                  - string: {text: " {title}",foreground: *text}
+                  - string: {text: "{app-id} {title}",foreground: *text}
 
 
   #center:
@@ -193,7 +193,7 @@ bar:
                   conditions:
                     ~optical:
                       - string: {<<: *drive, deco: *std_underline}
-                      - string: {text: "{label}",foreground: *lavender}
+                      - string: {text: "{label}", deco: *std_underline,foreground: *lavender}
                       - string: {text: "|"}
                     optical:
                       - string: {<<: *optical, deco: *std_underline}

@@ -7,7 +7,6 @@ export ZPLUG_HOME=$XDG_DATA_HOME/zplug
 alias wget=wget --hsts-file="$XDG_DATA_HOME/wget-hsts"
 export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
 export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc
-export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
 export QT_STYLE_OVERRIDE=kvantum
 export QT_QPA_PLATFORMTHEME=qt6ct
 export ZSH_CUSTOM=$XDG_DATA_HOME
@@ -35,3 +34,4 @@ export YARN_GLOBAL_FOLDER=$$XDG_DATA_HOMEHOME/.data
 export WG_CONFIG_DIR=$$XDG_DATA_HOMEHOME/.data
 export GOPATH=$$XDG_DATA_HOMEHOME/.data
 export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie
+export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv

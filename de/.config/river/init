@@ -2,18 +2,21 @@
 sh ~/.local/bin/monitor.sh &
 
 #app spawns
-riverctl map normal Super Q                             close
 riverctl map normal Super+Shift P                       exit
 riverctl map normal Super Tab                           spawn "wezterm"
 riverctl map normal Super+Shift Tab                     spawn "kitty"
 riverctl map normal Super Space                         spawn "rofi -show drun -show-icons"
-riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "Run game:" | xargs -I{} sh -c "~/.local/bin/'{}'"'
-riverctl map normal Super W                             spawn "codium" 
+riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "" | xargs -I{} sh -c "~/.local/bin/'{}'"'
+riverctl map normal Super Q                             close
+riverctl map normal Super W                             spawn "legcord" 
 riverctl map normal Super E                             spawn "nemo"
 riverctl map normal Super R                             spawn "kitty -e rmpc"
-riverctl map normal Super T                             spawn "zen-browser & zen"
-riverctl map normal Super Y                             spawn "pavucontrol"
-riverctl map normal Super S                             spawn "hyprshot -m region"; riverctl map normal Super+Shift S spawn "hyprshot -m output"; riverctl map normal Super+Control S spawn "hyprshot -m window"
+riverctl map normal Super T                             spawn "zen-browser & zen";  riverctl map normal Super+Shift T spawn "brave"
+riverctl map normal Super A                             spawn "pavucontrol"
+riverctl map normal Super S                             spawn "grim -g '$(slurp)'"; riverctl map normal Super+Shift S spawn "grim -g '$(slurp -o)'"
+riverctl map normal Super D                             spawn "steam"
+riverctl map normal Super F                             toggle-fullscreen
+riverctl map normal Super V                             toggle-float
 riverctl map normal Super B                             spawn "wtype \"\$(grep -v '^#' ~/.local/bin/bkmrk.txt | rofi -dmenu | cut -d' ' -f1; sleep .5)\""
 
 #movement
@@ -28,8 +31,6 @@ riverctl map normal Super+Shift N                       send-to-output previous
 riverctl map normal Super+Shift Period                  send-to-output next 
 
 riverctl map normal Super Return                        zoom
-riverctl map normal Super V                             toggle-float
-riverctl map normal Super F                             toggle-fullscreen
 riverctl map normal Super Up                            send-layout-cmd rivertile "main-location top"
 riverctl map normal Super Right                         send-layout-cmd rivertile "main-location right"
 riverctl map normal Super Down                          send-layout-cmd rivertile "main-location bottom"
@@ -95,6 +96,7 @@ riverctl set-cursor-warp on-focus-change
 riverctl default-layout rivertile
 rivertile -view-padding 0 -outer-padding 0 &
 riverctl set-repeat 50 300
+riverctl xcursor-theme Bibata-Modern-Classic 24
 export XCURSOR_THEME=Bibata-Modern-Classic
 export XCURSOR_SIZE=24
 export XDG_CURRENT_DESKTOP=river
@@ -104,6 +106,7 @@ export XDG_SESSION_TYPE=wayland
 
 #rules
 riverctl rule-add -app-id kitty output DP-1
+riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord DP-2
 
 #autostart stuff
 dunst &
