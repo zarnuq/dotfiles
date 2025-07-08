@@ -1,9 +1,11 @@
 #!/bin/sh
-set -e
 
 #needed packages
 sudo pacman -Syu --noconfirm
-sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp
+sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look
+echo "[options]
+Color" | sudo tee -a /etc/pacman.conf
+echo "BottomUp" | sudo tee -a /etc/paru.conf
 echo "arch repo packages installed"
 
 
@@ -20,7 +22,7 @@ echo "paru installed"
 
 
 #paru packages
-paru -S --noconfirm zen-browser-bin brave-bin mpdris vscodium xremap catppuccin-sddm-theme-mocha yambar catppuccin-gtk-theme-mocha bibata-cursor-theme legcord
+paru -S zen-browser-bin brave-bin mpdris vscodium xremap catppuccin-sddm-theme-mocha yambar catppuccin-gtk-theme-mocha bibata-cursor-theme legcord
 echo "AUR packages added"
 
 
@@ -29,6 +31,9 @@ echo "AUR packages added"
 sudo chsh "$USER" -s /bin/zsh
 sudo mkdir -p /etc/zsh
 echo "export ZDOTDIR=/home/miles/.config/zsh" | sudo tee /etc/zsh/zshenv
+sudo rm /bin/sh
+sudo ln -s /bin/dash /bin/sh
+git clone https://github.com/zplug/zplug ~/.local/share
 echo "shell changed"
 
 
@@ -60,6 +65,7 @@ echo "greetd configured"
 
 
 #services
+mkdir ~/.local/share/mpd
 systemctl --user enable --now mpd
 systemctl --user enable --now mpdris
 systemctl --user enable --now xdg-desktop-portal 

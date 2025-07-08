@@ -11,7 +11,7 @@ get_clean_sink() {
 
     cleaned=$(echo "$description" | sed -E \
         -e 's/\([^)]*\)//g' \
-        -e 's/\b(Analog|Digital|Stereo|Mono|Surround|Sink|Output|A2DP|Pro|Profile|HDMI)\b//Ig' \
+        -e 's/\b(Analog|HD|Audio|17h|19h|1ah|\/|Digital|Stereo|Mono|Controller|Family|Surround|Sink|Output|A2DP|Pro|Profile|HDMI)\b//Ig' \
         -e 's/ +/ /g' \
         -e 's/^ //' \
         -e 's/ $//')
