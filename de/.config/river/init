@@ -2,9 +2,8 @@
 sh ~/.local/bin/monitor.sh &
 
 #app spawns
-riverctl map normal Super+Shift P                       exit
-riverctl map normal Super Tab                           spawn "wezterm"
-riverctl map normal Super+Shift Tab                     spawn "kitty"
+riverctl map normal Super P                             spawn "swaylock"; riverctl map normal Super+Shift P exit 
+riverctl map normal Super Tab                           spawn "wezterm"; riverctl map normal Super+Shift Tab                     spawn "kitty"
 riverctl map normal Super Space                         spawn "rofi -show drun -show-icons"
 riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "" | xargs -I{} sh -c "~/.local/bin/'{}'"'
 riverctl map normal Super Q                             close
@@ -103,11 +102,14 @@ export XDG_CURRENT_DESKTOP=river
 export XDG_SESSION_DESKTOP=river
 export XDG_SESSION_TYPE=wayland
 
+#systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+#dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=river
+#systemctl --user daemon-reexec
 
 
 #rules
 riverctl rule-add -app-id kitty output DP-1
-riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord DP-2
+riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 2 
 
 #autostart stuff
 dunst &

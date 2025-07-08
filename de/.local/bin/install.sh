@@ -2,7 +2,7 @@
 
 #needed packages
 sudo pacman -Syu --noconfirm
-sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look
+sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock
 echo "[options]
 Color" | sudo tee -a /etc/pacman.conf
 echo "BottomUp" | sudo tee -a /etc/paru.conf

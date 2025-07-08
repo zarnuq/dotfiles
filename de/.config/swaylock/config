@@ -1,0 +1,28 @@
+# image=/path/to/your/image.png
+
+# Background color (in case no image is set)
+color=1e1e2e
+
+# Inside color (circle around password entry)
+inside-color=313244
+inside-clear-color=89b4fa
+inside-ver-color=a6e3a1
+inside-wrong-color=f38ba8
+
+# Ring (outer circle) color
+ring-color=6c7086
+ring-clear-color=89b4fa
+ring-ver-color=a6e3a1
+ring-wrong-color=f38ba8
+
+# Key highlight colors
+key-hl-color=cba6f7
+bs-hl-color=f38ba8
+
+# Text colors
+text-color=cdd6f4
+text-clear-color=cdd6f4
+text-ver-color=cdd6f4
+text-wrong-color=cdd6f4
+
+ignore-empty-password
