@@ -14,9 +14,8 @@ echo "arch repo packages installed"
 
 
 #paru
-cd ~
-git clone https://aur.archlinux.org/paru.git
-cd paru
+git clone https://aur.archlinux.org/paru.git ~/paru
+cd ~/paru
 makepkg -si
 cd ~
 rm -rf ~/paru
