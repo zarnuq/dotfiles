@@ -15,6 +15,7 @@ while true; do
     --tree-font-color="cdd6f4ff" \
     --toplists-font-color="CDD6F4FF" \
     --hide-top-levels=0 \
+    --tree-font-face=JetBrainsMonoNerdFont\
     --toplists-pid-font-color="9399B2FF"
 
   count=$(ps -C swaybg --no-headers | wc -l)
