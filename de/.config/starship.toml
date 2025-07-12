@@ -1,16 +1,15 @@
 palette = "catppuccin_mocha"
-format = """$directory$git_branch$git_status$character
-\r"""
+format = """$directory$git_branch$git_status$character"""
 
 [directory]
 format = 	'[$path]($style)[$read_only]($read_only_style) '
 truncation_symbol = "~/"
-style = "bold red"
+style = "bold mauve"
 
 # Git branch: simple green with branch symbol
 [git_branch]
 format = "[$branch(:$remote_branch)]($style) "
-style = "bold mauve"
+style = "bold maroon"
 
 # Git status: minimal icons in yellow
 [git_status]
@@ -27,8 +26,9 @@ deleted = "✖"
 style = "bold peach"
 
 [character]
+format = 	'$symbol'
 success_symbol = '[](bold green)'
-error_symbol = '[](bold red)'
+error_symbol = '[ ](bold red)'
 
 [time]
 disabled = true 

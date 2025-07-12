@@ -44,8 +44,8 @@ _comp_options+=(globdots)
 HYPHEN_INSENSITIVE="true"
 HIST_STAMPS="mm/dd/yyyy"
 HISTFILE=$ZDOTDIR/zsh_history
-HISTSIZE=100000
-SAVEHIST=100000
+HISTSIZE=1000000
+SAVEHIST=1000000
 HISTCONTROL="ignoredups:erasedups"
 HISTIGNORE="ls:cd:pwd:exit"
 
@@ -68,6 +68,3 @@ eval "$(starship init zsh)"
 eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-
-
-fastfetch 
