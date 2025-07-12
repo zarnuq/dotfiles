@@ -5,10 +5,13 @@ sudo usermod -a -G mpd,power,video,storage,kvm,disk,audio $USER
 
 
 #needed packages
-sudo pacman -Syu --noconfirm
-sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux xremap-wlroots-bin 7zip
 echo "[options]
-Color" | sudo tee -a /etc/pacman.conf
+Color
+[multilib]
+Include = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
+sudo pacman -Syu --noconfirm
+sudo pacman -S --noconfirm base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 qt6-svg qt6-declarative qt5-quickcontrols2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux xremap-wlroots-bin 7zip steam lsp-plugins bluez blueberry
+sudo rm /usr/share/applications/in.lsp_plug.lsp_plugins_*
 echo "arch repo packages installed"
 
 
@@ -32,7 +35,7 @@ echo "AUR packages added"
 
 #change shell
 sudo chsh "$USER" -s /bin/zsh
-sudo mkdir -p /etc/zsh
+sudo mkdir /etc/zsh
 echo "export ZDOTDIR=/home/miles/.config/zsh" | sudo tee /etc/zsh/zshenv
 sudo rm /bin/sh
 sudo ln -s /bin/dash /bin/sh

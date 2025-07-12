@@ -82,6 +82,7 @@ riverctl map normal None XF86AudioNext                  spawn 'playerctl next'
 
 riverctl map -repeat normal Super+Alt right             spawn 'brightnessctl s 3%+'
 riverctl map -repeat normal Super+Alt left              spawn 'brightnessctl s 3%-'
+riverctl map -repeat normal Super+Alt up                spawn 'sh ~/.local/bin/gammastep.sh'
 
 
 #decorations and cursor follow
@@ -109,7 +110,9 @@ export XDG_SESSION_TYPE=wayland
 
 #rules
 riverctl rule-add -app-id kitty output DP-1
-riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 2 
+riverctl rule-add -app-id steam tags 5
+riverctl rule-add -app-id zen tags 2
+riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 
 
 #autostart stuff
 dunst &
