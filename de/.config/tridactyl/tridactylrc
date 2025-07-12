@@ -151,7 +151,6 @@ unbind '
 unbind ?	              
 unbind ZQ	              
 
-unbind <C-f>
 bind O	              open
 bind o	              tabopen
 bind w                winopen
@@ -297,3 +296,4 @@ bind N	              findprev
 bind '	              jumptomark
 bind ?	              help
 bind ZQ	              winclose
+unbind <C-f>
