@@ -36,6 +36,7 @@ alias pickcolor='grim -g "$(slurp -p)" -t ppm - | convert - -format "%[pixel:p{0
 alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias bkmrk='nvim $XDG_CONFIG_HOME/scripts/bkmrk.txt'
 alias r='river'
+alias ff='fastfetch'
 
 #CONFIG
 export EDITOR=nvim

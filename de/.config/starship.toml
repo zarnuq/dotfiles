@@ -1,0 +1,31 @@
+
+# Directory module: truncate path, color cyan
+[directory]
+truncation_symbol = "~/"
+style = "cyan"
+
+# Git branch: simple green with branch symbol
+[git_branch]
+format = "[$branch(:$remote_branch)]($style) "
+style = "bold green"
+
+# Git status: minimal icons in yellow
+[git_status]
+conflicted = "≠"
+ahead = "↑"
+behind = "↓"
+staged = "●"
+untracked = "…"
+modified = "✚"
+stashed = "⚑"
+renamed = "➜"
+deleted = "✖"
+style = "bold yellow"
+
+# Prompt character: green ❯ for success, red ✗ for failure
+[character]
+success_symbol = '[➜](bold green)'
+error_symbol = '[✗](bold red)'
+
+[time]
+disabled = true 
