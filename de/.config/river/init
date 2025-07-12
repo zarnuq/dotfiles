@@ -120,4 +120,5 @@ easyeffects --gapplication-service &
 gammastep -O 4000:4000 &
 sh ~/.local/bin/psc.sh &
 sh ~/.local/bin/yambar.sh & 
+xremap ~/.config/xremap/config.yml &
 kitty -e rmpc &

@@ -11,9 +11,9 @@ teal:      &teal 		    "94e2d5ff"
 sky:       &sky 		    "89dcebff"
 sapphire:  &sapphire 		"74c7ecff"
 blue:      &blue 		    "89b4faff"
-lavender:  &lavender 		"b4befeff"
-text:      &text 	    	"cdd6f4ff"
-subtext1:  &subtext1 		"bac2deff"
+lavender:  &lavender 		"b4befeff" 
+text:      &text 	    	"cdd6f4ff" 
+subtext1:  &subtext1 		"bac2deff" 
 subtext0:  &subtext0 		"a6adc8ff"
 overlay2:  &overlay2 		"9399b2ff"
 overlay1:  &overlay1 		"7f849cff"
@@ -95,7 +95,7 @@ bar:
               conditions:
                 ~activated: {empty: {}}
                 activated:
-                  - string: {text: "{app-id} {title}",foreground: *text}
+                  - string: {text: " {app-id} {title}",foreground: *text}
 
 
   #center:

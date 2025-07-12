@@ -47,29 +47,23 @@ HISTSIZE=100000
 SAVEHIST=100000
 HISTCONTROL="ignoredups:erasedups"
 HISTIGNORE="ls:cd:pwd:exit"
-setopt prompt_subst
-source ~/.local/share/zplug/repos/agnoster/agnoster-zsh-theme/agnoster.zsh-theme
-precmd() { print "" }
 
 #PLUGINS
 source $ZPLUG_HOME/init.zsh
-zplug "agnoster/agnoster-zsh-theme"
+
+# Declare plugins
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "zsh-users/zsh-autosuggestions"
 zplug "Aloxaf/fzf-tab"
-
 if ! zplug check --verbose; then
     zplug install
 fi
 zplug load
 
-#AUTOSUGGESTIONS/COMPLETIONS
+
 export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"
-
-#ZOXIDE
 eval "$(zoxide init zsh)"
-
-#FZF STUFF
+eval "$(starship init zsh)"
 eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
