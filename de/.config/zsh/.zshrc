@@ -25,6 +25,7 @@ alias gp='git push'
 alias ip='ip -c'
 alias vim='nvim'
 alias ls='ls --color=auto'
+alias ll='ls -l --color=auto'
 alias grep='grep --color=auto'
 alias nord='sudo systemctl start nordvpnd && nordvpn c Chicago'
 alias cd='z'
@@ -38,7 +39,6 @@ alias r='river'
 alias ff='fastfetch'
 
 #CONFIG
-export EDITOR=nvim
 _comp_options+=(globdots)
 HYPHEN_INSENSITIVE="true"
 HIST_STAMPS="mm/dd/yyyy"
