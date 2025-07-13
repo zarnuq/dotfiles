@@ -82,7 +82,7 @@ riverctl map normal None XF86AudioNext                  spawn 'playerctl next'
 
 riverctl map -repeat normal Super+Alt right             spawn 'brightnessctl s 3%+'
 riverctl map -repeat normal Super+Alt left              spawn 'brightnessctl s 3%-'
-riverctl map -repeat normal Super+Alt up                spawn 'sh ~/.local/bin/gammastep.sh'
+riverctl map         normal Super+Alt up                spawn 'sh ~/.local/bin/gammastep.sh'
 
 
 #decorations and cursor follow

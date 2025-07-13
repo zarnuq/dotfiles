@@ -161,7 +161,7 @@ wezterm.on("update-right-status", function(window, _)
     local prefix = ""
 
     if window:leader_is_active() then
-        prefix = " " .. utf8.char(0x1f30a) -- ocean wave
+        prefix = "" .. utf8.char(0x1f30a) -- ocean wave
         SOLID_LEFT_ARROW = utf8.char(0xe0b2)
     end
 
