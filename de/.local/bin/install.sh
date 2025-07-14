@@ -18,7 +18,7 @@ fi
 if ! grep -Fxq "Color" /etc/pacman.conf; then
   echo -e "\n[options]\nColor" | sudo tee -a /etc/pacman.conf
 fi
-packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr)
+packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent)
 missing_pkgs=()
 for pkg in "${packages[@]}"; do
   pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
@@ -44,7 +44,7 @@ echo "paru installed"
 
 
 #paru packages
-aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-gtk-theme-mocha bibata-cursor-theme legcord pscircle)
+aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord pscircle kvantum-theme-catppuccin-git)
 for pkg in "${aur_packages[@]}"; do
   paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
 done
@@ -52,15 +52,15 @@ echo "AUR pkgs added"
 
 
 #grub
-cd ~
-git clone https://github.com/catppuccin/grub.git && cd grub
-rm src/catppuccin-mocha-grub-theme/logo.png
-cp ~/Documents/logo.png src/catppuccin-mocha-grub-theme
-sudo cp -r src/* /usr/share/grub/themes/
-echo 'GRUB_THEME="/usr/share/grub/themes/catppuccin-mocha-grub-theme/theme.txt"' | sudo tee -a /etc/default/grub
-sudo grub-mkconfig -o /boot/grub/grub.cfg
-sudo rm -rf grub
-echo "grub themed"
+if ! grep "catppuccin-mocha" /etc/default/grub; then
+  sudo rm /usr/share/grub/themes/catppuccin-mocha/logo.png
+  sudo cp ~/Documents/logo.png /usr/share/grub/themes/catppuccin-mocha
+  echo 'GRUB_THEME="/usr/share/grub/themes/catppuccin-mocha/theme.txt"' | sudo tee -a /etc/default/grub
+  sudo grub-mkconfig -o /boot/grub/grub.cfg
+  echo "grub themed"
+else
+  echo "grub already themed"
+fi
 
 
 
@@ -119,6 +119,7 @@ systemctl --user enable --now mpdris
 systemctl --user enable --now xdg-desktop-portal 
 systemctl --user enable --now xdg-desktop-portal-wlr
 sudo systemctl enable --now ufw
+sudo systemctl enable --now bluetooth 
 sudo systemctl enable --now dbus 
 sudo systemctl enable --now udisks2 
 sudo systemctl enable greetd
