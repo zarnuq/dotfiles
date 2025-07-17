@@ -1,6 +1,6 @@
 #!/bin/bash
 #groups
-group_list=(mpd power video storage kvm disk audio)
+group_list=(power video storage kvm disk audio nordvpn mpd)
 for group in "${group_list[@]}"; do
   if ! groups "$USER" | grep -qw "$group"; then
     sudo usermod -a -G "$group" "$USER"
@@ -44,7 +44,7 @@ echo "paru installed"
 
 
 #paru packages
-aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord pscircle kvantum-theme-catppuccin-git)
+aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord pscircle kvantum-theme-catppuccin-git nordvpn-bin)
 for pkg in "${aur_packages[@]}"; do
   paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
 done
@@ -64,20 +64,21 @@ fi
 
 
 
+#greetd
+if [ ! -f /etc/greetd/config.toml ]; then
+  sudo mkdir /etc/greetd
+  sudo tee /etc/greetd/config.toml > /dev/null <<EOF
+[terminal]
+vt = 1
 
-#change shell
-if [ "$SHELL" != "/bin/zsh" ]; then
-  sudo chsh "$USER" -s /bin/zsh
+[default_session]
+command = "/usr/bin/tuigreet -r --asterisks -c river"
+user = "greeter"
+EOF
+  echo "greetd configured"
+else
+  echo "greetd already configured"
 fi
-
-if [ ! -f /etc/zsh/zshenv ]; then
-  sudo mkdir -p /etc/zsh
-  echo "export ZDOTDIR=/home/$USER/.config/zsh" | sudo tee /etc/zsh/zshenv
-fi
-sudo rm /bin/sh
-sudo ln -s /bin/dash /bin/sh
-git clone https://github.com/zplug/zplug ~/.local/share
-echo "shell changed"
 
 
 
@@ -95,21 +96,31 @@ fi
 
 
 
-#greetd
-if [ ! -f /etc/greetd/config.toml ]; then
-  sudo mkdir /etc/greetd
-  sudo tee /etc/greetd/config.toml > /dev/null <<EOF
-[terminal]
-vt = 1
-
-[default_session]
-command = "/usr/bin/tuigreet -r --asterisks -c river"
-user = "greeter"
-EOF
-  echo "greetd configured"
-else
-  echo "greetd already configured"
+#change shell
+if [ "$SHELL" != "/bin/zsh" ]; then
+  sudo chsh "$USER" -s /bin/zsh
 fi
+
+if [ ! -f /etc/zsh/zshenv ]; then
+  sudo mkdir -p /etc/zsh
+  echo "export ZDOTDIR=/home/$USER/.config/zsh" | sudo tee /etc/zsh/zshenv
+fi
+sudo rm /bin/sh
+sudo ln -s /bin/dash /bin/sh
+git clone https://github.com/zplug/zplug ~/.local/share
+echo "shell changed"
+
+
+
+#zen theme
+DEFAULT_PROFILE=$(grep -A1 '\[Install' "$HOME/.zen/profiles.ini" | grep '^Default=' | cut -d= -f2-)
+PROFILE_DIR="$HOME/.zen/$DEFAULT_PROFILE"
+rm -rf "$PROFILE_DIR"/chrome
+rm -rf "$PROFILE_DIR"/user.js
+ln -s ~/dotfiles/de/.zen/chrome "$PROFILE_DIR"/chrome
+ln -s ~/dotfiles/de/.zen/user.js "$PROFILE_DIR"/user.js
+echo "zen configured"
+
 
 
 #services
