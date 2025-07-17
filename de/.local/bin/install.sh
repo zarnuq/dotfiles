@@ -18,7 +18,7 @@ fi
 if ! grep -Fxq "Color" /etc/pacman.conf; then
   echo -e "\n[options]\nColor" | sudo tee -a /etc/pacman.conf
 fi
-packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent zim qt6ct ghostwriter)
+packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent qt6ct ghostwriter)
 missing_pkgs=()
 for pkg in "${packages[@]}"; do
   pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
