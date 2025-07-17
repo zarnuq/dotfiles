@@ -4,7 +4,7 @@ sh ~/.local/bin/monitor.sh &
 #app spawns
 riverctl map normal Super P                             spawn "swaylock"; riverctl map normal Super+Shift P exit 
 riverctl map normal Super Tab                           spawn "wezterm"; riverctl map normal Super+Shift Tab                     spawn "kitty"
-riverctl map normal Super Space                         spawn "rofi -show drun -show-icons"
+riverctl map normal Super Space                         spawn "env QT_QPA_PLATFORMTHEME=qt6ct QT_STYLE_OVERRIDE=kvantum rofi -show drun -show-icons"
 riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "" | xargs -I{} sh -c "~/.local/bin/'{}'"'
 riverctl map normal Super Q                             close
 riverctl map normal Super W                             spawn "legcord" 
@@ -102,6 +102,9 @@ export XCURSOR_SIZE=24
 export XDG_CURRENT_DESKTOP=river
 export XDG_SESSION_DESKTOP=river
 export XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_STYLE_OVERRIDE=kvantum
+
 
 #systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 #dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=river
