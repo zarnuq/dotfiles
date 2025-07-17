@@ -1,9 +1,5 @@
 set smoothscroll true
 set newtab about:newtab
-
-
-
-
 unbind <C-f>
 unbind O	              
 unbind o	              
