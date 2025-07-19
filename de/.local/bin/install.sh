@@ -128,7 +128,6 @@ mkdir ~/.local/share/mpd
 systemctl --user enable --now mpd
 systemctl --user enable --now mpdris
 systemctl --user enable --now xdg-desktop-portal 
-systemctl --user enable --now xdg-desktop-portal-wlr
 sudo systemctl enable --now ufw
 sudo systemctl enable --now bluetooth 
 sudo systemctl enable --now dbus 
