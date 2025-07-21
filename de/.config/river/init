@@ -30,6 +30,7 @@ riverctl rule-add -app-id steam tags 5
 riverctl rule-add -app-id zen tags 2
 riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 
 
+
 #autostart stuff
 dunst &
 easyeffects --gapplication-service &
@@ -37,4 +38,4 @@ sh ~/.local/bin/psc.sh &
 sh ~/.local/bin/yambar.sh & 
 xremap ~/.config/xremap/config.yml &
 kitty -e rmpc &
-sleep 10; sh ~/.config/river/screenshare.sh
+sh ~/.config/river/screenshare.sh &
