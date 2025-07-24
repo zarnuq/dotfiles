@@ -25,7 +25,6 @@ export QT_STYLE_OVERRIDE=kvantum
 
 
 #rules
-riverctl rule-add -app-id kitty output DP-1
 riverctl rule-add -app-id steam tags 5
 riverctl rule-add -app-id zen tags 2
 riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 

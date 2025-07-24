@@ -18,7 +18,7 @@ fi
 if ! grep -Fxq "Color" /etc/pacman.conf; then
   echo -e "\n[options]\nColor" | sudo tee -a /etc/pacman.conf
 fi
-packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent qt6ct ghostwriter noto-fonts-cjk)
+packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent qt6ct ghostwriter noto-fonts-cjk emacs)
 missing_pkgs=()
 for pkg in "${packages[@]}"; do
   pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
@@ -120,6 +120,17 @@ rm -rf "$PROFILE_DIR"/user.js
 ln -s ~/dotfiles/de/.zen/chrome "$PROFILE_DIR"/chrome
 ln -s ~/dotfiles/de/.zen/user.js "$PROFILE_DIR"/user.js
 echo "zen configured"
+
+
+
+#doom emacs
+git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
+sh ~/.config/emacs/bin/doom install
+
+
+
+#tpm
+git clone https://github.com/tmux-plugins/tpm ~/.local/share/tmux/plugins/tpm
 
 
 
