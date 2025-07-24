@@ -2,6 +2,7 @@
 ### configured applications
 * dunst
 * easyeffects(eq)
+* doom emacs
 * fastfetch
 * ghostty
 * ghostwriter
