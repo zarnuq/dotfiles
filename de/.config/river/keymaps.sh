@@ -3,7 +3,7 @@ riverctl map normal Super P                             spawn "swaylock"; riverc
 riverctl map normal Super Tab                           spawn "kitty"; riverctl map normal Super+Shift Tab                     spawn "wezterm"
 riverctl map normal Super Space                         spawn "env QT_QPA_PLATFORMTHEME=qt6ct QT_STYLE_OVERRIDE=kvantum rofi -show drun -show-icons"
 riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "" | xargs -I{} sh -c "~/.local/bin/'{}'"'
-riverctl map normal Super BackSpace                     spawn "emacsclient -c" 
+riverctl map normal Super BackSpace                     spawn 'kitty sh -c "emacsclient -t"'
 riverctl map normal Super Q                             close
 riverctl map normal Super W                             spawn "legcord" 
 riverctl map normal Super E                             spawn "nemo"
