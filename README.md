@@ -1,5 +1,6 @@
 # My dotfiles
 ### configured applications
+* btop
 * dunst
 * easyeffects(eq)
 * doom emacs
