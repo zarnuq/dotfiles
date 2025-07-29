@@ -25,13 +25,14 @@ export QT_STYLE_OVERRIDE=kvantum
 
 
 #rules
-riverctl rule-add -app-id steam tags 5
-riverctl rule-add -app-id zen tags 2
-riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 
+#riverctl rule-add -app-id steam tags 5
+#riverctl rule-add -app-id zen tags 2
+#riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 
 
 
 #autostart stuff
 dunst &
+copyq &
 easyeffects --gapplication-service &
 sh ~/.local/bin/psc.sh &
 sh ~/.local/bin/yambar.sh & 
