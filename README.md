@@ -15,6 +15,7 @@
 * nixos
 * nvim
 * pipewire settings
+* qBittorrent
 * qt themes
 * river
 * rmpc
