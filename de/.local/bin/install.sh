@@ -119,6 +119,7 @@ rm -rf "$PROFILE_DIR"/chrome
 rm -rf "$PROFILE_DIR"/user.js
 ln -s ~/dotfiles/de/.zen/chrome "$PROFILE_DIR"/chrome
 ln -s ~/dotfiles/de/.zen/user.js "$PROFILE_DIR"/user.js
+xdg-settings set default-web-browser zen.desktop
 echo "zen configured"
 
 

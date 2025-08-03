@@ -1,6 +1,6 @@
 #app spawns
 riverctl map normal Super P                             spawn "swaylock"; riverctl map normal Super+Shift P exit
-riverctl map normal Super Tab                           spawn "kitty"; riverctl map normal Super+Shift Tab                     spawn "wezterm"
+riverctl map normal Super Tab                           spawn "kitty -e tmux"; riverctl map normal Super+Shift Tab                     spawn "wezterm"
 riverctl map normal Super Space                         spawn "env QT_QPA_PLATFORMTHEME=qt6ct QT_STYLE_OVERRIDE=kvantum rofi -show drun -show-icons"
 riverctl map normal Super+Control Space                 spawn 'ls ~/.local/bin/*.sh | xargs -n1 basename | rofi -dmenu -p "" | xargs -I{} sh -c "~/.local/bin/'{}'"'
 riverctl map normal Super BackSpace                     spawn 'kitty sh -c "emacsclient -t"'
@@ -22,10 +22,10 @@ riverctl map normal Super K                             focus-view up
 riverctl map normal Super H                             focus-view left
 riverctl map normal Super L                             focus-view right
 
-riverctl map normal Super N                             focus-output previous 
-riverctl map normal Super Period                        focus-output next 
-riverctl map normal Super+Shift N                       send-to-output previous 
-riverctl map normal Super+Shift Period                  send-to-output next 
+riverctl map normal Super N                             focus-output next 
+riverctl map normal Super Period                        focus-output previous 
+riverctl map normal Super+Shift N                       send-to-output next 
+riverctl map normal Super+Shift Period                  send-to-output previous 
 
 riverctl map normal Super Return                        zoom
 riverctl map normal Super Up                            send-layout-cmd rivertile "main-location top"
@@ -75,8 +75,8 @@ riverctl map normal Alt bracketleft                     spawn "sh ~/.local/bin/f
             
 riverctl map normal None XF86AudioMedia                 spawn 'playerctl -p mpd play-pause'
 riverctl map normal None XF86AudioPlay                  spawn 'playerctl -p mpd play-pause'
-riverctl map normal None XF86AudioPrev                  spawn 'playerctl previous'
-riverctl map normal None XF86AudioNext                  spawn 'playerctl next'
+riverctl map normal None XF86AudioPrev                  spawn 'playerctl -p mpd previous'
+riverctl map normal None XF86AudioNext                  spawn 'playerctl -p mpd next'
 
 riverctl map -repeat normal Super+Alt right             spawn 'brightnessctl s 3%+'
 riverctl map -repeat normal Super+Alt left              spawn 'brightnessctl s 3%-'
