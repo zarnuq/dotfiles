@@ -10,7 +10,7 @@ riverctl map normal Super E                             spawn "nemo"
 riverctl map normal Super R                             spawn "kitty -e rmpc"
 riverctl map normal Super T                             spawn "zen-browser & zen";  riverctl map normal Super+Shift T spawn "brave"
 riverctl map normal Super A                             spawn "pavucontrol"
-riverctl map normal Super S                             spawn 'grim -g "$(slurp)"'; riverctl map normal Super+Shift S spawn 'grim -g "$(slurp -o)"'
+riverctl map normal Super S                             spawn 'grim -g "$(slurp)"'; riverctl map normal Super+Shift S spawn 'grim -o DP-2'
 riverctl map normal Super D                             spawn "steam"
 riverctl map normal Super F                             toggle-fullscreen
 riverctl map normal Super V                             toggle-float

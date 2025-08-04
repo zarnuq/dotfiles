@@ -4,7 +4,7 @@
 (
     default_album_art_path: None,
     show_song_table_header: true,
-    draw_borders: true,
+    draw_borders: false,
     browser_column_widths: [20, 38, 42],
     background_color: None,
     text_color: None,
@@ -13,11 +13,9 @@
     tab_bar:                (enabled: true,active_style: (fg: "#000000", bg: "#cba6f7", modifiers: "Bold"),inactive_style: (),),
     highlighted_item_style: (fg: "#f38ba8", modifiers: "Bold"),
     current_item_style:     (fg: "#000000", bg: "#cba6f7", modifiers: "Bold"),
-    borders_style:          (fg: "#cba6f7"),
-    highlight_border_style: (fg: "#cba6f7"),
     symbols: (song: "S", dir: "D", marker: "M ", ellipsis: "..."),
     progress_bar: (
-        symbols: ["󰝤", "", " "],
+        symbols: ["󰝤", "", ""],
         track_style: (fg: "#1e2030"),
         elapsed_style: (fg: "#cba6f7"),
         thumb_style: (fg: "#cba6f7", bg: "#1e2030"),
@@ -74,7 +72,7 @@
                 direction: Vertical,
                 panes: [
                 (
-                    size: "8",
+                    size: "15",
                     pane: Pane(Header),
                   ),
                 (
@@ -82,7 +80,7 @@
                     pane: Pane(ProgressBar),
                   ),
                 (
-                    size: "3",
+                    size: "1",
                     pane: Pane(Tabs),
                   ),
                 ]
@@ -108,7 +106,7 @@
                     (kind: Text("]"), style: (fg: "yellow", modifiers: "Bold")),
                 ],
                 center: [
-                    (kind: Property(Widget(States(active_style: (fg: "white", modifiers: "Bold"),separator_style: (fg: "white")))),style: (fg: "dark_gray")),
+                    (kind: Property(Song(Title)), style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("No Song"), style: (modifiers: "Bold"))),
                 ],
                 right: [
                     (kind: Property(Widget(Volume)), style: (fg: "#cba6f7"))
@@ -116,27 +114,38 @@
             ),
             (
                 left: [
-                    (kind: Property(Song(Title)), style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("No Song"), style: (modifiers: "Bold"))),
+                    (kind: Property(Status(Elapsed))),
+                    (kind: Text("/")),
+                    (kind: Property(Status(Duration))),
                 ],
                 center: [
-                    (kind: Property(Song(Album)), style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("Unknown Album")))
+                    (kind: Property(Song(Album)), style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("No Song"), style: (modifiers: "Bold"))),
                 ],
                 right: [
-                    (kind: Property(Song(Artist)),style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("Unknown"), style: (modifiers: "Bold"))),
+                    (kind: Property(Status(RepeatV2(on_label: "Repeat",   off_label: "Repeat",  on_style: (fg: "white", modifiers: "Bold"),separator_style: (fg: "white"), off_style: (fg: "dark_gray"))))),
                 ]
             ),
             (
                 left: [
-                ],
-                center: [
-                    (kind: Property(Status(Elapsed))),
-                    (kind: Text(" / ")),
-                    (kind: Property(Status(Duration))),
-                    (kind: Text(" (")),
+                    (kind: Text("(")),
                     (kind: Property(Status(Bitrate))),
                     (kind: Text(" kbps)"))
                 ],
+                center: [
+                    (kind: Property(Song(Artist)), style: (fg: "#f38ba8", modifiers: "Bold"),default: (kind: Text("No Song"), style: (modifiers: "Bold"))),
+                ],
                 right: [
+                    (kind: Property(Status(RandomV2(on_label: "Random",   off_label: "Random",  on_style: (fg: "white", modifiers: "Bold"),separator_style: (fg: "white"), off_style: (fg: "dark_gray"))))),
+                ]
+            ),
+            (
+                left: [
+                    (kind: Property(Status(QueueLength(thousands_separator: ","))))
+                ],
+                center: [
+                ],
+                right: [
+                    (kind: Property(Status(ConsumeV2(on_label: "Consume", off_label: "Consume", oneshot_label: "(Comsume)", on_style: (fg: "white", modifiers: "Bold"),separator_style: (fg: "white"), off_style: (fg: "dark_gray"))))),
                 ]
             ),
             (
@@ -145,6 +154,7 @@
                 center: [
                 ],
                 right: [
+                    (kind: Property(Status(SingleV2(on_label: "Single", off_label: "Single", oneshot_label: "(Single)", on_style: (fg: "white", modifiers: "Bold"),separator_style: (fg: "white"), off_style: (fg: "dark_gray"))))),
                 ]
             ),
         ],
