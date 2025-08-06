@@ -1,4 +1,4 @@
-#app spawns
+
 riverctl map normal Super P                             spawn "swaylock"; riverctl map normal Super+Shift P exit
 riverctl map normal Super Tab                           spawn "kitty -e tmux"; riverctl map normal Super+Shift Tab                     spawn "wezterm"
 riverctl map normal Super Space                         spawn "env QT_QPA_PLATFORMTHEME=qt6ct QT_STYLE_OVERRIDE=kvantum rofi -show drun -show-icons"

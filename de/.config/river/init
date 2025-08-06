@@ -1,6 +1,5 @@
 #!/bin/sh
-sh ~/.config/river/monitor.sh &
-sh ~/.config/river/keymaps.sh &
+sh ~/.local/share/monitor.sh &
 
 
 #decorations and cursor follow
@@ -24,11 +23,6 @@ export QT_QPA_PLATFORMTHEME=qt6ct
 export QT_STYLE_OVERRIDE=kvantum
 
 
-#rules
-#riverctl rule-add -app-id steam tags 5
-#riverctl rule-add -app-id zen tags 2
-#riverctl rule-add -app-id legcord output DP-2; riverctl rule-add -app-id legcord tags 6 
-
 
 #autostart stuff
 dunst &
@@ -38,4 +32,4 @@ sh ~/.local/bin/psc.sh &
 sh ~/.local/bin/yambar.sh & 
 xremap ~/.config/xremap/config.yml &
 kitty -e rmpc &
-sh ~/.config/river/screenshare.sh &
+sh ~/.local/share/screenshare.sh &
