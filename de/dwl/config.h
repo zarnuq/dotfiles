@@ -128,33 +128,32 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
-static const char *lockscreen[]        = { "swaylock", NULL };
-static const char *term[]   = { "kitty", "-e", "tmux", NULL };
-static const char *term2[]     = { "wezterm", NULL };
+static const char *lockscreen[] = { "swaylock", NULL };
+static const char *term[]       = { "kitty", "-e", "tmux", NULL };
+static const char *term2[]      = { "wezterm", NULL };
 static const char *menu[]       = { "env", "QT_QPA_PLATFORMTHEME=qt6ct", "QT_STYLE_OVERRIDE=kvantum", "rofi", "-show", "drun", "-show-icons", NULL };
-static const char *emacs[] = { "kitty", "sh", "-c", "emacsclient -t", NULL };
-static const char *legcord[]     = { "legcord", NULL };
-static const char *rmpc[]        = { "kitty", "-e", "rmpc", NULL };
-static const char *browser[]         = { "zen-browser", NULL };
-static const char *browser2[]       = { "brave", NULL };
-static const char *pavuc[] = { "pavucontrol", NULL };
-static const char *sspart[]      = { "sh", "-c", "grim -g \"$(slurp)\"", NULL };
-static const char *ssmain[]        = { "grim", "-o", "DP-2", NULL };
-static const char *steam[]       = { "steam", NULL };
-static const char *bkmrk[]       = { "sh", "-c", "wtype \"$(grep -v '^#' ~/.local/bin/bkmrk.txt | rofi -dmenu | cut -d' ' -f1; sleep .5)\"", NULL };
+static const char *emacs[]      = { "kitty", "sh", "-c", "emacsclient -t", NULL };
+static const char *legcord[]    = { "legcord", NULL };
+static const char *rmpc[]       = { "kitty", "-e", "rmpc", NULL };
+static const char *browser[]    = { "zen-browser", NULL };
+static const char *browser2[]   = { "brave", NULL };
+static const char *pavuc[]      = { "pavucontrol", NULL };
+static const char *sspart[]     = { "sh", "-c", "grim -g \"$(slurp)\"", NULL };
+static const char *ssmain[]     = { "grim", "-o", "DP-2", NULL };
+static const char *steam[]      = { "steam", NULL };
+static const char *bkmrk[]      = { "sh", "-c", "wtype \"$(grep -v '^#' ~/.local/bin/bkmrk.txt | rofi -dmenu | cut -d' ' -f1; sleep .5)\"", NULL };
 
 
-static const char *volupcmd[]     = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL };
-static const char *voldowncmd[]   = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL };
-static const char *micdowncmd[]   = { "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "-5%", NULL };
-static const char *micupcmd[]     = { "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "+5%", NULL };
-static const char *mutemiccmd[]   = { "pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle", NULL };
-static const char *flipcmd[]      = { "sh", "/home/miles/.local/bin/flip.sh", NULL };
-
+static const char *volupcmd[]          = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL };
+static const char *voldowncmd[]        = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL };
+static const char *micdowncmd[]        = { "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "-5%", NULL };
+static const char *micupcmd[]          = { "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "+5%", NULL };
+static const char *mutemiccmd[]        = { "pactl", "set-source-mute", "@DEFAULT_SOURCE@", "toggle", NULL };
+static const char *flipcmd[]           = { "sh", "/home/miles/.local/bin/flip.sh", NULL };
 static const char *mediaplaypausecmd[] = { "playerctl", "-p", "mpd", "play-pause", NULL };
 static const char *mediaprevcmd[]      = { "playerctl", "-p", "mpd", "previous", NULL };
 static const char *medianextcmd[]      = { "playerctl", "-p", "mpd", "next", NULL };
-static const char *gammastepcmd[] = { "sh", "/home/yourusername/.local/bin/gammastep.sh", NULL };
+static const char *gammastepcmd[]      = { "sh", "/home/yourusername/.local/bin/gammastep.sh", NULL };
 
 
 static const Key keys[] = {
@@ -183,9 +182,6 @@ static const Key keys[] = {
 	{ MODKEY|WLR_MODIFIER_SHIFT,    XKB_KEY_Q,                   killclient,       {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,    XKB_KEY_space,               view,             {0} },
 	{ MODKEY,                       XKB_KEY_f,                   togglefloating,   {0} },
-  //{ MODKEY,                       XKB_KEY_t,                 setlayout,        {.v = &layouts[0]} },
-	//{ MODKEY,                       XKB_KEY_f,                   setlayout,        {.v = &layouts[1]} },
-	//{ MODKEY,                       XKB_KEY_m,                   setlayout,        {.v = &layouts[2]} },
 	{ MODKEY,                       XKB_KEY_f,                   togglefullscreen, {0} },
 	{ MODKEY,                       XKB_KEY_0,                   view,             {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,    XKB_KEY_parenright,          tag,              {.ui = ~0} },
@@ -193,7 +189,6 @@ static const Key keys[] = {
 	{ MODKEY,                       XKB_KEY_period,              focusmon,         {.i = WLR_DIRECTION_RIGHT} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,    XKB_KEY_less,                tagmon,           {.i = WLR_DIRECTION_LEFT} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,    XKB_KEY_greater,             tagmon,           {.i = WLR_DIRECTION_RIGHT} },
-
   { WLR_MODIFIER_ALT,             XKB_KEY_Up,                  spawn,            {.v = volupcmd } },
   { WLR_MODIFIER_ALT,             XKB_KEY_Down,                spawn,            {.v = voldowncmd } },
   { WLR_MODIFIER_ALT,             XKB_KEY_Left,                spawn,            {.v = micdowncmd } },
@@ -201,6 +196,9 @@ static const Key keys[] = {
   { WLR_MODIFIER_ALT,             XKB_KEY_End,                 spawn,            {.v = mutemiccmd } },
   { WLR_MODIFIER_ALT,             XKB_KEY_bracketleft,         spawn,            {.v = flipcmd } },
   { WLR_MODIFIER_ALT|MODKEY,      XKB_KEY_Up,                  spawn,            {.v = gammastepcmd } },
+  //{ MODKEY,                       XKB_KEY_t,                   setlayout,        {.v = &layouts[0]} },
+	//{ MODKEY,                       XKB_KEY_f,                   setlayout,        {.v = &layouts[1]} },
+	//{ MODKEY,                       XKB_KEY_m,                   setlayout,        {.v = &layouts[2]} },
 
   { 0,                            XKB_KEY_XF86AudioMedia,      spawn,            {.v = mediaplaypausecmd } },
   { 0,                            XKB_KEY_XF86AudioPlay,       spawn,            {.v = mediaplaypausecmd } },

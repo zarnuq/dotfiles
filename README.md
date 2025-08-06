@@ -2,6 +2,7 @@
 ### configured applications
 * btop
 * dunst
+* dwl
 * easyeffects(eq)
 * doom emacs
 * fastfetch
@@ -32,7 +33,7 @@
 * yazi
 * zsh
 
-# Install
+## Install
 ```
 cd ~
 git clone https://github.com/zarnuq/dotfiles.git
@@ -40,3 +41,11 @@ cd dotfiles
 stow de
 sh ~/.local/bin/install.sh
 ```
+
+## My Custom DWL Repo
+#### included patches
+* autostart
+* warpcursor
+* cursortheme
+* monitorconfig
+
