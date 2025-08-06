@@ -1,7 +1,5 @@
 #!/bin/sh
 sh ~/.local/share/monitor.sh &
-
-
 #decorations and cursor follow
 rivertile -view-padding 0 -outer-padding 0 &
 riverctl background-color 0x1e1e2e

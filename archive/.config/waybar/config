@@ -3,9 +3,9 @@
     "position": "top",
     "height": 5,
     "modules-left": [
-    "hyprland/workspaces",
+    "dwl/tags",
     "custom/space",
-    "hyprland/window"
+    "dwl/tags"
     ],
     "modules-center": [
       "clock",         
