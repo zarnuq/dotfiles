@@ -37,7 +37,6 @@ export GOPATH=$XDG_DATA_HOME
 export QT_STYLE_OVERRIDE=kvantum
 export QT_QPA_PLATFORMTHEME=qt6ct
 export EDITOR=nvim
-export DISPLAY=:0
 export XDG_CURRENT_DESKTOP=dwl
 export XDG_SESSION_DESKTOP=dwl
 export XDG_SESSION_TYPE=wayland
