@@ -3,6 +3,7 @@
 # Get audio info
 get_audio() {
     sink_name=$(pactl info | grep "Default Sink" | cut -d ':' -f2- | xargs)
+    
     volume=$(pactl get-sink-volume "$sink_name" 2>/dev/null | head -n1 | grep -o '[0-9]\+%' | head -1)
     muted=$(pactl get-sink-mute "$sink_name" 2>/dev/null | awk '{print $2}')
     
@@ -19,39 +20,70 @@ get_audio() {
         -e 's/ $//')
     
     if [[ "$muted" == "yes" ]]; then
-        echo "$cleaned 🔇  ${volume:-N/A}"
+      echo "$cleaned  ${volume:-N/A}"
     else
-        echo "$cleaned   ${volume:-N/A}"  #  is the volume icon
+      echo "$cleaned  ${volume:-N/A}"
     fi
 }
+
+get_mic() {
+    source_name=$(pactl info | grep "Default Source" | cut -d ':' -f2- | xargs)
+    
+    volume=$(pactl get-source-volume "$source_name" 2>/dev/null | head -n1 | grep -o '[0-9]\+%' | head -1)
+    muted=$(pactl get-source-mute "$source_name" 2>/dev/null | awk '{print $2}')
+    
+    if [[ "$muted" == "yes" ]]; then
+      echo "${volume:-N/A}"
+    else
+        echo "^fg(f38ba8)${volume:-N/A}^fg()"
+    fi
+}
+
 
 # Get CPU usage
 get_cpu() {
     usage=$(top -bn1 | grep "Cpu(s)" | awk '{print int($2 + $4)}')
-    echo " $usage%"  #  is the CPU icon
+    echo " $usage%"
 }
 
 # Get memory usage
 get_mem() {
     used=$(free -m | awk '/Mem:/ { print $3 }')
-    echo " ${used}MB"  #  is the memory icon
+    echo " ${used}MB"
 }
 
 # Get date/time
 get_clock() {
     date=$(date '+%a %m/%d/%y')
     time=$(date '+%I:%M:%S %p')
-    echo " $date  $time"  #  calendar,  clock icon
+    echo " $date  $time"
 }
 
-# Main loop
+cpu=""
+mem=""
+clock=""
+audio=""
+mic=""
+counter=0
+
+# Polling loop
 while true; do
     audio=$(get_audio)
-    cpu=$(get_cpu)
-    mem=$(get_mem)
-    clock=$(get_clock)
-    
-    echo "$audio | $cpu | $mem | $clock"
-    sleep 1
-done
+    mic=$(get_mic)
 
+    if (( counter % 1 == 0 )); then
+        clock=$(get_clock)
+    fi
+
+    if (( counter % 2 == 0 )); then
+        cpu=$(get_cpu)
+    fi
+
+    if (( counter % 5 == 0 )); then
+        mem=$(get_mem)
+    fi
+
+    echo "$audio $mic|$cpu|$mem|$clock"
+    sleep 1
+    ((counter++))
+done
