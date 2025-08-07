@@ -24,7 +24,7 @@ static int log_level = WLR_ERROR;
 
 /* Autostart */
 static const char *const autostart[] = {
-    "sh", "/home/miles/dwl/autostart.sh", NULL,
+    "sh", "/home/miles/.local/share/dwl/autostart.sh", NULL,
     NULL /* terminate */
 };
 

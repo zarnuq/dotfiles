@@ -44,8 +44,8 @@ echo "paru installed"
 
 
 #dwl configured
-ln -s ~/dwl/dwl ~/.local/bin/dwl
-ln -s ~/dwlb/dwlb ~/.local/bin/dwlb
+ln -s ~/.local/share/dwl/dwl ~/.local/bin/dwl
+ln -s ~/.local/share/dwlb/dwlb ~/.local/bin/dwlb
 
 
 
