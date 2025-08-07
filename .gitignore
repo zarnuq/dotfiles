@@ -1,5 +1,4 @@
-nvim/.config/nvim/plugin/
-tmux/.config/tmux/plugins/
+de/.config/tmux/plugins/
 *.uuid
 
 *.m3u

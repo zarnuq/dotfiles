@@ -7,15 +7,14 @@ export XDG_SESSION_DESKTOP=dwl
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORMTHEME=qt6ct
 export QT_STYLE_OVERRIDE=kvantum
-export DISPLAY=:0
 
 #autostart stuff
 dunst &
 copyq &
+dwlb &
 gammastep -O 4000:4000 &
 easyeffects --gapplication-service &
 sh ~/.local/bin/psc.sh &
-sh ~/.local/bin/yambar.sh & 
 xremap ~/.config/xremap/config.yml &
 kitty -e rmpc &
 sh ~/.local/bin/screenshare.sh &

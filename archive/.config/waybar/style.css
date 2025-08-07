@@ -12,23 +12,23 @@
     background: rgba(0,0,0,0.9);
     color: #cba6f7;
   }
-  #workspaces button {
+  #tags button {
     color: #ffffff;
   }
   
-  #workspaces button.active {
+  #tags button.focused{
     color: #1e1e2e;
     background-color: #cdd6f4;
   }
   
-  #workspaces button:hover {
+  #tags button:hover {
     box-shadow: inherit;
     text-shadow: inherit;
     color: #1e1e2e;
     background-color: #cdd6f4;
   }
   
-  #workspaces button.urgent {
+  #tags button.urgent {
     background-color: #f38ba8;
   }
  

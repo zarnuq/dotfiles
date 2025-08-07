@@ -72,7 +72,7 @@ if [ ! -f /etc/greetd/config.toml ]; then
 vt = 1
 
 [default_session]
-command = "/usr/bin/tuigreet -r --asterisks -c river"
+command = "/usr/bin/tuigreet -r --asterisks -c dwl"
 user = "greeter"
 EOF
   echo "greetd configured"

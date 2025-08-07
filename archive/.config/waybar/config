@@ -5,7 +5,7 @@
     "modules-left": [
     "dwl/tags",
     "custom/space",
-    "dwl/tags"
+    "dwl/window"
     ],
     "modules-center": [
       "clock",         
@@ -21,16 +21,19 @@
     "battery", 
     "custom/power"
     ],
-    "hyprland/workspaces": {
-      "disable-scroll": true,
-      "all-outputs": false,
-      "format-icons": ["{id}", "{id}"],
-      "on-click": "hyprctl dispatch workspace {id}",
-      "on-output": true,
-      "ws-sort": "true",
-      "ws-order": "ascending",
-      "ws-rename": true,
-      "format": " {id} "
+    "dwl/window": {
+    "format": "{title}",
+    "max-length": 50,
+    "rewrite": {
+       "(.*) - Mozilla Firefox": "🌎 $1",
+       "(.*) - vim": " $1",
+       "(.*) - zsh": " [$1]"
+       },
+    },
+      "dwl/tags": {
+        "num-tags": 9,
+        "tag-labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        "disable-click": false
     },
       "memory": {
         "interval": 5,
@@ -128,6 +131,5 @@
         "format": "",
         "tooltip": false,
         "on-click-middle": "shutdown now"
-      }
-
-}
+      },
+},
