@@ -12,9 +12,10 @@ export QT_STYLE_OVERRIDE=kvantum
 dunst &
 copyq &
 dwlb &
-gammastep -O 4000:4000 &
+~/dwlb/status.sh | dwlb -status-stdin all &
 easyeffects --gapplication-service &
 sh ~/.local/bin/psc.sh &
 xremap ~/.config/xremap/config.yml &
 kitty -e rmpc &
 sh ~/.local/bin/screenshare.sh &
+gammastep -O 4000:4000 &

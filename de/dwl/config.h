@@ -7,9 +7,9 @@
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
 static const unsigned int borderpx         = 1;  /* border pixel of windows */
-static const float rootcolor[]             = COLOR(0x222222ff);
-static const float bordercolor[]           = COLOR(0x444444ff);
-static const float focuscolor[]            = COLOR(0x005577ff);
+static const float rootcolor[]             = COLOR(0x1e1e2eff);
+static const float bordercolor[]           = COLOR(0x1e1e2eff);
+static const float focuscolor[]            = COLOR(0xcba6f7ff);
 static const float urgentcolor[]           = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
@@ -196,10 +196,9 @@ static const Key keys[] = {
   { WLR_MODIFIER_ALT,             XKB_KEY_End,                 spawn,            {.v = mutemiccmd } },
   { WLR_MODIFIER_ALT,             XKB_KEY_bracketleft,         spawn,            {.v = flipcmd } },
   { WLR_MODIFIER_ALT|MODKEY,      XKB_KEY_Up,                  spawn,            {.v = gammastepcmd } },
-  //{ MODKEY,                       XKB_KEY_t,                   setlayout,        {.v = &layouts[0]} },
-	//{ MODKEY,                       XKB_KEY_f,                   setlayout,        {.v = &layouts[1]} },
-	//{ MODKEY,                       XKB_KEY_m,                   setlayout,        {.v = &layouts[2]} },
-
+  { MODKEY|WLR_MODIFIER_CTRL,     XKB_KEY_y,                   setlayout,        {.v = &layouts[0]} },
+	{ MODKEY|WLR_MODIFIER_CTRL,     XKB_KEY_u,                   setlayout,        {.v = &layouts[1]} },
+	{ MODKEY|WLR_MODIFIER_CTRL,     XKB_KEY_i,                   setlayout,        {.v = &layouts[2]} },
   { 0,                            XKB_KEY_XF86AudioMedia,      spawn,            {.v = mediaplaypausecmd } },
   { 0,                            XKB_KEY_XF86AudioPlay,       spawn,            {.v = mediaplaypausecmd } },
   { 0,                            XKB_KEY_XF86AudioPrev,       spawn,            {.v = mediaprevcmd } },

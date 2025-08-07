@@ -3,6 +3,7 @@
 * btop
 * dunst
 * dwl
+* dwlb
 * easyeffects(eq)
 * doom emacs
 * fastfetch
@@ -48,4 +49,5 @@ sh ~/.local/bin/install.sh
 * warpcursor
 * cursortheme
 * monitorconfig
+* ipc(for dwlb)
 
