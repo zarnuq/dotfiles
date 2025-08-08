@@ -34,15 +34,6 @@
 * yazi
 * zsh
 
-## Install
-```
-cd ~
-git clone https://github.com/zarnuq/dotfiles.git
-cd dotfiles
-stow de
-sh ~/.local/bin/install.sh
-```
-
 ## My Custom DWL Repo
 #### included patches
 * autostart
@@ -51,3 +42,11 @@ sh ~/.local/bin/install.sh
 * monitorconfig
 * ipc(for dwlb)
 
+## Install
+```
+cd ~
+git clone https://github.com/zarnuq/dotfiles.git
+cd dotfiles
+stow de
+sh ~/.local/bin/install.sh
+```
