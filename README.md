@@ -41,6 +41,7 @@
 * cursortheme
 * monitorconfig
 * ipc(for dwlb)
+* centerfloating
 
 ## Install
 ```
