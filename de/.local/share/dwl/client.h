@@ -291,6 +291,12 @@ client_is_unmanaged(Client *c)
 	return 0;
 }
 
+static inline int
+client_needs_borders(Client *c)
+{
+	return c->isfloating || !c->mon->lt[c->mon->sellt]->arrange;
+}
+
 static inline void
 client_notify_enter(struct wlr_surface *s, struct wlr_keyboard *kb)
 {
