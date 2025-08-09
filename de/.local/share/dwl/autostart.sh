@@ -16,6 +16,6 @@ dwlb &
 easyeffects --gapplication-service &
 sh ~/.local/bin/psc.sh &
 xremap ~/.config/xremap/config.yml &
-kitty -e rmpc &
 sh ~/.local/bin/screenshare.sh &
 gammastep -O 4000:4000 &
+kitty --class rmpc rmpc &

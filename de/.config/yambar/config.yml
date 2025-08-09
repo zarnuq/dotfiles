@@ -42,20 +42,6 @@ bar:
 
 
   left:
-    - dwl:
-        number-of-tags: 9
-        dwl-info-filename: "/home/miles/dwl_info"
-        name-of-tags: [ , , , , , , , ,  ]
-        content:
-          list:
-            items:
-              - map:
-                  conditions:
-                    id == 0: {string: {text: "{layout} {title}"}}
-                    selected: {string: {text: "-> {name}"}}
-                    ~empty: {string: {text: "{name}"}}
-                    urgent: {string: {text: "=> {name} <="}}
-
     - foreign-toplevel:
           content:
             map:

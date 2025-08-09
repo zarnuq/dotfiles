@@ -42,6 +42,7 @@
 * monitorconfig
 * ipc(for dwlb)
 * centerfloating
+* tmuxborder
 
 ## Install
 ```
