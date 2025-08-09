@@ -40,6 +40,9 @@ edit = [
 open = [
 	{ run = 'xdg-open "$1"', desc = "Open", for = "linux" },
 ]
+setbg= [
+	{ run = 'swaybg -i "$1" -m fill', orphan = true, desc = "setbg", for = "linux" },
+]
 view= [
 	{ run = 'loupe "$1"', orphan = true, desc = "View", for = "linux" },
 ]
@@ -64,7 +67,7 @@ rules = [
 	# Text
 	{ mime = "text/*", use = [ "edit", "reveal" ] },
 	# Image
-	{ mime = "image/*", use = [ "view", "reveal" ] },
+	{ mime = "image/*", use = [ "view", "reveal", "setbg" ] },
   #pdfs
 	{ mime = "application/pdf", use = "read"},
 	# Media

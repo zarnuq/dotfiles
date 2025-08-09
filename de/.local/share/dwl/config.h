@@ -90,7 +90,7 @@ static const char *pavuc[]             = { "pavucontrol", NULL };
 static const char *sspart[]            = { "sh", "-c", "grim -g \"$(slurp)\"", NULL };
 static const char *ssmain[]            = { "grim", "-o", "DP-2", NULL };
 static const char *steam[]             = { "steam", NULL };
-static const char *bkmrk[]             = { "sh", "-c", "wtype \"$(grep -v '^#' ~/.local/bin/bkmrk.txt | rofi -dmenu | cut -d' ' -f1; sleep .5)\"", NULL };
+static const char *bgcmd[]             = { "kitty", "-e", "yazi", "/home/miles/Pictures/bgs", NULL };
 
 static const char *volupcmd[]          = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL };
 static const char *voldowncmd[]        = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL };
@@ -119,7 +119,7 @@ static const Key keys[] = {
   { MODKEY,                             XKB_KEY_s,                   spawn,            {.v = sspart} },
   { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_s,                   spawn,            {.v = ssmain} },
   { MODKEY,                             XKB_KEY_d,                   spawn,            {.v = steam} },
-  { MODKEY,                             XKB_KEY_b,                   spawn,            {.v = bkmrk} },
+  { MODKEY,                             XKB_KEY_b,                   spawn,            {.v = bgcmd} },
 	{ MODKEY,                             XKB_KEY_j,                   focusstack,       {.i = +1} },
 	{ MODKEY,                             XKB_KEY_k,                   focusstack,       {.i = -1} },
 	{ MODKEY,                             XKB_KEY_n,                   incnmaster,       {.i = +1} },

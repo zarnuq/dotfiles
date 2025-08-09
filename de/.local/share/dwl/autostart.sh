@@ -12,9 +12,9 @@ export QT_STYLE_OVERRIDE=kvantum
 dunst &
 copyq &
 dwlb &
+swaybg -i "$(find ~/Pictures/bgs -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n1)" -m fill &
 ~/.local/share/dwlb/status.sh | dwlb -status-stdin all &
 easyeffects --gapplication-service &
-sh ~/.local/bin/psc.sh &
 xremap ~/.config/xremap/config.yml &
 sh ~/.local/bin/screenshare.sh &
 gammastep -O 4000:4000 &
