@@ -18,11 +18,11 @@ mouse_events   = [ "click", "scroll" ]
 title_format   = "Yazi: {cwd}"
 
 [preview]
-wrap            = "no"
-tab_size        = 2
-max_width       = 600
-max_height      = 900
-cache_dir       = ""
+wrap            = "yes"
+tab_size        = 5
+max_width       = 2500
+max_height      = 1500
+cache_dir       = "/tmp/yaziimgcache"
 image_delay     = 30
 image_filter    = "triangle"
 image_quality   = 75
@@ -41,7 +41,7 @@ open = [
 	{ run = 'xdg-open "$1"', desc = "Open", for = "linux" },
 ]
 setbg= [
-	{ run = 'swaybg -i "$1" -m fill', orphan = true, desc = "setbg", for = "linux" },
+	{ run = 'swww img "$1" --transition-fps 144 --transition-type top --transition-duration 1', orphan = true, desc = "setbg", for = "linux" },
 ]
 view= [
 	{ run = 'loupe "$1"', orphan = true, desc = "View", for = "linux" },

@@ -15,7 +15,6 @@
 * kvantum
 * legcord
 * mpd
-* nixos
 * nvim
 * pipewire settings
 * qBittorrent
@@ -24,6 +23,8 @@
 * rmpc
 * rofi
 * swaylock
+* swaybg
+* swww
 * tidal_dl_ng
 * tmux
 * tridactyl
@@ -32,6 +33,7 @@
 * xremap
 * yambar
 * yazi
+* zen-browser theme
 * zsh
 
 ## My Custom DWL Repo

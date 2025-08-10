@@ -12,10 +12,11 @@ export QT_STYLE_OVERRIDE=kvantum
 dunst &
 copyq &
 dwlb &
-swaybg -i "$(find ~/Pictures/bgs -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n1)" -m fill &
+swww-daemon &
+swww img "$(find ~/Pictures/bgs -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n1)" --transition-fps 144 --transition-type top --transition-duration 0 &
 ~/.local/share/dwlb/status.sh | dwlb -status-stdin all &
 easyeffects --gapplication-service &
 xremap ~/.config/xremap/config.yml &
-sh ~/.local/bin/screenshare.sh &
+#sh ~/.local/bin/screenshare.sh &
 gammastep -O 4000:4000 &
 kitty --class rmpc rmpc &

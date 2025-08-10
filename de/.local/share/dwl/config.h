@@ -91,6 +91,8 @@ static const char *sspart[]            = { "sh", "-c", "grim -g \"$(slurp)\"", N
 static const char *ssmain[]            = { "grim", "-o", "DP-2", NULL };
 static const char *steam[]             = { "steam", NULL };
 static const char *bgcmd[]             = { "kitty", "-e", "yazi", "/home/miles/Pictures/bgs", NULL };
+static const char *randbgcmd[] = {"sh", "-c","swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1",NULL};
+
 
 static const char *volupcmd[]          = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "+5%", NULL };
 static const char *voldowncmd[]        = { "pactl", "set-sink-volume", "@DEFAULT_SINK@", "-5%", NULL };
@@ -120,6 +122,7 @@ static const Key keys[] = {
   { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_s,                   spawn,            {.v = ssmain} },
   { MODKEY,                             XKB_KEY_d,                   spawn,            {.v = steam} },
   { MODKEY,                             XKB_KEY_b,                   spawn,            {.v = bgcmd} },
+  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_B,                   spawn,            {.v = randbgcmd} },
 	{ MODKEY,                             XKB_KEY_j,                   focusstack,       {.i = +1} },
 	{ MODKEY,                             XKB_KEY_k,                   focusstack,       {.i = -1} },
 	{ MODKEY,                             XKB_KEY_n,                   incnmaster,       {.i = +1} },
