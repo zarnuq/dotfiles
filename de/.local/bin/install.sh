@@ -55,7 +55,7 @@ sudo ln -s ~/.local/share/dwlb/dwlb /bin/dwlb
 
 
 #paru packages
-aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord pscircle kvantum-theme-catppuccin-git nordvpn-bin)
+aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord kvantum-theme-catppuccin-git nordvpn-bin)
 for pkg in "${aur_packages[@]}"; do
   paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
 done
