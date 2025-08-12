@@ -3,6 +3,7 @@ export XDG_CACHE_HOME=$HOME/.cache
 export XDG_CONFIG_HOME=$HOME/.config
 export XDG_DATA_HOME=$HOME/.local/share
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh
+export EDITOR=nvim
 
 export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie
 export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc
@@ -35,10 +36,3 @@ export YARN_CONFIG_DIR=$XDG_DATA_HOME
 export YARN_GLOBAL_FOLDER=$XDG_DATA_HOME
 export WG_CONFIG_DIR=$XDG_DATA_HOME
 export GOPATH=$XDG_DATA_HOME
-
-export QT_STYLE_OVERRIDE=kvantum
-export QT_QPA_PLATFORMTHEME=qt6ct
-export EDITOR=nvim
-export XDG_CURRENT_DESKTOP=dwl
-export XDG_SESSION_DESKTOP=dwl
-export XDG_SESSION_TYPE=wayland

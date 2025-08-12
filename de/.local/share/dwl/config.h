@@ -18,8 +18,17 @@ static const char cursor_size[]            = "24"; /* Make sure it's a valid int
 static int log_level = WLR_ERROR;
 
 static const char *const autostart[] = {
-    "sh", "/home/miles/.local/share/dwl/autostart.sh", NULL,
-    NULL /* terminate */
+  "dunst", NULL,
+  "copyq", NULL,
+  "dwlb", NULL,
+  "swww-daemon", NULL,
+  "swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 0", NULL,
+  "sh", "-c", "~/.local/share/dwlb/status.sh | dwlb -status-stdin all", NULL,
+  "easyeffects", "--gapplication-service", NULL,
+  "xremap", "~/.config/xremap/config.yml", NULL,
+  "gammastep", "-O", "4000:4000", NULL,
+  "kitty", "--class", "rmpc", "rmpc", NULL,
+  NULL 
 };
 
 static const Rule rules[] = {
@@ -80,7 +89,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 static const char *lockscreen[]        = { "swaylock", NULL };
 static const char *term[]              = { "kitty", "-e", "tmux", NULL };
 static const char *term2[]             = { "wezterm", NULL };
-static const char *menu[]              = { "env", "QT_QPA_PLATFORMTHEME=qt6ct", "QT_STYLE_OVERRIDE=kvantum", "rofi", "-show", "drun", "-show-icons", NULL };
+static const char *menu[]              = { "rofi", "-show", "drun", "-show-icons", NULL };
 static const char *emacs[]             = { "kitty", "sh", "-c", "emacsclient -t", NULL };
 static const char *legcord[]           = { "legcord", NULL };
 static const char *rmpc[]              = { "kitty", "--class", "rmpc", "rmpc", NULL };
