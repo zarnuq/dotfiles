@@ -38,13 +38,14 @@
 
 ## My Custom DWL Repo
 #### included patches
-* autostart
-* warpcursor
-* cursortheme
-* monitorconfig
-* ipc(for dwlb)
-* centerfloating
-* tmuxborder
+* autostart (adds autostart section in config.h)
+* warpcursor (warps cursor to active window and monitor)
+* cursortheme (<-)
+* monitorconfig (adds more parameters for monitors such as refresh rate)
+* ipc (for dwlb)
+* centerfloating (new floating windows center to monitor)
+* tmuxborder (only show borders for a window when touching another window and when it is focused)
+* moveresizekb  (keybinds for moving and resizing a floating window)
 
 ## Install
 ```
