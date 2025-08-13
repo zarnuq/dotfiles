@@ -18,25 +18,22 @@ static const char cursor_size[]            = "24"; /* Make sure it's a valid int
 static int log_level = WLR_ERROR;
 
 static const char *const autostart[] = {
-  "dunst", NULL,
-  "copyq", NULL,
-  "dwlb", NULL,
-  "swww-daemon", NULL,
-  "swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 0", NULL,
+  "dunst",                                                              NULL,
+  "copyq",                                                              NULL,
+  "dwlb",                                                               NULL,
+  "swww-daemon",                                                        NULL,
   "sh", "-c", "~/.local/share/dwlb/status.sh | dwlb -status-stdin all", NULL,
-  "easyeffects", "--gapplication-service", NULL,
-  "xremap", "~/.config/xremap/config.yml", NULL,
-  "gammastep", "-O", "4000:4000", NULL,
-  "kitty", "--class", "rmpc", "rmpc", NULL,
+  "easyeffects", "--gapplication-service",                              NULL,
+  "xremap", "~/.config/xremap/config.yml",                              NULL,
+  "gammastep", "-O", "4000:4000",                                       NULL,
+  "kitty", "--class", "rmpc", "rmpc",                                   NULL,
   NULL 
 };
 
 static const Rule rules[] = {
-	/* app_id             title       tags mask     isfloating   monitor */
-	/* examples: */
-  { "rmpc",             NULL,       0,            0,            1 },
-	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	/* app_id             title       tags mask     switchtotag   isfloating   monitor */
+  { "rmpc",             NULL,       0,            0,            0,            1},
+  { "zen",              NULL,       1 << 4,       1,            0,           -1},
 };
 
 static const Layout layouts[] = {
@@ -142,21 +139,21 @@ static const Key keys[] = {
 	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Q,                   killclient,       {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_space,               view,             {0} },
 	{ MODKEY,                             XKB_KEY_f,                   togglefloating,   {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,         XKB_KEY_F,                   togglefullscreen, {0} },
+	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_F,                   togglefullscreen, {0} },
 	{ MODKEY,                             XKB_KEY_0,                   view,             {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_parenright,          tag,              {.ui = ~0} },
 	{ MODKEY,                             XKB_KEY_comma,               focusmon,         {.i = WLR_DIRECTION_LEFT} },
 	{ MODKEY,                             XKB_KEY_period,              focusmon,         {.i = WLR_DIRECTION_RIGHT} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_less,                tagmon,           {.i = WLR_DIRECTION_LEFT} },
 	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_greater,             tagmon,           {.i = WLR_DIRECTION_RIGHT} },
-	{ MODKEY,                             XKB_KEY_Down,                moveresizekb,   {.v = (int []){ 0, 40, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Up,                  moveresizekb,   {.v = (int []){ 0, -40, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Right,               moveresizekb,   {.v = (int []){ 40, 0, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Left,                moveresizekb,   {.v = (int []){ -40, 0, 0, 0 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Down,                moveresizekb,   {.v = (int []){ 0, 0, 0, 40 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Up,                  moveresizekb,   {.v = (int []){ 0, 0, 0, -40 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Right,               moveresizekb,   {.v = (int []){ 0, 0, 40, 0 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Left,                moveresizekb,   {.v = (int []){ 0, 0, -40, 0 }}},
+	{ MODKEY,                             XKB_KEY_Down,                moveresizekb,     {.v = (int []){ 0, 40, 0, 0 }}},
+	{ MODKEY,                             XKB_KEY_Up,                  moveresizekb,     {.v = (int []){ 0, -40, 0, 0 }}},
+	{ MODKEY,                             XKB_KEY_Right,               moveresizekb,     {.v = (int []){ 40, 0, 0, 0 }}},
+	{ MODKEY,                             XKB_KEY_Left,                moveresizekb,     {.v = (int []){ -40, 0, 0, 0 }}},
+	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Down,                moveresizekb,     {.v = (int []){ 0, 0, 0, 40 }}},
+	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Up,                  moveresizekb,     {.v = (int []){ 0, 0, 0, -40 }}},
+	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Right,               moveresizekb,     {.v = (int []){ 0, 0, 40, 0 }}},
+	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Left,                moveresizekb,     {.v = (int []){ 0, 0, -40, 0 }}},
   { WLR_MODIFIER_ALT,                   XKB_KEY_Up,                  spawn,            {.v = volupcmd } },
   { WLR_MODIFIER_ALT,                   XKB_KEY_Down,                spawn,            {.v = voldowncmd } },
   { WLR_MODIFIER_ALT,                   XKB_KEY_Left,                spawn,            {.v = micdowncmd } },

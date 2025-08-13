@@ -46,6 +46,7 @@
 * centerfloating (new floating windows center to monitor)
 * tmuxborder (only show borders for a window when touching another window and when it is focused)
 * moveresizekb  (keybinds for moving and resizing a floating window)
+* switchtotag (adds rule to switch to tag on window open and switch back on close)
 
 ## Install
 ```
