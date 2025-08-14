@@ -3,8 +3,7 @@ format = """$directory$git_branch$git_status$character"""
 
 [directory]
 format = 	'[$path]($style)[$read_only]($read_only_style) '
-truncation_symbol = "~/"
-style = "bold mauve"
+style = "bold teal"
 
 # Git branch: simple green with branch symbol
 [git_branch]
@@ -29,9 +28,6 @@ style = "bold peach"
 format = 	'$symbol'
 success_symbol = '[](bold green)'
 error_symbol = '[ ](bold red)'
-
-[time]
-disabled = true 
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
