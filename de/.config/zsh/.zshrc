@@ -57,10 +57,58 @@ if ! zplug check --verbose; then
 fi
 zplug load
 
+# Add this to your ~/.zshrc file
 
+# Add this to your ~/.zshrc file
+
+# Enable parameter expansion, command substitution and arithmetic expansion in prompts
+setopt PROMPT_SUBST
+
+# Enable colors
+autoload -U colors && colors
+
+# Function to get git branch
+git_branch() {
+    local branch
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+    if [[ -n $branch ]]; then
+        echo " %{$fg[cyan]%}($branch%{$reset_color%}"
+    fi
+}
+
+# Function to get git status
+git_status() {
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        local git_st=""
+        
+        # Check for uncommitted changes
+        if ! git diff --quiet 2>/dev/null; then
+            git_st="${git_st}%{$fg[red]%}*%{$reset_color%}"
+        fi
+        
+        # Check for staged changes
+        if ! git diff --cached --quiet 2>/dev/null; then
+            git_st="${git_st}%{$fg[green]%}+%{$reset_color%}"
+        fi
+        
+        # Check for untracked files
+        if [[ -n $(git ls-files --others --exclude-standard 2>/dev/null) ]]; then
+            git_st="${git_st}%{$fg[yellow]%}?%{$reset_color%}"
+        fi
+        
+        if [[ -n $git_st ]]; then
+            echo "$git_st%{$fg[cyan]%})%{$reset_color%}"
+        else
+            echo "%{$fg[cyan]%})%{$reset_color%}"
+        fi
+    fi
+}
+
+# Set the prompt
+PROMPT='%{$fg[blue]%}%~%{$reset_color%}$(git_branch)$(git_status) %{$fg[white]%}$%{$reset_color%} '
 export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"
-eval "$(zoxide init zsh)"
-eval "$(starship init zsh)"
+#eval "$(zoxide init zsh)"
+#eval "$(starship init zsh)"
 eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
