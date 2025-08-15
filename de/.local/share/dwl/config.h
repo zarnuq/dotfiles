@@ -21,6 +21,7 @@ static const char *const autostart[] = {
   "dwlb",                                                               NULL,
   "swww-daemon",                                                        NULL,
   "sh", "-c", "~/.local/share/dwlb/status.sh | dwlb -status-stdin all", NULL,
+  "sh", "-c", "~/.local/bin/screenshare.sh",                            NULL,
   "easyeffects", "--gapplication-service",                              NULL,
   "xremap", "~/.config/xremap/config.yml",                              NULL,
   "gammastep", "-O", "4000:4000",                                       NULL,
