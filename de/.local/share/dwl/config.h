@@ -109,7 +109,7 @@ static const char *flipcmd[]           = { "sh", "/home/miles/.local/bin/flip.sh
 static const char *mediaplaypausecmd[] = { "playerctl", "-p", "mpd", "play-pause", NULL };
 static const char *mediaprevcmd[]      = { "playerctl", "-p", "mpd", "previous", NULL };
 static const char *medianextcmd[]      = { "playerctl", "-p", "mpd", "next", NULL };
-static const char *gammastepcmd[]      = { "sh", "/home/yourusername/.local/bin/gammastep.sh", NULL };
+static const char *gammastepcmd[]      = { "sh", "/home/miles/.local/bin/gammastep.sh", NULL };
 
 static const Key keys[] = {
   { MODKEY,                             XKB_KEY_p,                   spawn,            {.v = lockscreen} },
@@ -122,7 +122,7 @@ static const Key keys[] = {
   { MODKEY,                             XKB_KEY_w,                   spawn,            {.v = legcord} },
   { MODKEY,                             XKB_KEY_r,                   spawn,            {.v = rmpc} },
   { MODKEY,                             XKB_KEY_t,                   spawn,            {.v = browser} },
-  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_t,                   spawn,            {.v = browser2} },
+  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_T,                   spawn,            {.v = browser2} },
   { MODKEY,                             XKB_KEY_a,                   spawn,            {.v = pavuc} },
   { MODKEY,                             XKB_KEY_s,                   spawn,            {.v = sspart} },
   { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_s,                   spawn,            {.v = ssmain} },
