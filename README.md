@@ -34,7 +34,7 @@
 * yambar
 * yazi
 * zen-browser theme
-* zsh
+* zsh (spaceship, zplug)
 
 ## My Custom DWL Repo
 #### included patches

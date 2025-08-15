@@ -2,8 +2,7 @@
 stty -ixon
 bindkey -v
 export KEYTIMEOUT=1
-function zle-keymap-select {
-  case $KEYMAP in
+function zle-keymap-select { case $KEYMAP in
     vicmd) echo -ne '\e[2 q' ;;  # Block cursor in Normal mode
     viins|main) echo -ne '\e[6 q' ;;  # Beam cursor in Insert mode
   esac
@@ -51,6 +50,7 @@ source $ZPLUG_HOME/init.zsh
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "zsh-users/zsh-autosuggestions"
 zplug "Aloxaf/fzf-tab"
+zplug "spaceship-prompt/spaceship-prompt"
 if ! zplug check --verbose; then
     zplug install
 fi
@@ -58,6 +58,21 @@ zplug load
 
 export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"
 eval "$(fzf --zsh)"
-eval "$(starship init zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+SPACESHIP_PROMPT_ORDER=(
+  dir            # Current directory section
+  git            # Git section (git_branch + git_status)
+  exec_time      # Execution time
+  line_sep       # Line break
+  exit_code      # Exit code section
+  sudo           # Sudo indicator
+  char           # Prompt character
+)
+
+SPACESHIP_GIT_BRANCH_PREFIX=""     # before branch name
+SPACESHIP_GIT_BRANCH_SUFFIX=""     # after branch name
+SPACESHIP_GIT_PREFIX=""
+SPACESHIP_GIT_STATUS_PREFIX=" ["   # before git status
+SPACESHIP_GIT_STATUS_SUFFIX="]"    # after git status
