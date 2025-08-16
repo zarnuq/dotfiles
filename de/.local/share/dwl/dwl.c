@@ -3191,9 +3191,9 @@ tag(const Arg *arg)
 void
 tagmon(const Arg *arg)
 {
-	Client *sel = focustop(selmon);
-	if (sel)
-		setmon(sel, dirtomon(arg->i), 0);
+    Client *sel = focustop(selmon);
+    if (sel)
+        setmon(sel, dirtomon(arg->i), sel->tags); // pass current tags
 }
 
 void

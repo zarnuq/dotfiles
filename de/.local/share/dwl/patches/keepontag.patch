@@ -1,0 +1,29 @@
+From 1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t Mon Sep 17 00:00:00 2001
+From: dwl-user <user@example.com>
+Date: Thu, 15 Aug 2025 13:15:00 +0000
+Subject: [PATCH] tagmon: preserve client tags when moving monitors
+
+---
+ de/.local/share/dwl/dwl.c | 6 ++++++
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/de/.local/share/dwl/dwl.c b/de/.local/share/dwl/dwl.c
+index 69df6cd..9e772a4 100644
+--- a/de/.local/share/dwl/dwl.c
++++ b/de/.local/share/dwl/dwl.c
+@@ -3191,9 +3191,9 @@ tag(const Arg *arg)
+ void
+ tagmon(const Arg *arg)
+ {
+-       Client *sel = focustop(selmon);
+-       if (sel)
+-               setmon(sel, dirtomon(arg->i), 0);
++    Client *sel = focustop(selmon);
++    if (sel)
++        setmon(sel, dirtomon(arg->i), sel->tags); // pass current tags
+ }
+
+ void
+--
+2.40.0
+
