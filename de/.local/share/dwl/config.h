@@ -33,6 +33,7 @@ static const Rule rules[] = {
 	/* app_id | title | tags mask | switchtotag | isfloating | monitor */
   { "rmpc",   NULL,   0,          0,            0,           1},
   { "zen",    NULL,   1 << 4,     1,            0,          -1},
+  { "^steam", NULL,   1 << 4,     0,            0,          -1},
 };
 
 static const Layout layouts[] = {

@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <regex.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/backend/libinput.h>
@@ -395,6 +396,7 @@ static Monitor *xytomon(double x, double y);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
 		Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
+static int regex_match(const char *pattern, const char *str);
 
 /* variables */
 static const char broken[] = "broken";
@@ -517,8 +519,8 @@ applyrules(Client *c, bool map)
 		title = broken;
 
 	for (r = rules; r < END(rules); r++) {
-		if ((!r->title || strstr(title, r->title))
-				&& (!r->id || strstr(appid, r->id))) {
+		if ((!r->title || regex_match(r->title, title))
+				&& (!r->id || regex_match(r->id, appid))) {
 			c->isfloating = r->isfloating;
 			newtags |= r->tags;
 			i = 0;
@@ -3623,6 +3625,19 @@ zoom(const Arg *arg)
 
 	focusclient(sel, 1);
 	arrange(selmon);
+}
+
+int
+regex_match(const char *pattern, const char *str) {
+  regex_t regex;
+  int reti;
+  if (regcomp(&regex, pattern, REG_EXTENDED) != 0)
+    return 0;
+  reti = regexec(&regex, str, (size_t)0, NULL, 0);
+  regfree(&regex);
+  if (reti == 0)
+    return 1;
+  return 0;
 }
 
 #ifdef XWAYLAND
