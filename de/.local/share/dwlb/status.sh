@@ -54,7 +54,7 @@ get_mem() {
 
 # Get date/time
 get_clock() {
-    date=$(date '+%a %m/%d/%y')
+    date=$(date '+%a %m/%d')
     time=$(date '+%I:%M:%S %p')
     echo " $date  $time"
 }

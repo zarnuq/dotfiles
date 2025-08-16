@@ -67,12 +67,7 @@ SPACESHIP_PROMPT_ORDER=(
   exec_time      # Execution time
   line_sep       # Line break
   exit_code      # Exit code section
-  sudo           # Sudo indicator
   char           # Prompt character
 )
-
-SPACESHIP_GIT_BRANCH_PREFIX=""     # before branch name
-SPACESHIP_GIT_BRANCH_SUFFIX=""     # after branch name
+SPACESHIP_GIT_BRANCH_PREFIX=""
 SPACESHIP_GIT_PREFIX=""
-SPACESHIP_GIT_STATUS_PREFIX=" ["   # before git status
-SPACESHIP_GIT_STATUS_SUFFIX="]"    # after git status
