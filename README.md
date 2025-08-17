@@ -48,7 +48,7 @@
 * moveresizekb  (keybinds for moving and resizing a floating window)
 * switchtotag (adds rule to switch to tag on window open and switch back on close)
 * regexrules (adds regex rules to dwl rules)
-* keepontag (very simple patch i made to keep windows on tags when moved between monitors)
+* keepontag (very simple patch i made to keep windows on the same tags when moved between monitors, also makes you switch view to that tag but does not focus)
 
 ## Install
 ```
@@ -56,5 +56,5 @@ cd ~
 git clone https://github.com/zarnuq/dotfiles.git
 cd dotfiles
 stow de
-sh ~/.local/bin/install.sh
+install.sh
 ```
