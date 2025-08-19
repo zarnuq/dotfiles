@@ -2078,34 +2078,49 @@ inputdevice(struct wl_listener *listener, void *data)
 	wlr_seat_set_capabilities(seat, caps);
 }
 
+// You'll need to add this global variable with your other globals
+static Key pressed_sequence[8]; // Adjust size as needed
+
 int
 keybinding(uint32_t mods, xkb_keysym_t sym)
 {
- 	int handled = 0;
-	int done = 0;
-	const Keychord *k;
-
-	for (k = keychords; k < END(keychords) && !handled; k++) {
-		if (k->n > currentkey &&
-				CLEANMASK(mods) == CLEANMASK(k->keys[currentkey].mod) &&
-				sym == k->keys[currentkey].keysym) {
- 			handled = 1;
-
-			if (currentkey == k->n - 1 && k->func) {
-				k->func(&k->arg);
-				done = 1;
-			}
- 		}
- 	}
-
-	if (handled)
-		currentkey = done ? 0 : (currentkey + 1);
-	else
-		currentkey = 0;
-
- 	return handled;
- }
- 
+    int handled = 0;
+    int done = 0;
+    const Keychord *k;
+    
+    // Store current key press
+    pressed_sequence[currentkey].mod = mods;
+    pressed_sequence[currentkey].keysym = sym;
+    
+    for (k = keychords; k < END(keychords) && !handled; k++) {
+        if (k->n > currentkey) {
+            // Check if entire sequence matches so far
+            int sequence_matches = 1;
+            for (int i = 0; i <= currentkey && sequence_matches; i++) {
+                if (CLEANMASK(pressed_sequence[i].mod) != CLEANMASK(k->keys[i].mod) ||
+                    pressed_sequence[i].keysym != k->keys[i].keysym) {
+                    sequence_matches = 0;
+                }
+            }
+            
+            if (sequence_matches) {
+                handled = 1;
+                if (currentkey == k->n - 1 && k->func) {
+                    k->func(&k->arg);
+                    done = 1;
+                }
+            }
+        }
+    }
+    
+    if (handled) {
+        currentkey = done ? 0 : (currentkey + 1);
+    } else {
+        currentkey = 0;
+    }
+    
+    return handled;
+}
 
 void
 keypress(struct wl_listener *listener, void *data)

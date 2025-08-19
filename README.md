@@ -49,7 +49,7 @@
 * switchtotag (adds rule to switch to tag on window open and switch back on close)
 * regexrules (adds regex rules to dwl rules)
 * keepontag (very simple patch i made to keep windows on the same tags when moved between monitors, also makes you switch view to that tag but without focus)
-* keychords (adds functionallity for multikey combo like "mod+r" then "t" for opening terminal like in emacs )
+* keychords (adds functionallity for multikey combo like "mod+o" then "t" for opening terminal like in emacs )
 
 ## Install
 ```

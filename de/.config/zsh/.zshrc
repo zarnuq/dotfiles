@@ -32,6 +32,7 @@ alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias bkmrk='nvim $XDG_CONFIG_HOME/scripts/bkmrk.txt'
 alias ff='fastfetch'
 alias doomsync='pkill emacs;systemctl --user stop emacs;doom sync;systemctl --user start emacs'
+alias ta='tmux attach-session -t'
 
 #CONFIG
 _comp_options+=(globdots)
