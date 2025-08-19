@@ -73,17 +73,17 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 #define MODKEY WLR_MODIFIER_LOGO
 #define TAGKEYS(KEY,SKEY,TAG) \
-	{ MODKEY,                                     KEY,  view,       {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_CTRL,                   KEY,  toggleview, {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_SHIFT,                  SKEY, tag,        {.ui = 1 << TAG} }, \
-	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY, toggletag,  {.ui = 1 << TAG} }
+	{ 1,{{MODKEY,                                      KEY}},  view,       {.ui = 1 << TAG} }, \
+	{ 1,{{MODKEY|WLR_MODIFIER_CTRL,                    KEY}},  toggleview, {.ui = 1 << TAG} }, \
+	{ 1,{{MODKEY|WLR_MODIFIER_SHIFT,                  SKEY}}, tag,        {.ui = 1 << TAG} }, \
+	{ 1,{{MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT,SKEY}}, toggletag,  {.ui = 1 << TAG} }
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 /* commands */
 static const char *lockscreen[]   = { "swaylock", NULL };
-static const char *term[]         = { "kitty", "-e", "tmux", NULL };
+static const char *termcmd[]         = { "kitty", "-e", "tmux", NULL };
 static const char *term2[]        = { "wezterm", NULL };
-static const char *menu[]         = { "rofi", "-show", "drun", "-show-icons", NULL };
+static const char *menucmd[]         = { "rofi", "-show", "drun", "-show-icons", NULL };
 static const char *emacs[]        = { "kitty", "sh", "-c", "emacsclient -t", NULL };
 static const char *legcord[]      = { "legcord", NULL };
 static const char *rmpc[]         = { "kitty", "--class", "rmpc", "rmpc", NULL };
@@ -107,63 +107,65 @@ static const char *mediaprevcmd[] = { "playerctl", "-p", "mpd", "previous", NULL
 static const char *medianextcmd[] = { "playerctl", "-p", "mpd", "next", NULL };
 static const char *gammastepcmd[] = { "sh", "/home/miles/.local/bin/gammastep.sh", NULL };
 
-static const Key keys[] = {
-  { MODKEY,                             XKB_KEY_p,                   spawn,            {.v = lockscreen} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_P,                   quit,             {0} },
-	{ WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_Terminate_Server,    quit,             {0} },
-  { MODKEY,                             XKB_KEY_Tab,                 spawn,            {.v = term} },
-  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Tab,                 spawn,            {.v = term2} },
-  { MODKEY,                             XKB_KEY_space,               spawn,            {.v = menu} },
-  { MODKEY,                             XKB_KEY_BackSpace,           spawn,            {.v = emacs} },
-  { MODKEY,                             XKB_KEY_w,                   spawn,            {.v = legcord} },
-  { MODKEY,                             XKB_KEY_r,                   spawn,            {.v = rmpc} },
-  { MODKEY,                             XKB_KEY_t,                   spawn,            {.v = browser} },
-  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_T,                   spawn,            {.v = browser2} },
-  { MODKEY,                             XKB_KEY_a,                   spawn,            {.v = pavuc} },
-  { MODKEY,                             XKB_KEY_s,                   spawn,            {.v = sspart} },
-  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_s,                   spawn,            {.v = ssmain} },
-  { MODKEY,                             XKB_KEY_d,                   spawn,            {.v = steam} },
-  { MODKEY,                             XKB_KEY_b,                   spawn,            {.v = bgcmd} },
-  { MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_B,                   spawn,            {.v = randbgcmd} },
-	{ MODKEY,                             XKB_KEY_j,                   focusstack,       {.i = +1} },
-	{ MODKEY,                             XKB_KEY_k,                   focusstack,       {.i = -1} },
-	{ MODKEY,                             XKB_KEY_n,                   incnmaster,       {.i = +1} },
-	{ MODKEY,                             XKB_KEY_m,                   incnmaster,       {.i = -1} },
-	{ MODKEY,                             XKB_KEY_h,                   setmfact,         {.f = -0.05f} },
-	{ MODKEY,                             XKB_KEY_l,                   setmfact,         {.f = +0.05f} },
-	{ MODKEY,                             XKB_KEY_Return,              zoom,             {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Q,                   killclient,       {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_space,               view,             {0} },
-	{ MODKEY,                             XKB_KEY_f,                   togglefloating,   {0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_F,                   togglefullscreen, {0} },
-	{ MODKEY,                             XKB_KEY_0,                   view,             {.ui = ~0} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_parenright,          tag,              {.ui = ~0} },
-	{ MODKEY,                             XKB_KEY_comma,               focusmon,         {.i = WLR_DIRECTION_LEFT} },
-	{ MODKEY,                             XKB_KEY_period,              focusmon,         {.i = WLR_DIRECTION_RIGHT} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_less,                tagmon,           {.i = WLR_DIRECTION_LEFT} },
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_greater,             tagmon,           {.i = WLR_DIRECTION_RIGHT} },
-	{ MODKEY,                             XKB_KEY_Down,                moveresizekb,     {.v = (int []){ 0, 40, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Up,                  moveresizekb,     {.v = (int []){ 0, -40, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Right,               moveresizekb,     {.v = (int []){ 40, 0, 0, 0 }}},
-	{ MODKEY,                             XKB_KEY_Left,                moveresizekb,     {.v = (int []){ -40, 0, 0, 0 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Down,                moveresizekb,     {.v = (int []){ 0, 0, 0, 40 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Up,                  moveresizekb,     {.v = (int []){ 0, 0, 0, -40 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Right,               moveresizekb,     {.v = (int []){ 0, 0, 40, 0 }}},
-	{ MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Left,                moveresizekb,     {.v = (int []){ 0, 0, -40, 0 }}},
-  { WLR_MODIFIER_ALT,                   XKB_KEY_Up,                  spawn,            {.v = volupcmd } },
-  { WLR_MODIFIER_ALT,                   XKB_KEY_Down,                spawn,            {.v = voldowncmd } },
-  { WLR_MODIFIER_ALT,                   XKB_KEY_Left,                spawn,            {.v = micdowncmd } },
-  { WLR_MODIFIER_ALT,                   XKB_KEY_Right,               spawn,            {.v = micupcmd } },
-  { WLR_MODIFIER_ALT,                   XKB_KEY_End,                 spawn,            {.v = mutemiccmd } },
-  { WLR_MODIFIER_ALT,                   XKB_KEY_bracketleft,         spawn,            {.v = flipcmd } },
-  { WLR_MODIFIER_ALT|MODKEY,            XKB_KEY_Up,                  spawn,            {.v = gammastepcmd } },
-  { MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_y,                   setlayout,        {.v = &layouts[0]} },
-	{ MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_u,                   setlayout,        {.v = &layouts[1]} },
-	{ MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_i,                   setlayout,        {.v = &layouts[2]} },
-  { 0,                                  XKB_KEY_XF86AudioMedia,      spawn,            {.v = mediatoggle} },
-  { 0,                                  XKB_KEY_XF86AudioPlay,       spawn,            {.v = mediatoggle} },
-  { 0,                                  XKB_KEY_XF86AudioPrev,       spawn,            {.v = mediaprevcmd } },
-  { 0,                                  XKB_KEY_XF86AudioNext,       spawn,            {.v = medianextcmd } },
+static const Keychord keychords[] = {
+  { 2, {{MODKEY, XKB_KEY_x}, {0, XKB_KEY_c}}, spawn, {.v = termcmd} },
+
+  { 1, {{MODKEY,                             XKB_KEY_p                  }}, spawn,            {.v = lockscreen} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_P                  }}, quit,             {0} },
+	{ 1, {{WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_Terminate_Server   }}, quit,             {0} },
+  { 1, {{MODKEY,                             XKB_KEY_Tab                }}, spawn,            {.v = termcmd} },
+  { 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Tab                }}, spawn,            {.v = term2} },
+  { 1, {{MODKEY,                             XKB_KEY_space              }}, spawn,            {.v = menucmd} },
+  { 1, {{MODKEY,                             XKB_KEY_BackSpace          }}, spawn,            {.v = emacs} },
+  { 1, {{MODKEY,                             XKB_KEY_w                  }}, spawn,            {.v = legcord} },
+  { 1, {{MODKEY,                             XKB_KEY_r                  }}, spawn,            {.v = rmpc} },
+  { 1, {{MODKEY,                             XKB_KEY_t                  }}, spawn,            {.v = browser} },
+  { 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_T                  }}, spawn,            {.v = browser2} },
+  { 1, {{MODKEY,                             XKB_KEY_a                  }}, spawn,            {.v = pavuc} },
+  { 1, {{MODKEY,                             XKB_KEY_s                  }}, spawn,            {.v = sspart} },
+  { 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_s                  }}, spawn,            {.v = ssmain} },
+  { 1, {{MODKEY,                             XKB_KEY_d                  }}, spawn,            {.v = steam} },
+  { 1, {{MODKEY,                             XKB_KEY_b                  }}, spawn,            {.v = bgcmd} },
+  { 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_B                  }}, spawn,            {.v = randbgcmd} },
+	{ 1, {{MODKEY,                             XKB_KEY_j                  }}, focusstack,       {.i = +1} },
+	{ 1, {{MODKEY,                             XKB_KEY_k                  }}, focusstack,       {.i = -1} },
+	{ 1, {{MODKEY,                             XKB_KEY_n                  }}, incnmaster,       {.i = +1} },
+	{ 1, {{MODKEY,                             XKB_KEY_m                  }}, incnmaster,       {.i = -1} },
+	{ 1, {{MODKEY,                             XKB_KEY_h                  }}, setmfact,         {.f = -0.05f} },
+	{ 1, {{MODKEY,                             XKB_KEY_l                  }}, setmfact,         {.f = +0.05f} },
+	{ 1, {{MODKEY,                             XKB_KEY_Return             }}, zoom,             {0} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Q                  }}, killclient,       {0} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_space              }}, view,             {0} },
+	{ 1, {{MODKEY,                             XKB_KEY_f                  }}, togglefloating,   {0} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_F                  }}, togglefullscreen, {0} },
+	{ 1, {{MODKEY,                             XKB_KEY_0                  }}, view,             {.ui = ~0} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_parenright         }}, tag,              {.ui = ~0} },
+	{ 1, {{MODKEY,                             XKB_KEY_comma              }}, focusmon,         {.i = WLR_DIRECTION_LEFT} },
+	{ 1, {{MODKEY,                             XKB_KEY_period             }}, focusmon,         {.i = WLR_DIRECTION_RIGHT} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_less               }}, tagmon,           {.i = WLR_DIRECTION_LEFT} },
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_greater            }}, tagmon,           {.i = WLR_DIRECTION_RIGHT} },
+	{ 1, {{MODKEY,                             XKB_KEY_Down               }}, moveresizekb,     {.v = (int []){ 0, 40, 0, 0 }}},
+	{ 1, {{MODKEY,                             XKB_KEY_Up                 }}, moveresizekb,     {.v = (int []){ 0, -40, 0, 0 }}},
+	{ 1, {{MODKEY,                             XKB_KEY_Right              }}, moveresizekb,     {.v = (int []){ 40, 0, 0, 0 }}},
+	{ 1, {{MODKEY,                             XKB_KEY_Left               }}, moveresizekb,     {.v = (int []){ -40, 0, 0, 0 }}},
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Down               }}, moveresizekb,     {.v = (int []){ 0, 0, 0, 40 }}},
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Up                 }}, moveresizekb,     {.v = (int []){ 0, 0, 0, -40 }}},
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Right              }}, moveresizekb,     {.v = (int []){ 0, 0, 40, 0 }}},
+	{ 1, {{MODKEY|WLR_MODIFIER_SHIFT,          XKB_KEY_Left               }}, moveresizekb,     {.v = (int []){ 0, 0, -40, 0 }}},
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_Up                 }}, spawn,            {.v = volupcmd } },
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_Down               }}, spawn,            {.v = voldowncmd } },
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_Left               }}, spawn,            {.v = micdowncmd } },
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_Right              }}, spawn,            {.v = micupcmd } },
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_End                }}, spawn,            {.v = mutemiccmd } },
+  { 1, {{WLR_MODIFIER_ALT,                   XKB_KEY_bracketleft        }}, spawn,            {.v = flipcmd } },
+  { 1, {{WLR_MODIFIER_ALT|MODKEY,            XKB_KEY_Up                 }}, spawn,            {.v = gammastepcmd } },
+  { 1, {{MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_y                  }}, setlayout,        {.v = &layouts[0]} },
+	{ 1, {{MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_u                  }}, setlayout,        {.v = &layouts[1]} },
+	{ 1, {{MODKEY|WLR_MODIFIER_CTRL,           XKB_KEY_i                  }}, setlayout,        {.v = &layouts[2]} },
+  { 1, {{0,                                  XKB_KEY_XF86AudioMedia     }}, spawn,            {.v = mediatoggle} },
+  { 1, {{0,                                  XKB_KEY_XF86AudioPlay      }}, spawn,            {.v = mediatoggle} },
+  { 1, {{0,                                  XKB_KEY_XF86AudioPrev      }}, spawn,            {.v = mediaprevcmd } },
+  { 1, {{0,                                  XKB_KEY_XF86AudioNext      }}, spawn,            {.v = medianextcmd } },
 
 	TAGKEYS(          XKB_KEY_1, XKB_KEY_exclam,                     0),
 	TAGKEYS(          XKB_KEY_2, XKB_KEY_at,                         1),
@@ -174,10 +176,10 @@ static const Key keys[] = {
 	TAGKEYS(          XKB_KEY_7, XKB_KEY_ampersand,                  6),
 	TAGKEYS(          XKB_KEY_8, XKB_KEY_asterisk,                   7),
 	TAGKEYS(          XKB_KEY_9, XKB_KEY_parenleft,                  8),
+#define CHVT(n) { 1, {{WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }
+ 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
+ 	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
 
-#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
-	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
-	CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
 };
 
 static const Button buttons[] = {
