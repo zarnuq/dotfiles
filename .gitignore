@@ -1,6 +1,7 @@
 de/.config/tmux/plugins/
 *.uuid
 
+lazy-lock.json
 *.m3u
 de/.config/mpd/mpd.log
 de/.config/mpd/mpd.state
