@@ -1,4 +1,9 @@
 # My dotfiles
+## Gallery
+![Alt text](./archive/screenshots/rice1.png)
+![Alt text](./archive/screenshots/rice2.png)
+![Alt text](./archive/screenshots/rice3.png)
+
 ### configured applications
 * btop
 * dunst
