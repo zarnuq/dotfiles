@@ -39,7 +39,7 @@
 * yambar
 * yazi
 * zen-browser theme
-* zsh (spaceship, zplug)
+* zsh (starship, zplug)
 
 ## My Custom DWL Repo
 #### included patches
@@ -52,7 +52,7 @@
 * tmuxborder (only show borders for a window when touching another window and when it is focused)
 * moveresizekb  (keybinds for moving and resizing a floating window)
 * switchtotag (adds rule to switch to tag on window open and switch back on close)
-* regexrules (adds regex rules to dwl rules)
+* regexrules (adds regex to dwl rules)
 * keepontag (very simple patch i made to keep windows on the same tags when moved between monitors, also makes you switch view to that tag but without focus)
 * keychords (adds functionallity for multikey combo like "mod+o" then "t" for opening terminal like in emacs )
 * setupenv (adds a array for setting environment variables)

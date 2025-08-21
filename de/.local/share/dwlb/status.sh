@@ -55,7 +55,7 @@ get_mem() {
 # Get date/time
 get_clock() {
     date=$(date '+%a %m/%d')
-    time=$(date '+%I:%M:%S %p')
+    time=$(date '+%I:%M %p')
     echo " $date  $time"
 }
 
@@ -84,6 +84,6 @@ while true; do
     fi
 
     echo "$audio $mic|$cpu|$mem|$clock"
-    sleep 1
+    sleep 60
     ((counter++))
 done
