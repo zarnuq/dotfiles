@@ -1,5 +1,0 @@
-export XDG_CURRENT_DESKTOP=sway
-export XDG_SESSION_DESKTOP=sway
-export XDG_SESSION_TYPE=wayland
-export QT_QPA_PLATFORMTHEME=qt6ct
-export QT_STYLE_OVERRIDE=kvantum
