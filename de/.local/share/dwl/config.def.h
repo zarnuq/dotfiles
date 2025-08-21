@@ -22,6 +22,12 @@ static const char cursor_size[]            = "24"; /* Make sure it's a valid int
 /* logging */
 static int log_level = WLR_ERROR;
 
+static const Env envs[] = {
+	/* variable			value */
+	{ "XDG_CURRENT_DESKTOP",	"wlroots" },
+};
+
+
 /* Autostart */
 static const char *const autostart[] = {
         "wbg", "/path/to/your/image", NULL,

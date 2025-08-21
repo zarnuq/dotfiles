@@ -29,6 +29,15 @@ static const char *const autostart[] = {
   NULL 
 };
 
+static const Env envs[] = {
+	{ "XDG_CURRENT_DESKTOP",  "wlroots" },
+  { "XDG_CURRENT_DESKTOP",  "sway" },
+  { "XDG_SESSION_DESKTOP",  "sway" },
+  { "XDG_SESSION_TYPE",     "wayland" },
+  { "QT_QPA_PLATFORMTHEME", "qt6ct" },
+  { "QT_STYLE_OVERRIDE",    "kvantum" },
+};
+
 static const Rule rules[] = {
 	/* app_id | title | tags mask | switchtotag | isfloating | monitor */
   { "rmpc",   NULL,   0,          0,            0,           1},
