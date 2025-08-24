@@ -53,7 +53,7 @@
 * moveresizekb  (keybinds for moving and resizing a floating window)
 * switchtotag (adds rule to switch to tag on window open and switch back on close)
 * regexrules (adds regex to dwl rules)
-* keepontag (very simple patch i made to keep windows on the same tags when moved between monitors, also makes you switch view to that tag but without focus)
+* keepontag (patch i made that makes moving clients between monitors stay on the same tag and view on that monitor. also restores tag on origin monitor to tag 1 if there are no other clients on that tag)
 * keychords (adds functionallity for multikey combo like "mod+o" then "t" for opening terminal like in emacs )
 * setupenv (adds a array for setting environment variables)
 

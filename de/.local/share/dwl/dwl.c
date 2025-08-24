@@ -3229,8 +3229,43 @@ void
 tagmon(const Arg *arg)
 {
     Client *sel = focustop(selmon);
-    if (sel)
-        setmon(sel, dirtomon(arg->i), sel->tags); // pass current tags
+    Monitor *orig, *dest;
+    unsigned int orig_tags;
+    Client *c;
+    int hasclients = 0;
+
+    if (!sel)
+        return;
+
+    orig = selmon;                          /* source monitor */
+    orig_tags = orig->tagset[orig->seltags];/* save its current tagset */
+    dest = dirtomon(arg->i);
+
+    /* move client to new monitor with its tags */
+    setmon(sel, dest, sel->tags);
+
+    /* switch destination monitor to the client's tags (via view) */
+    if (sel->tags) {
+        Arg a = {.ui = sel->tags};
+        selmon = dest;
+        view(&a);
+        selmon = orig; /* restore */
+    }
+
+    /* check if origin monitor still has any clients on its original view */
+    wl_list_for_each(c, &clients, link) {
+        if (c->mon == orig && (c->tags & orig_tags)) {
+            hasclients = 1;
+            break;
+        }
+    }
+
+    /* if none remain, switch origin monitor to tag 1 (via view) */
+    if (!hasclients) {
+        Arg a = {.ui = 1 << 0};
+        selmon = orig;
+        view(&a);
+    }
 }
 
 void
@@ -3241,8 +3276,7 @@ tile(Monitor *m)
 	Client *c;
 	struct wlr_box wb;
 	int borders = m->lt[m->sellt]->arrange == tile ? 1 : 0;
-
-	n = countclients(m);
+n = countclients(m);
 	if (n == 0)
 		return;
 
