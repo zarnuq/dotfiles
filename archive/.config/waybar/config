@@ -22,7 +22,7 @@
     "custom/power"
     ],
     "dwl/window": {
-    "format": "{title}",
+    "format": "{app_id} {title} {layout}",
     "max-length": 50,
     "rewrite": {
        "(.*) - Mozilla Firefox": "🌎 $1",

@@ -10,9 +10,9 @@
     on_song_change: None,
     volume_step: 5,
     max_fps: 165,
-    scrolloff: 0,
+    scrolloff: 3,
     wrap_navigation: false,
-    enable_mouse: true,
+    enable_mouse: false,
     status_update_interval_ms: 1000,
     select_current_song_on_change: false,
     album_art: (
@@ -22,11 +22,11 @@
         vertical_align: Center,
         horizontal_align: Center,
     ),
-  directories_sort: ModifiedTime(),
+  directories_sort: ModifiedTime(reverse: true),
     keybinds: (
         global: {
             ":":       CommandMode,
-            "<Down>":    VolumeDown,
+            "<Down>":  VolumeDown,
             "s":       Stop,
             "<Up>":    VolumeUp,
             "<Tab>":   NextTab,

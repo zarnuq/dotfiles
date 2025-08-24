@@ -953,6 +953,12 @@ static void
 dwl_wm_output_appid(void *data, struct zdwl_ipc_output_v2 *dwl_wm_output,
 	const char *appid)
 {
+	Bar *bar = (Bar *)data;
+
+	if (bar->window_appid)
+		free(bar->window_appid);
+	if (!(bar->window_appid = strdup(appid)))
+		EDIE("strdup");
 }
 
 static void

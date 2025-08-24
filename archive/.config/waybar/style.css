@@ -12,6 +12,10 @@
     background: rgba(0,0,0,0.9);
     color: #cba6f7;
   }
+  #window focused{
+    color: #ffffff;
+    background-color: #ffffff;
+  }
   #tags button {
     color: #ffffff;
   }

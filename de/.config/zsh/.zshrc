@@ -57,6 +57,7 @@ if ! zplug check --verbose; then
 fi
 zplug load
 
+export MANPAGER="nvim +Man!"
 export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"
 eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
