@@ -74,6 +74,7 @@ mem=""
 clock=""
 mic=""
 vol=""
+battery=""
 audio=$(get_audio)
 counter=0
 # Polling loop
@@ -87,7 +88,12 @@ while true; do
     clock=$(get_clock)
     cpu=$(get_cpu)
     mem=$(get_mem)
+    battery=$(get_battery)
 
-    echo "$audio $vol|$mic|$cpu|$mem|$clock"
+    if [ -n "$battery" ]; then
+        echo "$audio $vol|$mic|$cpu|$mem|$battery|$clock"
+    else
+        echo "$audio $vol|$mic|$cpu|$mem|$clock"
+    fi
     sleep 60
 done
