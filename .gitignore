@@ -7,3 +7,5 @@ de/.config/mpd/mpd.log
 de/.config/mpd/mpd.state
 de/.config/mpd/mpd.db
 de/.config/mpd/mpd.pid
+de/.config/nvim/spell
+
