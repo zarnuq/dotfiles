@@ -48,6 +48,27 @@ get_clock() {
     echo " $date  $time"
 }
 
+get_battery() {
+    # Look for battery directory
+    bat_path=$(find /sys/class/power_supply/ -maxdepth 1 -type d -name "BAT*" | head -n 1)
+    if [ -n "$bat_path" ]; then
+        cap=$(cat "$bat_path/capacity")
+        stat=$(cat "$bat_path/status")
+
+        case $stat in
+            "Charging") icon="";;
+            "Discharging") icon="";;
+            "Full") icon="";;
+            *) icon="";;
+        esac
+
+        echo "$icon $cap%"
+    else
+        # No battery found (desktop) → output nothing
+        echo ""
+    fi
+}
+
 cpu=""
 mem=""
 clock=""
