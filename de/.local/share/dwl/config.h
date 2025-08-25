@@ -54,10 +54,10 @@ static const Layout layouts[] = {
 
 static const MonitorRule monrules[] = {
 	/* name        mfact  nmaster scale layout       rotate/reflect              x     y  resx   resy   rate  mode   adaptive*/
-  { "HDMI-A-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 2560,  1440,  0.0f, 0,     1},
-  { "DP-2",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 2560, 0, 3440,  1440,  0.0f, 1,     1},
-  { "DP-1",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6000, 0, 1920,  1080,  0.0f, 2,     1},
-  { "eDP-1",     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,  -1, -1, 1920,  1200,  0.0f, 0,     0},
+  { "^HDMI-A-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 2560,  1440,  0.0f, 0,     1},
+  { "^DP-2",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 2560, 0, 3440,  1440,  0.0f, 1,     1},
+  { "^DP-1",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6000, 0, 1920,  1080,  0.0f, 2,     1},
+  { "^eDP-1",     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,  -1, -1, 1920,  1200,  0.0f, 0,     0},
 	{ NULL,        0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 0,     0,     0.0f, 0,     1},
 };
 
