@@ -50,10 +50,9 @@ get_clock() {
 
 get_battery() {
     # Look for battery directory
-    bat_path=/sys/class/power_supply/BAT0
-    if [ -n "$bat_path" ]; then
-        cap=$(cat "$bat_path/capacity")
-        stat=$(cat "$bat_path/status")
+    if [ -n "/sys/class/power_supply/BAT0" ]; then
+        cap=$(cat "/sys/class/power_supply/BAT0/capacity")
+        stat=$(cat "/sys/class/power_supply/BAT0/status")
 
         case $stat in
             "Charging") icon="";;
