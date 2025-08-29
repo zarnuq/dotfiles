@@ -50,10 +50,9 @@ get_clock() {
 
 get_battery() {
     # Look for battery directory
-    if [ -f "/sys/class/power_supply/BAT0" ]; then
+    if [ -d "/sys/class/power_supply/BAT0" ]; then
         cap=$(cat "/sys/class/power_supply/BAT0/capacity")
         stat=$(cat "/sys/class/power_supply/BAT0/status")
-
         case $stat in
             "Charging") icon="";;
             "Discharging") icon="";;
@@ -88,7 +87,7 @@ while true; do
     battery=$(get_battery)
 
     if [ -n "$battery" ]; then
-        echo "$audio $vol|$mic|$cpu|$mem|$battery|$clock"
+        echo "$audio $vol|$mic|$cpu|$mem|$clock|$battery"
     else
         echo "$audio $vol|$mic|$cpu|$mem|$clock"
     fi
