@@ -25,5 +25,6 @@
     "downloads_concurrent_max": 5,
     "symlink_to_track": false,
     "playlist_create": false,
-    "metadata_replay_gain": true
+    "metadata_replay_gain": true,
+    "metadata_write_url": true
 }
