@@ -113,6 +113,8 @@ static const char *steam[]        = { "steam", NULL };
 static const char *bgcmd[]        = { "kitty", "-e", "yazi", "/home/miles/Pictures/bgs", NULL };
 static const char *randbgcmd[]    = {"sh", "-c","swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1",NULL};
 
+static const char *eqon[]     = { "sh", "-c", "easyeffects -l EQ", NULL };
+static const char *eqoff[]     = { "sh", "-c", "easyeffects -l None", NULL };
 static const char *volupcmd[]     = { "sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -f 'sleep 60'", NULL };
 static const char *voldowncmd[]   = { "sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -f 'sleep 60'", NULL };
 static const char *micdowncmd[]   = { "sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ -5% && pkill -f 'sleep 60'", NULL };
@@ -134,6 +136,8 @@ static const Keychord keychords[] = {
   {1,    {{MOD,                 XKB_KEY_BackSpace}},      spawn,            {.v = emacs}},
   {1,    {{MOD,                 XKB_KEY_w}},              spawn,            {.v = rmpc}},
   {1,    {{MOD,                 XKB_KEY_t}},              spawn,            {.v = browser}},
+  {2,    {{MOD,XKB_KEY_q},  {0, XKB_KEY_1}},              spawn,            {.v = eqon} },
+  {2,    {{MOD,XKB_KEY_q},  {0, XKB_KEY_2}},              spawn,            {.v = eqoff} },
   {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_d}},              spawn,            {.v = legcord} },
   {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_b}},              spawn,            {.v = browser2} },
   {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_a}},              spawn,            {.v = pavuc} },
