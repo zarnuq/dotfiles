@@ -62,7 +62,7 @@ export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"
 eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
 SPACESHIP_PROMPT_ORDER=(
   dir            # Current directory section
   git            # Git section (git_branch + git_status)

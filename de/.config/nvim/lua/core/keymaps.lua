@@ -21,6 +21,13 @@ vim.opt.shiftwidth = 4
 vim.opt.shiftround = true
 vim.opt.expandtab = true
 
+vim.api.nvim_set_keymap(
+  'n', 
+  '<leader>k', 
+  '<cmd>lua vim.diagnostic.open_float()<CR>', 
+  { noremap = true, silent = true }
+)
+
 vim.keymap.set("n", "gx", function()
   local path = vim.fn.expand("<cfile>")  -- word under cursor
   if vim.fn.filereadable(path) == 1 then
