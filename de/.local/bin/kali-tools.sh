@@ -14,4 +14,5 @@ dirbuster       \ # Directory and file brute-forcing tool for web servers
 dnslookup-bin   \ # DNS query utility (nslookup-like functionality) 
 remmina         \ # Remote desktop client supporting RDP, VNC, SSH, SPICE 
 freerdp         \ # Free implementation of the Remote Desktop Protocol (RDP) 
+seclists
 
