@@ -47,6 +47,23 @@ HISTIGNORE="ls:cd:pwd:exit"
 #PLUGINS
 source $ZPLUG_HOME/init.zsh
 
+SPACESHIP_PROMPT_ORDER=(
+  dir            # Current directory section
+  git            # Git section (git_branch + git_status)
+  exec_time      # Execution time
+  exit_code      # Exit code section
+  char           # Prompt character
+)
+SPACESHIP_CHAR_SYMBOL="> "
+SPACESHIP_CHAR_SYMBOL_FAILURE="x "
+SPACESHIP_CHAR_COLOR_SUCCESS="white"
+SPACESHIP_DIR_TRUNC_REPO="false"
+SPACESHIP_DIR_LOCK_SYMBOL=""
+SPACESHIP_GIT_PREFIX=""
+SPACESHIP_GIT_BRANCH_PREFIX=""
+SPACESHIP_GIT_STATUS_PREFIX=""
+SPACESHIP_GIT_STATUS_SUFFIX=""
+
 # Declare plugins
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "zsh-users/zsh-autosuggestions"
@@ -63,13 +80,3 @@ eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
-SPACESHIP_PROMPT_ORDER=(
-  dir            # Current directory section
-  git            # Git section (git_branch + git_status)
-  exec_time      # Execution time
-  line_sep       # Line break
-  exit_code      # Exit code section
-  char           # Prompt character
-)
-SPACESHIP_GIT_BRANCH_PREFIX=""
-SPACESHIP_GIT_PREFIX=""
