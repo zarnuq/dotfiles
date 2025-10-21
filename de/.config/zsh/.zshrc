@@ -50,8 +50,6 @@ source $ZPLUG_HOME/init.zsh
 SPACESHIP_PROMPT_ORDER=(
   dir            # Current directory section
   git            # Git section (git_branch + git_status)
-  exec_time      # Execution time
-  exit_code      # Exit code section
   char           # Prompt character
 )
 SPACESHIP_CHAR_SYMBOL="> "
