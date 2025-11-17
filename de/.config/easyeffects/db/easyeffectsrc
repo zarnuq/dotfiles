@@ -1,0 +1,15 @@
+[StreamInputs]
+inputDevice=alsa_input.usb-FuZhou_Kingwayinfo_CO._LTD_TONOR_TC30_Audio_Device_20200707-00.mono-fallback
+
+[StreamOutputs]
+mostUsedPresets=EQ,None
+outputDevice=alsa_output.usb-FIIO_FiiO_K11-01.iec958-stereo
+plugins=equalizer#0
+usedPresets=None:1,EQ:1
+visiblePage=pluginsPage
+visiblePlugin=equalizer#0
+
+[Window]
+height=1421
+lastLoadedOutputPreset=EQ
+width=1536

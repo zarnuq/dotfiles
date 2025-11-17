@@ -1,22 +1,5 @@
-#VI MODE
-stty -ixon
-bindkey -v
-export KEYTIMEOUT=1
-function zle-keymap-select { case $KEYMAP in
-    vicmd) echo -ne '\e[2 q' ;;  # Block cursor in Normal mode
-    viins|main) echo -ne '\e[6 q' ;;  # Beam cursor in Insert mode
-  esac
-}
-zle -N zle-keymap-select
-function zle-line-init {
-  echo -ne '\e[6 q'  # Set cursor to beam on shell start
-}
-zle -N zle-line-init
-echo -ne '\e[6 q'  # Ensure cursor is reset when shell starts
-
 #ALIASES
 alias y='yazi'
-alias p='paru'
 alias gs='git status -s'
 alias gac='git add .; git commit -m'
 alias gp='git push'
@@ -29,10 +12,12 @@ alias nord='sudo systemctl start nordvpnd && nordvpn c Chicago'
 alias ka='killall'
 alias pickcolor='grim -g "$(slurp -p)" -t ppm - | convert - -format "%[pixel:p{0,0}]" txt:-'
 alias zshrc='nvim $ZDOTDIR/.zshrc'
-alias bkmrk='nvim $XDG_CONFIG_HOME/scripts/bkmrk.txt'
 alias ff='fastfetch'
 alias doomsync='pkill emacs;systemctl --user stop emacs;doom sync;systemctl --user start emacs'
 alias ta='tmux attach-session -t'
+alias p='paru'
+alias pf="yay -Slq | fzf --multi --preview 'yay -Sii {1}' --preview-window=down:75% --layout=reverse | xargs -ro yay -S"
+
 
 #CONFIG
 _comp_options+=(globdots)
@@ -68,6 +53,7 @@ zplug "zsh-users/zsh-syntax-highlighting"
 zplug "zsh-users/zsh-autosuggestions"
 zplug "Aloxaf/fzf-tab"
 zplug "spaceship-prompt/spaceship-prompt"
+zplug "jeffreytse/zsh-vi-mode"
 if ! zplug check --verbose; then
     zplug install
 fi
