@@ -22,18 +22,14 @@
     "custom/power"
     ],
     "dwl/window": {
-    "format": "{app_id} {title} {layout}",
+    "format": "{layout} {app_id} {title}",
+    "hide-vacant-tags": true,
     "max-length": 50,
-    "rewrite": {
-       "(.*) - Mozilla Firefox": "🌎 $1",
-       "(.*) - vim": " $1",
-       "(.*) - zsh": " [$1]"
-       },
     },
       "dwl/tags": {
         "num-tags": 9,
-        "tag-labels": ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
-        "disable-click": false
+        "hide-vacant-tags": true,
+        "disable-click": false,
     },
       "memory": {
         "interval": 5,
