@@ -253,6 +253,10 @@ typedef struct {
 	bool switchtotag;
 	int isfloating;
 	int monitor;
+	int x;
+	int y;
+	float w;
+	float h;
 } Rule;
 
 typedef struct {
@@ -522,6 +526,12 @@ applyrules(Client *c, bool map)
   	c->geom.y = (mon->w.height - c->geom.height) / 2 + mon->m.y;
 	}
 
+	int newwidth;
+	int newheight;
+	int newx;
+	int newy;
+	int apply_resize = 0;
+
 	c->isfloating = client_is_float_type(c);
 	if (!(appid = client_get_appid(c)))
 		appid = broken;
@@ -543,9 +553,27 @@ applyrules(Client *c, bool map)
 				mon->seltags ^= 1;
 				mon->tagset[selmon->seltags] = r->tags & TAGMASK;
 			}
+			if (c->isfloating || !mon->lt[mon->sellt]->arrange) {
+				/* client is floating or in floating layout */
+				struct wlr_box b = respect_monitor_reserved_area ? mon->w : mon->m;
+				newwidth = (int)round(r->w ? (r->w <= 1 ? b.width * r->w : r->w) : c->geom.width);
+				newheight = (int)round(r->h ? (r->h <= 1 ? b.height * r->h : r->h) : c->geom.height);
+				newx = (int)round(r->x ? (r->x <= 1 ? b.width * r->x + b.x : r->x + b.x) : c->geom.x);
+				newy = (int)round(r->y ? (r->y <= 1 ? b.height * r->y + b.y : r->y + b.y) : c->geom.y);
+				apply_resize = 1;
+
+			}
 		}
 	}
 	setmon(c, mon, newtags);
+	if (apply_resize) {
+		resize(c, (struct wlr_box){
+			.x = newx,
+			.y = newy,
+			.width = newwidth,
+			.height = newheight,
+		}, 1);
+	}
 }
 
 void
