@@ -52,6 +52,7 @@
 - autostart (adds autostart section in config.h)
 - warpcursor (warps cursor to active window and monitor)
 - cursortheme (<-)
+- customfloat (adds rules for floating window placement)
 - monitorconfig (adds more parameters for monitors such as refresh rate)
 - ipc (for dwlb)
 - centerfloating (new floating windows center to monitor)
