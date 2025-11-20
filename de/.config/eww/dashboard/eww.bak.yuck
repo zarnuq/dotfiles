@@ -1,0 +1,18 @@
+; eww.yuck - System tray configuration
+; Place this in ~/.config/eww/eww.yuck
+
+(defwindow tray
+  :monitor 2
+  :geometry (geometry 
+    :x "0%"
+    :y "0"
+    :width "100px"
+    :height "30px"
+    :anchor "top right")
+  :stacking "fg"
+  :reserve (struts :distance "30px" :side "top")
+  :windowtype "dock"
+  :wm-ignore false
+  (systray :class "tray-widget"
+           :icon-size 16
+           :spacing 8))

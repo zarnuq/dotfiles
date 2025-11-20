@@ -1,0 +1,47 @@
+/* ~/.config/gtk-3.0/gtk.css */
+/* This affects all GTK3 popups system-wide */
+
+/* StatusNotifierItem (tray) menus */
+menu,
+.menu,
+.context-menu {
+  background-color: #313244;  /* Opaque background */
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 0;
+  opacity: 1.0;  /* Force opaque */
+}
+
+menuitem {
+  background-color: transparent;
+  color: #cdd6f4;
+  padding: 5px 10px;
+}
+
+menuitem:hover {
+  background-color: #45475a;
+  color: #cdd6f4;
+}
+
+/* Tooltips */
+tooltip,
+.tooltip {
+  background-color: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  opacity: 1.0;
+  border-radius: 0;
+  padding: 8px;
+}
+
+tooltip label {
+  color: #cdd6f4;
+}
+
+/* For some apps that use different classes */
+popover,
+.popover {
+  background-color: #313244;
+  border: 1px solid #45475a;
+  opacity: 1.0;
+}
