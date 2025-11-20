@@ -1,12 +1,13 @@
 From 4f19f5499610d56f2616da5d44039403ac9d4c06 Mon Sep 17 00:00:00 2001
 From: wochap <gean.marroquin@gmail.com>
 Date: Tue, 9 Jul 2024 10:52:37 -0500
-Subject: [PATCH] implement customfloat and generate patches
+Subject: [PATCH] implement customfloat and floating focus fix
 
 ---
  config.def.h |  7 ++++---
  dwl.c        | 27 +++++++++++++++++++++++++++
- 2 files changed, 31 insertions(+), 3 deletions(-)
+ client.c     |  5 +++++
+ 3 files changed, 36 insertions(+), 3 deletions(-)
 
 diff --git a/config.def.h b/config.def.h
 index 22d2171..dee53f4 100644
@@ -89,6 +90,21 @@ index dc0437e..be0340f 100644
  }
  
  void
+diff --git a/client.c b/client.c
+index 268..273 100644
+--- a/client.c
++++ b/client.c
+@@ -268,6 +268,11 @@ mapnotify(struct wl_listener *listener, void *data)
+ 	} else {
+ 		applyrules(c, true);
+ 	}
++	
++	/* Focus floating windows when they spawn */
++	if (c->isfloating && client_wants_focus(c)) {
++		focusclient(c, 1);
++	}
+ 	printstatus();
+ unset_fullscreen:
+ 	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
 -- 
 2.45.1
-

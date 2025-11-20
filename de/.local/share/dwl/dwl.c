@@ -2321,8 +2321,14 @@ mapnotify(struct wl_listener *listener, void *data)
 			c->geom.y = (p->mon->w.height - c->geom.height) / 2 + p->mon->m.y;
 		}
 		setmon(c, p->mon, p->tags);
+
 	} else {
 		applyrules(c, true);
+		/* Center floating windows that don't have a parent */
+		if (c->isfloating && c->mon) {
+			c->geom.x = (c->mon->w.width - c->geom.width) / 2 + c->mon->m.x;
+			c->geom.y = (c->mon->w.height - c->geom.height) / 2 + c->mon->m.y;
+		}
 	}
 	printstatus();
 
