@@ -88,6 +88,8 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define SHIFT   WLR_MODIFIER_SHIFT
 #define ALT     WLR_MODIFIER_ALT
 
+#define SPAWN(key, mod, ...) {1, {{mod, key}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
+#define SPAWN2(k1, m1, k2, m2, ...) {2, {{m1, k1}, {m2, k2}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
 #define TAGKEYS(KEY,SKEY,TAG) \
     {1,{{MOD,           KEY}},  view,       {.ui = 1 << TAG} }, \
     {1,{{MOD|CTRL,      KEY}},  toggleview, {.ui = 1 << TAG} }, \
@@ -112,8 +114,6 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define LAYOUT(key, mod, idx) {1, {{mod, key}}, setlayout, {.v = &layouts[idx]}}
 #define ACTION(key, mod, func, arg) {1, {{mod, key}}, func, arg}
 #define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }
-#define SPAWN(key, mod, ...) {1, {{mod, key}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
-#define SPAWN2(k1, m1, k2, m2, ...) {2, {{m1, k1}, {m2, k2}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
 static const Keychord keychords[] = {
 
     /* Spawning commands */
@@ -147,9 +147,9 @@ static const Keychord keychords[] = {
     SPAWN(XKB_KEY_bracketleft, ALT, "/bin/sh", "-c", "/home/miles/.local/bin/flip.sh && touch /tmp/update_audio && pkill -f 'sleep 60'"),
 
     /* Brightness control */
-    SPAWNC(XKB_KEY_Left, MOD|ALT, "brightnessctl", "s", "5%-"),
-    SPAWNC(XKB_KEY_Right, MOD|ALT, "brightnessctl", "s", "5%+"),
-    SPAWNC(XKB_KEY_Up, MOD|ALT, "sh", "/home/miles/.local/bin/gammastep.sh"),
+    SPAWN(XKB_KEY_Left, MOD|ALT, "brightnessctl", "s", "5%-"),
+    SPAWN(XKB_KEY_Right, MOD|ALT, "brightnessctl", "s", "5%+"),
+    SPAWN(XKB_KEY_Up, MOD|ALT, "sh", "/home/miles/.local/bin/gammastep.sh"),
 
     /* Window management */
     ACTION(XKB_KEY_P, MOD|SHIFT,     quit, {0}),
