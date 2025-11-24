@@ -40,11 +40,11 @@ static const Env envs[] = {
 };
 
 static const Rule rules[] = {
-    /* app_id | title | tags mask | switchtotag | isfloating | monitor | x |  y |  width | height */
-    { "rmpc",   NULL,   0,          0,            0,           1,        0,   0,   0,      0       },
-    { "zen",    NULL,   1 << 2,     1,            0,          -1,        0,   0,   0,      0       },
-    { "^steam", NULL,   1 << 4,     0,            0,          -1,        0,   0,   0,      0       },
-    { "^float", NULL,   0,          0,            1,          -1,        0.25,   0.25,  0.5,      0.5},
+    /* app_id | title | tags mask | switchtotag | isfloating | monitor | x |   y |   width | height */
+    { "rmpc",   NULL,   0,          0,            0,           1,        0,    0,    0,      0       },
+    { "zen",    NULL,   1 << 2,     1,            0,          -1,        0,    0,    0,      0       },
+    { "^steam", NULL,   1 << 4,     0,            0,          -1,        0,    0,    0,      0       },
+    { "^float", NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5},
 };
 
 static const Layout layouts[] = {
@@ -56,7 +56,7 @@ static const Layout layouts[] = {
 
 static const MonitorRule monrules[] = {
     /* name        mfact  nmaster scale layout       rotate/reflect              x     y  resx   resy   rate  mode   adaptive*/
-    { "eDP-1",     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL,  -1, -1, 1920,  1200,  0.0f, 0,     0},
+    { "eDP-1",     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 1,   -1, 1920,  1200,  0.0f, 0,     0},
     { "HDMI-A-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 2560,  1440,  0.0f, 0,     1},
     { "DP-2",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 2560, 0, 3440,  1440,  0.0f, 1,     1},
     { "DP-1",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6000, 0, 1920,  1080,  0.0f, 2,     1},
@@ -89,106 +89,100 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define ALT     WLR_MODIFIER_ALT
 
 #define TAGKEYS(KEY,SKEY,TAG) \
-    { 1,{{MOD,           KEY}},  view,       {.ui = 1 << TAG} }, \
-    { 1,{{MOD|CTRL,      KEY}},  toggleview, {.ui = 1 << TAG} }, \
-    { 1,{{MOD|SHIFT,     SKEY}}, tag,        {.ui = 1 << TAG} }, \
-    { 1,{{MOD|CTRL|SHIFT,SKEY}}, toggletag,  {.ui = 1 << TAG} }
-#define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
+    {1,{{MOD,           KEY}},  view,       {.ui = 1 << TAG} }, \
+    {1,{{MOD|CTRL,      KEY}},  toggleview, {.ui = 1 << TAG} }, \
+    {1,{{MOD|SHIFT,     SKEY}}, tag,        {.ui = 1 << TAG} }, \
+    {1,{{MOD|CTRL|SHIFT,SKEY}}, toggletag,  {.ui = 1 << TAG} }
+#define MOVEKEYS(dist) \
+    {1,{{MOD, XKB_KEY_Down}}, moveresizekb, {.v = (int []){0, dist, 0, 0}}}, \
+    {1,{{MOD, XKB_KEY_Up}}, moveresizekb, {.v = (int []){0, -dist, 0, 0}}}, \
+    {1,{{MOD, XKB_KEY_Right}}, moveresizekb, {.v = (int []){dist, 0, 0, 0}}}, \
+    {1,{{MOD, XKB_KEY_Left}}, moveresizekb, {.v = (int []){-dist, 0, 0, 0}}}
 
-/* commands */
-static const char *lockscreen[]   = { "swaylock", NULL };
-static const char *termcmd[]      = { "kitty", NULL };
-static const char *term2[]        = { "wezterm", NULL };
-static const char *menucmd[]      = { "rofi", "-show", "drun", "-show-icons", NULL };
-static const char *emacs[]        = { "kitty", "--class", "float", NULL };
-static const char *legcord[]      = { "legcord", NULL };
-static const char *rmpc[]         = { "kitty", "--class", "rmpc", "rmpc", NULL };
-static const char *browser[]      = { "zen-browser", NULL };
-static const char *browser2[]     = { "brave", NULL };
-static const char *pavuc[]        = { "pavucontrol", NULL };
-static const char *runbar[]       = { "sh", "-c","/home/miles/.local/bin/runbar.sh", NULL };
-static const char *brightup[]     = { "sh", "-c","brightnessctl s 5%+", NULL };
-static const char *brightdown[]   = { "sh", "-c","brightnessctl s 5%-", NULL };
-static const char *screenshotmain[]={ "sh", "-c","/home/miles/.local/bin/screenshotmain.sh -&& notify-send 'Screenshot' 'Fullscreen saved!'", NULL };
-static const char *screenshot[]   = { "sh", "-c","/home/miles/.local/bin/screenshot.sh && notify-send 'Screenshot' 'Section saved!'", NULL };
-static const char *steam[]        = { "steam", NULL };
-static const char *bgcmd[]        = { "kitty", "-e", "yazi", "/home/miles/Pictures/bgs", NULL };
-static const char *randbgcmd[]    = {"sh", "-c","swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1",NULL};
-
-static const char *eqon[]         = { "sh", "-c", "easyeffects -l EQ", NULL };
-static const char *eqoff[]        = { "sh", "-c", "easyeffects -l None", NULL };
-static const char *volupcmd[]     = { "sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -f 'sleep 60'", NULL };
-static const char *voldowncmd[]   = { "sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -f 'sleep 60'", NULL };
-static const char *micdowncmd[]   = { "sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ -5% && pkill -f 'sleep 60'", NULL };
-static const char *micupcmd[]     = { "sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ +5% && pkill -f 'sleep 60'", NULL };
-static const char *mutemiccmd[]   = { "sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && pkill -f 'sleep 60'", NULL };
-static const char *flipcmd[]      = { "sh", "-c", "/home/miles/.local/bin/flip.sh && touch /tmp/update_audio && pkill -f 'sleep 60'", NULL };
-static const char *mediatoggle[]  = { "playerctl", "-p", "mpd", "play-pause", NULL };
-static const char *mediaprevcmd[] = { "playerctl", "-p", "mpd", "previous", NULL };
-static const char *medianextcmd[] = { "playerctl", "-p", "mpd", "next", NULL };
-static const char *gammastepcmd[] = { "sh", "/home/miles/.local/bin/gammastep.sh", NULL };
-
+#define RESIZEKEYS(dist) \
+    {1,{{MOD|SHIFT, XKB_KEY_Down}}, moveresizekb, {.v = (int []){0, 0, 0, dist}}}, \
+    {1,{{MOD|SHIFT, XKB_KEY_Up}}, moveresizekb, {.v = (int []){0, 0, 0, -dist}}}, \
+    {1,{{MOD|SHIFT, XKB_KEY_Right}}, moveresizekb, {.v = (int []){0, 0, dist, 0}}}, \
+    {1,{{MOD|SHIFT, XKB_KEY_Left}}, moveresizekb, {.v = (int []){0, 0, -dist, 0}}}
+#define STACK(key, mod, dir) {1, {{mod, key}}, focusstack, {.i = dir}}
+#define MASTER(key, mod, dir) {1, {{mod, key}}, incnmaster, {.i = dir}}
+#define MFACT(key, mod, val) {1, {{mod, key}}, setmfact, {.f = val}}
+#define FOCUSMON(key, mod, dir) {1, {{mod, key}}, focusmon, {.i = dir}}
+#define TAGMON(key, mod, dir) {1, {{mod, key}}, tagmon, {.i = dir}}
+#define LAYOUT(key, mod, idx) {1, {{mod, key}}, setlayout, {.v = &layouts[idx]}}
+#define ACTION(key, mod, func, arg) {1, {{mod, key}}, func, arg}
+#define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }
+#define SPAWN(key, mod, ...) {1, {{mod, key}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
+#define SPAWN2(k1, m1, k2, m2, ...) {2, {{m1, k1}, {m2, k2}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
 static const Keychord keychords[] = {
-    {1,    {{MOD,                 XKB_KEY_p}},              spawn,            {.v = lockscreen}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_P}},              quit,             {0}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Q}},              killclient,       {0}},
-    {1,    {{MOD,                 XKB_KEY_Tab}},            spawn,            {.v = termcmd}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Tab}},            spawn,            {.v = term2}},
-    {1,    {{MOD,                 XKB_KEY_space}},          spawn,            {.v = menucmd}},
-    {1,    {{MOD,                 XKB_KEY_BackSpace}},      spawn,            {.v = emacs}},
-    {1,    {{MOD,                 XKB_KEY_w}},              spawn,            {.v = rmpc}},
-    {1,    {{MOD,                 XKB_KEY_t}},              spawn,            {.v = browser}},
-    {2,    {{MOD,XKB_KEY_q},  {0, XKB_KEY_1}},              spawn,            {.v = eqon} },
-    {2,    {{MOD,XKB_KEY_q},  {0, XKB_KEY_2}},              spawn,            {.v = eqoff} },
-    {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_d}},              spawn,            {.v = legcord} },
-    {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_b}},              spawn,            {.v = browser2} },
-    {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_a}},              spawn,            {.v = pavuc} },
-    {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_s}},              spawn,            {.v = steam} },
-    {2,    {{MOD,XKB_KEY_r},  {0, XKB_KEY_w}},              spawn,            {.v = runbar} },
-    {2,    {{MOD,XKB_KEY_s},  {0, XKB_KEY_d}},              spawn,            {.v = screenshot} },
-    {2,    {{MOD,XKB_KEY_s},  {0, XKB_KEY_f}},              spawn,            {.v = screenshotmain} },
-    {1,    {{MOD|SHIFT,           XKB_KEY_B}},              spawn,            {.v = bgcmd}},
-    {1,    {{MOD,                 XKB_KEY_b}},              spawn,            {.v = randbgcmd}},
-    {1,    {{MOD,                 XKB_KEY_j}},              focusstack,       {.i = +1}},
-    {1,    {{MOD,                 XKB_KEY_k}},              focusstack,       {.i = -1}},
-    {1,    {{MOD,                 XKB_KEY_n}},              incnmaster,       {.i = +1}},
-    {1,    {{MOD,                 XKB_KEY_m}},              incnmaster,       {.i = -1}},
-    {1,    {{MOD,                 XKB_KEY_h}},              setmfact,         {.f = -0.05f}},
-    {1,    {{MOD,                 XKB_KEY_l}},              setmfact,         {.f = +0.05f}},
-    {1,    {{MOD,                 XKB_KEY_Return}},         zoom,             {0}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_space}},          view,             {0}},
-    {1,    {{MOD,                 XKB_KEY_f}},              togglefloating,   {0}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_F}},              togglefullscreen, {0}},
-    {1,    {{MOD,                 XKB_KEY_0}},              view,             {.ui = ~0}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_parenright}},     tag,              {.ui = ~0}},
-    {1,    {{MOD,                 XKB_KEY_comma}},          focusmon,         {.i = WLR_DIRECTION_LEFT}},
-    {1,    {{MOD,                 XKB_KEY_period}},         focusmon,         {.i = WLR_DIRECTION_RIGHT}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_less}},           tagmon,           {.i = WLR_DIRECTION_LEFT}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_greater}},        tagmon,           {.i = WLR_DIRECTION_RIGHT}},
-    {1,    {{MOD,                 XKB_KEY_Down}},           moveresizekb,     {.v = (int []){0,40,0,0}}},
-    {1,    {{MOD,                 XKB_KEY_Up}},             moveresizekb,     {.v = (int []){0,-40,0,0}}},
-    {1,    {{MOD,                 XKB_KEY_Right}},          moveresizekb,     {.v = (int []){40,0,0,0}}},
-    {1,    {{MOD,                 XKB_KEY_Left}},           moveresizekb,     {.v = (int []){-40,0,0,0}}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Down}},           moveresizekb,     {.v = (int []){0,0,0,40}}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Up}},             moveresizekb,     {.v = (int []){0,0,0,-40}}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Right}},          moveresizekb,     {.v = (int []){0,0,40,0}}},
-    {1,    {{MOD|SHIFT,           XKB_KEY_Left}},           moveresizekb,     {.v = (int []){0,0,-40,0}}},
-    {1,    {{ALT,                 XKB_KEY_Up}},             spawn,            {.v = volupcmd}},
-    {1,    {{ALT,                 XKB_KEY_Down}},           spawn,            {.v = voldowncmd}},
-    {1,    {{ALT,                 XKB_KEY_Left}},           spawn,            {.v = micdowncmd}},
-    {1,    {{ALT,                 XKB_KEY_Right}},          spawn,            {.v = micupcmd}},
-    {1,    {{ALT,                 XKB_KEY_End}},            spawn,            {.v = mutemiccmd}},
-    {1,    {{ALT,                 XKB_KEY_bracketleft}},    spawn,            {.v = flipcmd}},
-    {1,    {{MOD|ALT,             XKB_KEY_Left}},           spawn,            {.v = brightdown}},
-    {1,    {{MOD|ALT,             XKB_KEY_Right}},          spawn,            {.v = brightup}},
-    {1,    {{MOD|ALT,             XKB_KEY_Up}},             spawn,            {.v = gammastepcmd}},
-    {1,    {{MOD|CTRL,            XKB_KEY_y}},              setlayout,        {.v = &layouts[0]}},
-    {1,    {{MOD|CTRL,            XKB_KEY_u}},              setlayout,        {.v = &layouts[1]}},
-    {1,    {{MOD|CTRL,            XKB_KEY_i}},              setlayout,        {.v = &layouts[2]}},
-    {1,    {{0,                   XKB_KEY_XF86AudioMedia}}, spawn,            {.v = mediatoggle}},
-    {1,    {{0,                   XKB_KEY_XF86AudioPlay}},  spawn,            {.v = mediatoggle}},
-    {1,    {{0,                   XKB_KEY_XF86AudioPrev}},  spawn,            {.v = mediaprevcmd}},
-    {1,    {{0,                   XKB_KEY_XF86AudioNext}},  spawn,            {.v = medianextcmd}},
+
+    /* Spawning commands */
+    SPAWN(XKB_KEY_p, MOD, "swaylock"),
+    SPAWN(XKB_KEY_Tab, MOD, "kitty"),
+    SPAWN(XKB_KEY_space, MOD, "rofi", "-show", "drun", "-show-icons"),
+    SPAWN(XKB_KEY_BackSpace, MOD, "kitty", "--class", "float"),
+    SPAWN(XKB_KEY_w, MOD, "kitty", "--class", "rmpc", "rmpc"),
+    SPAWN(XKB_KEY_t, MOD, "zen-browser"),
+    SPAWN(XKB_KEY_B, MOD|SHIFT, "kitty", "-e", "yazi", "/home/miles/Pictures/bgs"),
+    SPAWN(XKB_KEY_b, MOD, "/bin/sh", "-c", "swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
+    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_d, 0, "legcord"),
+    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_b, 0, "brave"),
+    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_a, 0, "pavucontrol"),
+    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_s, 0, "steam"),
+    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_w, 0, "/home/miles/.local/bin/runbar.sh"),
+    SPAWN2(XKB_KEY_s, MOD, XKB_KEY_d, 0, "/bin/sh", "-c", "/home/miles/.local/bin/screenshot.sh && notify-send 'Screenshot' 'Section saved!'"),
+    SPAWN2(XKB_KEY_s, MOD, XKB_KEY_f, 0, "/bin/sh", "-c", "/home/miles/.local/bin/screenshotmain.sh && notify-send 'Screenshot' 'Fullscreen saved!'"),
+
+    /* Media controls */
+    SPAWN2(XKB_KEY_q, MOD, XKB_KEY_1, 0, "easyeffects", "-l", "EQ"),
+    SPAWN2(XKB_KEY_q, MOD, XKB_KEY_2, 0, "easyeffects", "-l", "None"),
+    SPAWN(XKB_KEY_XF86AudioPlay, 0, "playerctl", "-p", "mpd", "play-pause"),
+    SPAWN(XKB_KEY_XF86AudioPrev, 0, "playerctl", "-p", "mpd", "previous"),
+    SPAWN(XKB_KEY_XF86AudioNext, 0, "playerctl", "-p", "mpd", "next"),
+    SPAWN(XKB_KEY_Up, ALT, "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -f 'sleep 60'"),
+    SPAWN(XKB_KEY_Down, ALT, "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -f 'sleep 60'"),
+    SPAWN(XKB_KEY_Left, ALT, "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ -5% && pkill -f 'sleep 60'"),
+    SPAWN(XKB_KEY_Right, ALT, "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ +5% && pkill -f 'sleep 60'"),
+    SPAWN(XKB_KEY_End, ALT, "/bin/sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && pkill -f 'sleep 60'"),
+    SPAWN(XKB_KEY_bracketleft, ALT, "/bin/sh", "-c", "/home/miles/.local/bin/flip.sh && touch /tmp/update_audio && pkill -f 'sleep 60'"),
+
+    /* Brightness control */
+    SPAWNC(XKB_KEY_Left, MOD|ALT, "brightnessctl", "s", "5%-"),
+    SPAWNC(XKB_KEY_Right, MOD|ALT, "brightnessctl", "s", "5%+"),
+    SPAWNC(XKB_KEY_Up, MOD|ALT, "sh", "/home/miles/.local/bin/gammastep.sh"),
+
+    /* Window management */
+    ACTION(XKB_KEY_P, MOD|SHIFT,     quit, {0}),
+    ACTION(XKB_KEY_Q, MOD|SHIFT,     killclient, {0}),
+    ACTION(XKB_KEY_Return, MOD,      zoom, {0}),
+    ACTION(XKB_KEY_space, MOD|SHIFT, view, {0}),
+    ACTION(XKB_KEY_f, MOD,           togglefloating, {0}),
+    ACTION(XKB_KEY_F, MOD|SHIFT,     togglefullscreen, {0}),
+
+    /* Focus/Master Management */
+    STACK(XKB_KEY_j, MOD, +1),
+    STACK(XKB_KEY_k, MOD, -1),
+    MFACT(XKB_KEY_h, MOD, -0.05f),
+    MFACT(XKB_KEY_l, MOD, +0.05f),
+    MASTER(XKB_KEY_n, MOD, +1),
+    MASTER(XKB_KEY_m, MOD, -1),
+
+    /* Monitor focus/tagging */
+    FOCUSMON(XKB_KEY_comma, MOD, WLR_DIRECTION_LEFT),
+    FOCUSMON(XKB_KEY_period, MOD, WLR_DIRECTION_RIGHT),
+    TAGMON(XKB_KEY_less, MOD|SHIFT, WLR_DIRECTION_LEFT),
+    TAGMON(XKB_KEY_greater, MOD|SHIFT, WLR_DIRECTION_RIGHT),
+
+    /* Floating Window movement */
+    MOVEKEYS(40),
+    RESIZEKEYS(40),
+
+    /* Layout management */
+    LAYOUT(XKB_KEY_y, MOD|CTRL, 0),
+    LAYOUT(XKB_KEY_u, MOD|CTRL, 1),
+    LAYOUT(XKB_KEY_i, MOD|CTRL, 2),
+
+    /* Tag management */
     TAGKEYS(XKB_KEY_1, XKB_KEY_exclam,     0),
     TAGKEYS(XKB_KEY_2, XKB_KEY_at,         1),
     TAGKEYS(XKB_KEY_3, XKB_KEY_numbersign, 2),
@@ -198,11 +192,11 @@ static const Keychord keychords[] = {
     TAGKEYS(XKB_KEY_7, XKB_KEY_ampersand,  6),
     TAGKEYS(XKB_KEY_8, XKB_KEY_asterisk,   7),
     TAGKEYS(XKB_KEY_9, XKB_KEY_parenleft,  8),
-#define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }
-    CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
-    CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12),
-    { 1, {{CTRL|ALT, XKB_KEY_Terminate_Server}}, quit,{0} },
+    {1,{{MOD,XKB_KEY_0}},view,{.ui = ~0}},
+    {1,{{MOD|SHIFT,XKB_KEY_parenright}},tag,{.ui = ~0}},
 
+    /* Virtual terminals */
+    CHVT(1),CHVT(2),CHVT(3),CHVT(4),CHVT(5),CHVT(6),CHVT(7),CHVT(8),CHVT(9),CHVT(10),CHVT(11),CHVT(12),
 };
 
 static const Button buttons[] = {
