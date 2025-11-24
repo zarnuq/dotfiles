@@ -1,6 +1,6 @@
 #!/bin/bash
 
-fix_script="/home/miles/.local/bin/lrc-extract.sh"
+fix_script="$HOME/.local/bin/lrc-extract.sh"
 
 if [[ ! -x "$fix_script" ]]; then
     echo "Error: $fix_script not found or not executable."
