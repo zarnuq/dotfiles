@@ -88,114 +88,120 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 #define SHIFT   WLR_MODIFIER_SHIFT
 #define ALT     WLR_MODIFIER_ALT
 
-#define SPAWN(key, mod, ...) {1, {{mod, key}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
-#define SPAWN2(k1, m1, k2, m2, ...) {2, {{m1, k1}, {m2, k2}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}
-#define TAGKEYS(KEY,SKEY,TAG) \
-    {1,{{MOD,           KEY}},  view,       {.ui = 1 << TAG} }, \
-    {1,{{MOD|CTRL,      KEY}},  toggleview, {.ui = 1 << TAG} }, \
-    {1,{{MOD|SHIFT,     SKEY}}, tag,        {.ui = 1 << TAG} }, \
-    {1,{{MOD|CTRL|SHIFT,SKEY}}, toggletag,  {.ui = 1 << TAG} }
-#define MOVEKEYS(dist) \
-    {1,{{MOD, XKB_KEY_Down}}, moveresizekb, {.v = (int []){0, dist, 0, 0}}}, \
-    {1,{{MOD, XKB_KEY_Up}}, moveresizekb, {.v = (int []){0, -dist, 0, 0}}}, \
-    {1,{{MOD, XKB_KEY_Right}}, moveresizekb, {.v = (int []){dist, 0, 0, 0}}}, \
-    {1,{{MOD, XKB_KEY_Left}}, moveresizekb, {.v = (int []){-dist, 0, 0, 0}}}
+#define K(k) XKB_KEY_##k /* Key name shorthand - prepends XKB_KEY_ */
+#define SPAWN1(key, mod, ...) {1, {{mod, K(key)}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}  /* Single key spawn */
+#define SPAWN2(k1, m1, k2, m2, ...) {2, {{m1, K(k1)}, {m2, K(k2)}}, spawn, {.v = (const char*[]){ __VA_ARGS__, NULL }}}  /* Two key chord */
+#define TAG(KEY,SKEY,TAG) \
+    {1,{{MOD,           K(KEY)}},  view,       {.ui = 1 << TAG} }, \
+    {1,{{MOD|CTRL,      K(KEY)}},  toggleview, {.ui = 1 << TAG} }, \
+    {1,{{MOD|SHIFT,     K(SKEY)}}, tag,        {.ui = 1 << TAG} }, \
+    {1,{{MOD|CTRL|SHIFT,K(SKEY)}}, toggletag,  {.ui = 1 << TAG} }  /* Workspace switching */
+#define MOVE(key1, key2, key3, key4, dist) \
+    {1, {{MOD, K(key1)}}, moveresizekb, {.v = (int []){0, -dist, 0, 0}}}, \
+    {1, {{MOD, K(key2)}}, moveresizekb, {.v = (int []){dist, 0, 0, 0}}}, \
+    {1, {{MOD, K(key3)}}, moveresizekb, {.v = (int []){0, dist, 0, 0}}}, \
+    {1, {{MOD, K(key4)}}, moveresizekb, {.v = (int []){-dist, 0, 0, 0}}}
+#define RESIZE(key1, key2, key3, key4, dist) \
+    {1, {{MOD|SHIFT, K(key1)}}, moveresizekb, {.v = (int []){0, 0, 0, -dist}}}, \
+    {1, {{MOD|SHIFT, K(key2)}}, moveresizekb, {.v = (int []){0, 0, dist, 0}}}, \
+    {1, {{MOD|SHIFT, K(key3)}}, moveresizekb, {.v = (int []){0, 0, 0, dist}}}, \
+    {1, {{MOD|SHIFT, K(key4)}}, moveresizekb, {.v = (int []){0, 0, -dist, 0}}}
+#define STACK(key1, mod1, key2, mod2) \
+    {1, {{mod1, K(key1)}}, focusstack, {.i = +1}}, \
+    {1, {{mod2, K(key2)}}, focusstack, {.i = -1}}
+#define MFACT(key1, mod1, key2, mod2) \
+    {1, {{mod1, K(key1)}}, setmfact, {.f = -0.05f}}, \
+    {1, {{mod2, K(key2)}}, setmfact, {.f = +0.05f}}
+#define MASTER(key1, mod1, key2, mod2) \
+    {1, {{mod1, K(key1)}}, incnmaster, {.i = -1}}, \
+    {1, {{mod2, K(key2)}}, incnmaster, {.i = +1}}
+#define FOCUSMON(key1, mod1, key2, mod2) \
+    {1, {{mod1, K(key1)}}, focusmon, {.i = WLR_DIRECTION_LEFT}}, \
+    {1, {{mod2, K(key2)}}, focusmon, {.i = WLR_DIRECTION_RIGHT}}
+#define TAGMON(key1, mod1, key2, mod2) \
+    {1, {{mod1, K(key1)}}, tagmon, {.i = WLR_DIRECTION_LEFT}}, \
+    {1, {{mod2, K(key2)}}, tagmon, {.i = WLR_DIRECTION_RIGHT}}
+#define LAYOUT(key, mod, idx) {1, {{mod, K(key)}}, setlayout, {.v = &layouts[idx]}}  /* Switch layout */
+#define ACTION(key, mod, func) {1, {{mod, K(key)}}, func, {0}}
+#define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }  /* Virtual terminal */
 
-#define RESIZEKEYS(dist) \
-    {1,{{MOD|SHIFT, XKB_KEY_Down}}, moveresizekb, {.v = (int []){0, 0, 0, dist}}}, \
-    {1,{{MOD|SHIFT, XKB_KEY_Up}}, moveresizekb, {.v = (int []){0, 0, 0, -dist}}}, \
-    {1,{{MOD|SHIFT, XKB_KEY_Right}}, moveresizekb, {.v = (int []){0, 0, dist, 0}}}, \
-    {1,{{MOD|SHIFT, XKB_KEY_Left}}, moveresizekb, {.v = (int []){0, 0, -dist, 0}}}
-#define STACK(key, mod, dir) {1, {{mod, key}}, focusstack, {.i = dir}}
-#define MASTER(key, mod, dir) {1, {{mod, key}}, incnmaster, {.i = dir}}
-#define MFACT(key, mod, val) {1, {{mod, key}}, setmfact, {.f = val}}
-#define FOCUSMON(key, mod, dir) {1, {{mod, key}}, focusmon, {.i = dir}}
-#define TAGMON(key, mod, dir) {1, {{mod, key}}, tagmon, {.i = dir}}
-#define LAYOUT(key, mod, idx) {1, {{mod, key}}, setlayout, {.v = &layouts[idx]}}
-#define ACTION(key, mod, func, arg) {1, {{mod, key}}, func, arg}
-#define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }
 static const Keychord keychords[] = {
 
-    /* Spawning commands */
-    SPAWN(XKB_KEY_p, MOD, "swaylock"),
-    SPAWN(XKB_KEY_Tab, MOD, "kitty"),
-    SPAWN(XKB_KEY_space, MOD, "rofi", "-show", "drun", "-show-icons"),
-    SPAWN(XKB_KEY_BackSpace, MOD, "kitty", "--class", "float"),
-    SPAWN(XKB_KEY_w, MOD, "kitty", "--class", "rmpc", "rmpc"),
-    SPAWN(XKB_KEY_t, MOD, "zen-browser"),
-    SPAWN(XKB_KEY_B, MOD|SHIFT, "kitty", "-e", "yazi", "/home/miles/Pictures/bgs"),
-    SPAWN(XKB_KEY_b, MOD, "/bin/sh", "-c", "swww img \"$(find ~/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
-    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_d, 0, "legcord"),
-    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_b, 0, "brave"),
-    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_a, 0, "pavucontrol"),
-    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_s, 0, "steam"),
-    SPAWN2(XKB_KEY_r, MOD, XKB_KEY_w, 0, "/home/miles/.local/bin/runbar.sh"),
-    SPAWN2(XKB_KEY_s, MOD, XKB_KEY_d, 0, "/bin/sh", "-c", "/home/miles/.local/bin/screenshot.sh && notify-send 'Screenshot' 'Section saved!'"),
-    SPAWN2(XKB_KEY_s, MOD, XKB_KEY_f, 0, "/bin/sh", "-c", "/home/miles/.local/bin/screenshotmain.sh && notify-send 'Screenshot' 'Fullscreen saved!'"),
-
-    /* Media controls */
-    SPAWN2(XKB_KEY_q, MOD, XKB_KEY_1, 0, "easyeffects", "-l", "EQ"),
-    SPAWN2(XKB_KEY_q, MOD, XKB_KEY_2, 0, "easyeffects", "-l", "None"),
-    SPAWN(XKB_KEY_XF86AudioPlay, 0, "playerctl", "-p", "mpd", "play-pause"),
-    SPAWN(XKB_KEY_XF86AudioPrev, 0, "playerctl", "-p", "mpd", "previous"),
-    SPAWN(XKB_KEY_XF86AudioNext, 0, "playerctl", "-p", "mpd", "next"),
-    SPAWN(XKB_KEY_Up, ALT, "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -f 'sleep 60'"),
-    SPAWN(XKB_KEY_Down, ALT, "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -f 'sleep 60'"),
-    SPAWN(XKB_KEY_Left, ALT, "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ -5% && pkill -f 'sleep 60'"),
-    SPAWN(XKB_KEY_Right, ALT, "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ +5% && pkill -f 'sleep 60'"),
-    SPAWN(XKB_KEY_End, ALT, "/bin/sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && pkill -f 'sleep 60'"),
-    SPAWN(XKB_KEY_bracketleft, ALT, "/bin/sh", "-c", "/home/miles/.local/bin/flip.sh && touch /tmp/update_audio && pkill -f 'sleep 60'"),
-
-    /* Brightness control */
-    SPAWN(XKB_KEY_Left, MOD|ALT, "brightnessctl", "s", "5%-"),
-    SPAWN(XKB_KEY_Right, MOD|ALT, "brightnessctl", "s", "5%+"),
-    SPAWN(XKB_KEY_Up, MOD|ALT, "sh", "/home/miles/.local/bin/gammastep.sh"),
-
-    /* Window management */
-    ACTION(XKB_KEY_P, MOD|SHIFT,     quit, {0}),
-    ACTION(XKB_KEY_Q, MOD|SHIFT,     killclient, {0}),
-    ACTION(XKB_KEY_Return, MOD,      zoom, {0}),
-    ACTION(XKB_KEY_space, MOD|SHIFT, view, {0}),
-    ACTION(XKB_KEY_f, MOD,           togglefloating, {0}),
-    ACTION(XKB_KEY_F, MOD|SHIFT,     togglefullscreen, {0}),
-
-    /* Focus/Master Management */
-    STACK(XKB_KEY_j, MOD, +1),
-    STACK(XKB_KEY_k, MOD, -1),
-    MFACT(XKB_KEY_h, MOD, -0.05f),
-    MFACT(XKB_KEY_l, MOD, +0.05f),
-    MASTER(XKB_KEY_n, MOD, +1),
-    MASTER(XKB_KEY_m, MOD, -1),
-
-    /* Monitor focus/tagging */
-    FOCUSMON(XKB_KEY_comma, MOD, WLR_DIRECTION_LEFT),
-    FOCUSMON(XKB_KEY_period, MOD, WLR_DIRECTION_RIGHT),
-    TAGMON(XKB_KEY_less, MOD|SHIFT, WLR_DIRECTION_LEFT),
-    TAGMON(XKB_KEY_greater, MOD|SHIFT, WLR_DIRECTION_RIGHT),
-
-    /* Floating Window movement */
-    MOVEKEYS(40),
-    RESIZEKEYS(40),
-
-    /* Layout management */
-    LAYOUT(XKB_KEY_y, MOD|CTRL, 0),
-    LAYOUT(XKB_KEY_u, MOD|CTRL, 1),
-    LAYOUT(XKB_KEY_i, MOD|CTRL, 2),
-
-    /* Tag management */
-    TAGKEYS(XKB_KEY_1, XKB_KEY_exclam,     0),
-    TAGKEYS(XKB_KEY_2, XKB_KEY_at,         1),
-    TAGKEYS(XKB_KEY_3, XKB_KEY_numbersign, 2),
-    TAGKEYS(XKB_KEY_4, XKB_KEY_dollar,     3),
-    TAGKEYS(XKB_KEY_5, XKB_KEY_percent,    4),
-    TAGKEYS(XKB_KEY_6, XKB_KEY_asciicircum,5),
-    TAGKEYS(XKB_KEY_7, XKB_KEY_ampersand,  6),
-    TAGKEYS(XKB_KEY_8, XKB_KEY_asterisk,   7),
-    TAGKEYS(XKB_KEY_9, XKB_KEY_parenleft,  8),
-    {1,{{MOD,XKB_KEY_0}},view,{.ui = ~0}},
-    {1,{{MOD|SHIFT,XKB_KEY_parenright}},tag,{.ui = ~0}},
-
-    /* Virtual terminals */
+/* Spawning commands */
+    /*      key        mod        cmd args... */
+    SPAWN1( p,         MOD,       "swaylock"),
+    SPAWN1( Tab,       MOD,       "kitty"),
+    SPAWN1( space,     MOD,       "rofi", "-show", "drun", "-show-icons"),
+    SPAWN1( BackSpace, MOD,       "kitty", "--class", "float"),
+    SPAWN1( w,         MOD,       "kitty", "--class", "rmpc", "rmpc"),
+    SPAWN1( t,         MOD,       "zen-browser"),
+    SPAWN1( B,         MOD|SHIFT, "kitty", "-e", "yazi", "$HOME/Pictures/bgs"),
+    SPAWN1( b,         MOD,       "/bin/sh", "-c", "swww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
+    /*      key   mod2   key2   mod2   cmd args... */
+    SPAWN2( r,    MOD,   d,     0,     "legcord"),
+    SPAWN2( r,    MOD,   b,     0,     "brave"),
+    SPAWN2( r,    MOD,   a,     0,     "pavucontrol"),
+    SPAWN2( r,    MOD,   s,     0,     "steam"),
+    SPAWN2( r,    MOD,   w,     0,     "$HOME/.local/bin/runbar.sh"),
+    SPAWN2( s,    MOD,   d,     0,     "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh && notify-send 'Screenshot' 'Section saved!'"),
+    SPAWN2( s,    MOD,   f,     0,     "/bin/sh", "-c", "$HOME/.local/bin/screenshotmain.sh && notify-send 'Screenshot' 'Fullscreen saved!'"),
+    
+/* Media controls */
+    /*      key   mod   key2   mod2   cmd args... */
+    SPAWN2( q,    MOD,  1,     0,     "easyeffects", "-l", "EQ"),
+    SPAWN2( q,    MOD,  2,     0,     "easyeffects", "-l", "None"),
+    /*      key              mod   cmd args... */
+    SPAWN1( XF86AudioPlay,   0,    "playerctl", "-p", "mpd", "play-pause"),
+    SPAWN1( XF86AudioPrev,   0,    "playerctl", "-p", "mpd", "previous"),
+    SPAWN1( XF86AudioNext,   0,    "playerctl", "-p", "mpd", "next"),
+    SPAWN1( Up,          ALT,  "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ +5% && pkill -f 'sleep 60'"),
+    SPAWN1( Down,        ALT,  "/bin/sh", "-c", "pactl set-sink-volume @DEFAULT_SINK@ -5% && pkill -f 'sleep 60'"),
+    SPAWN1( Left,        ALT,  "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ -5% && pkill -f 'sleep 60'"),
+    SPAWN1( Right,       ALT,  "/bin/sh", "-c", "pactl set-source-volume @DEFAULT_SOURCE@ +5% && pkill -f 'sleep 60'"),
+    SPAWN1( End,         ALT,  "/bin/sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && pkill -f 'sleep 60'"),
+    SPAWN1( bracketleft, ALT,  "/bin/sh", "-c", "$HOME/.local/bin/flip.sh && touch /tmp/update_audio && pkill -f 'sleep 60'"),
+    
+/* Brightness control */
+    /*      key    mod      cmd args... */
+    SPAWN1( Left,  MOD|ALT, "brightnessctl", "s", "5%-"),
+    SPAWN1( Right, MOD|ALT, "brightnessctl", "s", "5%+"),
+    SPAWN1( Up,    MOD|ALT, "sh", "$HOME/.local/bin/gammastep.sh"),
+    
+/* Window management */
+    /*      key      mod            function */
+    ACTION( P,       MOD|SHIFT,     quit),
+    ACTION( Q,       MOD|SHIFT,     killclient),
+    ACTION( Return,  MOD,           zoom),
+    ACTION( space,   MOD|SHIFT,     view),
+    ACTION( f,       MOD,           togglefloating),
+    ACTION( F,       MOD|SHIFT,     togglefullscreen),
+    
+/* Focus/Master Management */
+    /*          decrease_key   decrease_mod   increase_key  increase_mod */
+    STACK(      j,             MOD,           k,            MOD),
+    MFACT(      h,             MOD,           l,            MOD),
+    MASTER(     m,             MOD,           n,            MOD),
+    FOCUSMON(   comma,         MOD,           period,       MOD),
+    TAGMON(     less,          MOD|SHIFT,     greater,      MOD|SHIFT),
+    MOVE(   Up, Left, Down, Right, 40),
+    RESIZE( Up, Left, Down, Right, 40),
+    
+/* Tag management */
+    /*   key  shift_key   tag_number */
+    TAG( 1,   exclam,     0),
+    TAG( 2,   at,         1),
+    TAG( 3,   numbersign, 2),
+    TAG( 4,   dollar,     3),
+    TAG( 5,   percent,    4),
+    TAG( 6,   asciicircum,5),
+    TAG( 7,   ampersand,  6),
+    TAG( 8,   asterisk,   7),
+    TAG( 9,   parenleft,  8),
+    LAYOUT(y, MOD|CTRL,   0),
+    LAYOUT(u, MOD|CTRL,   1),
+    LAYOUT(i, MOD|CTRL,   2),
+    {1,{{MOD,K(0)}},view,{.ui = ~0}},
+    {1,{{MOD|SHIFT,K(parenright)}},tag,{.ui = ~0}},
     CHVT(1),CHVT(2),CHVT(3),CHVT(4),CHVT(5),CHVT(6),CHVT(7),CHVT(8),CHVT(9),CHVT(10),CHVT(11),CHVT(12),
 };
 
