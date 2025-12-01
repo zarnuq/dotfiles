@@ -5,3 +5,10 @@ modmap:
       KEY_KPSLASH: KEY_PREVIOUSSONG
       KEY_KPASTERISK: KEY_PLAYPAUSE
       KEY_KPMINUS: KEY_NEXTSONG
+  - name: G502 sensitivity button
+    remap:
+      F13:
+        held: true
+        with_keys:
+          BTN_LEFT: Left
+          BTN_RIGHT: Right

@@ -18,7 +18,6 @@ alias ta='tmux attach-session -t'
 alias p='paru'
 alias pf="yay -Slq | fzf --multi --preview 'yay -Sii {1}' --preview-window=down:75% --layout=reverse | xargs -ro yay -S"
 
-
 #CONFIG
 _comp_options+=(globdots)
 HYPHEN_INSENSITIVE="true"

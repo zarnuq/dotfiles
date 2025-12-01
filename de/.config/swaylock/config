@@ -1,7 +1,7 @@
 # image=/path/to/your/image.png
 
 # Background color (in case no image is set)
-color=1e1e2e
+color=000000
 
 # Inside color (circle around password entry)
 inside-color=313244
