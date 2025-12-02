@@ -1,0 +1,130 @@
+* {
+  all: unset;
+  font-family: JetBrains Mono Nerd Font;
+}
+menu, .menu, menuitem, .menuitem {
+  background: rgba(30, 30, 30, 0.95);
+  color: #ffffff;
+  padding: 5px 10px;
+}
+
+menuitem:hover {
+  background: rgba(80, 80, 80, 0.95);
+}
+
+.widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  color: #ffffff;
+}
+
+.clock-widget {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  padding: 15px;
+  font-size: 36;
+}
+
+
+.cpu-graph-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+.graph-labels {
+  margin-bottom: 5px;
+}
+.cpu-label {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 10px;
+}
+.gpu-label {
+  font-size: 18px;
+  color: rgba(100, 200, 255, 0.8);
+}
+.cpu-line {
+  color: rgba(255, 255, 255, 0.8);
+}
+.gpu-line {
+  color: rgba(100, 200, 255, 0.8);
+}
+
+.tray-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 15px;
+}
+
+.ram-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.ram-circle {
+  color: rgba(100, 255, 150, 0.8);
+  background-color: rgba(255, 255, 255, 0.1);
+  min-width: 100px;
+  min-height: 100px;
+  margin-right: 10px;
+}
+
+.ram-label {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ram-percent {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.disk-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.disk-circle {
+  color: rgba(255, 200, 100, 0.8);
+  background-color: rgba(255, 255, 255, 0.1);
+  min-width: 80px;
+  min-height: 80px;
+  margin-right: 10px;
+}
+
+.disk-label {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.disk-percent {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+
+.network-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.network-label {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 5px;
+}
+
+.net-arrow-up {
+  color: rgba(100, 255, 150, 0.8);
+  margin-right: 5px;
+}
+
+.net-arrow-down {
+  color: rgba(100, 200, 255, 0.8);
+  margin-right: 5px;
+}
+
+.net-speed {
+  font-size: 14px;
+  color: #ffffff;
+}

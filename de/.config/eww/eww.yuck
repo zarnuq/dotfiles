@@ -1,0 +1,153 @@
+(defpoll time :interval "1s" "date '+%H:%M:%S %p'")
+(defpoll date :interval "60s" "date '+%B %d, %Y'")
+(defpoll gpu-usage :interval "2s" "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits")
+
+(defwidget clock []
+  (box :class "clock-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :text time :class "time")
+    (label :text date :class "date")))
+
+(defwindow clock
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "20px"
+                      :width "500px"
+                      :height "130px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (clock))
+
+(defwidget cpu-gpu-graph []
+  (box :class "cpu-graph-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false
+      (label :text "cpu " :class "cpu-label")
+      (label :text "gpu" :class "gpu-label"))
+    (overlay :vexpand true :hexpand true
+      (graph :value {EWW_CPU.avg}
+             :thickness 2
+             :time-range "60s"
+             :min 0
+             :max 100
+             :line-style "round"
+             :class "cpu-line")
+      (graph :value {gpu-usage}
+             :thickness 3
+             :time-range "60s"
+             :min 0
+             :max 100
+             :line-style "round"
+             :class "gpu-line"))))
+
+(defwindow cpu
+    :monitor 1
+    :geometry (geometry :x "20px"
+        :y "170px"
+        :width "500px"
+        :height "150px"
+        :anchor "bottom left")
+    :stacking "bottom"
+    (cpu-gpu-graph))
+
+(defwindow tray
+  :monitor 1
+  :geometry (geometry :x "540px"
+                      :y "20px"
+                      :width "100"
+                      :height "100px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (systray :class "tray-widget"
+           :orientation "h"
+           :icon-size 24
+           :space-evenly false
+           :spacing 10))
+
+(defwidget ram []
+  (box :class "ram-widget"
+       :orientation "h"
+       :space-evenly false
+    (circular-progress :value {EWW_RAM.used_mem_perc}
+                       :thickness 30
+                       :clockwise true
+                       :start-at 75
+                       :class "ram-circle")
+    (box :orientation "v" :space-evenly false :class "ram-text"
+      (label :text "ram" :class "ram-label" :halign "start")
+      (label :text "${round(EWW_RAM.used_mem_perc, 0)}%" :class "ram-percent" :halign "start"))))
+
+(defwindow ram
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "340px"
+                      :width "150px"
+                      :height "100px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (ram))
+
+(defwidget disk []
+  (box :class "disk-widget"
+       :orientation "h"
+       :space-evenly false
+    (circular-progress :value {EWW_DISK["/"].used_perc}
+                       :thickness 30
+                       :clockwise true
+                       :start-at 75
+                       :class "disk-circle")
+    (box :orientation "v" :space-evenly false :class "disk-text"
+      (label :text "disk" :class "disk-label" :halign "start")
+      (label :text "${round(EWW_DISK["/"].used_perc, 0)}%" :class "disk-percent" :halign "start"))))
+
+(defwindow disk
+  :monitor 1
+  :geometry (geometry :x "190px"
+                      :y "340px"
+                      :width "150"
+                      :height "100px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (disk))
+
+(defpoll net-down :interval "1s"
+  `awk '/enp|wlan/ {rx+=$2} END {
+    file="/tmp/eww-rx-prev"
+    if ((getline prev < file) > 0) { speed=(rx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
+    else { printf "0.0" }
+    close(file)
+    print rx > file
+  }' /proc/net/dev`)
+
+(defpoll net-up :interval "1s"
+  `awk '/enp|wlan/ {tx+=$10} END {
+    file="/tmp/eww-tx-prev"
+    if ((getline prev < file) > 0) { speed=(tx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
+    else { printf "0.0" }
+    close(file)
+    print tx > file
+  }' /proc/net/dev`)
+
+(defwidget network []
+  (box :class "network-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :text "network" :class "network-label" :halign "start")
+    (box :orientation "h" :space-evenly false
+      (label :text "↑" :class "net-arrow-up")
+      (label :text "${net-up} MB/s" :class "net-speed"))
+    (box :orientation "h" :space-evenly false
+      (label :text "↓" :class "net-arrow-down")
+      (label :text "${net-down} MB/s" :class "net-speed"))))
+
+(defwindow network
+  :monitor 1
+  :geometry (geometry :x "360px"
+                      :y "340px"
+                      :width "160px"
+                      :height "100px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (network))

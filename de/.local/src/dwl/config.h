@@ -21,11 +21,12 @@ static const char *const autostart[] = {
     "copyq",                                                              NULL,
     "dwlb",                                                               NULL,
     "swww-daemon",                                                        NULL,
-    "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
+    "sh", "-c", "someblocks -p | dwlb -status-stdin all",                 NULL,
     "sh", "-c", "~/.local/bin/screenshare.sh",                            NULL,
     "easyeffects", "--gapplication-service",                              NULL,
     "xremap", "~/.config/xremap/config.yml",                              NULL,
     "gammastep", "-O", "4000:4000",                                       NULL,
+    "nm-applet",                                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                                   NULL,
     NULL 
 };
@@ -45,6 +46,7 @@ static const Rule rules[] = {
     { "zen",    NULL,   1 << 2,     1,            0,          -1,        0,    0,    0,      0       },
     { "^steam", NULL,   1 << 4,     0,            0,          -1,        0,    0,    0,      0       },
     { "^float", NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5},
+    { "pavucontrol", NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5},
 };
 
 static const Layout layouts[] = {
@@ -57,9 +59,9 @@ static const Layout layouts[] = {
 static const MonitorRule monrules[] = {
     /* name        mfact  nmaster scale layout       rotate/reflect              x     y  resx   resy   rate  mode   adaptive*/
     { "eDP-1",     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 1,   -1, 1920,  1200,  0.0f, 0,     0},
-    { "DP-3",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 3440,  1440,  0.0f, 1,     0},
-    { "DP-2",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 3440, 0, 3440,  1440,  0.0f, 1,     0},
-    { "DP-1",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6880, 0, 1920,  1080,  0.0f, 2,     0},
+    { "DP-3",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 2560,  1440,  0.0f, 1,     0},
+    { "DP-2",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 2560, 0, 3440,  1440,  0.0f, 1,     0},
+    { "DP-1",      0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6000, 0, 1920,  1080,  0.0f, 2,     0},
     { NULL,        0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 0,     0,     0.0f, 0,     0},
 };
 
