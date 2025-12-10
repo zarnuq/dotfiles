@@ -128,3 +128,163 @@ menuitem:hover {
   font-size: 14px;
   color: #ffffff;
 }
+
+.temps-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.temps-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 5px;
+}
+
+.temp-name {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 5px;
+}
+
+.temp-value {
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.uptime-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+}
+
+.uptime-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.weather-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.weather-temp {
+  font-size: 24;
+  color: #ffffff;
+}
+
+.weather-detail {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+
+.notif-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.notif-header {
+  margin-bottom: 8px;
+}
+
+.notif-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.notif-btn {
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin-left: 8px;
+}
+
+.notif-btn:hover {
+  color: #ffffff;
+}
+
+.notif-scroll {
+  min-height: 200px;
+}
+
+.notif-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+}
+
+.notif-app {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.notif-summary {
+  font-size: 12px;
+  color: #ffffff;
+}
+
+.mpd-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+}
+
+.mpd-cover-box {
+  min-width: 80px;
+  min-height: 80px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.mpd-title {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.mpd-artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.mpd-controls {
+  margin-bottom: 8px;
+}
+
+.mpd-btn {
+  background: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+}
+
+.mpd-btn:hover {
+  color: #ffffff;
+}
+
+.mpd-progress {
+  background-color: rgba(255, 255, 255, 0.1);
+  min-height: 4px;
+}
+
+.mpd-progress progress {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.updates-widget {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+}
+
+.updates-icon {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 8px;
+}
+
+.updates-label {
+  font-size: 12px;
+  color: #ffffff;
+}
+

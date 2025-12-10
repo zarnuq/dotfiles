@@ -1,14 +1,11 @@
 (defpoll time :interval "1s" "date '+%H:%M:%S %p'")
 (defpoll date :interval "60s" "date '+%B %d, %Y'")
-(defpoll gpu-usage :interval "2s" "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits")
-
 (defwidget clock []
   (box :class "clock-widget"
        :orientation "v"
        :space-evenly false
     (label :text time :class "time")
     (label :text date :class "date")))
-
 (defwindow clock
   :monitor 1
   :geometry (geometry :x "20px"
@@ -19,6 +16,9 @@
   :stacking "bottom"
   (clock))
 
+
+
+(defpoll gpu-usage :interval "2s" "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits")
 (defwidget cpu-gpu-graph []
   (box :class "cpu-graph-widget"
        :orientation "v"
@@ -41,23 +41,24 @@
              :max 100
              :line-style "round"
              :class "gpu-line"))))
-
 (defwindow cpu
     :monitor 1
     :geometry (geometry :x "20px"
         :y "170px"
-        :width "500px"
+        :width "380px"
         :height "150px"
         :anchor "bottom left")
     :stacking "bottom"
     (cpu-gpu-graph))
+
+
 
 (defwindow tray
   :monitor 1
   :geometry (geometry :x "540px"
                       :y "20px"
                       :width "100"
-                      :height "100px"
+                      :height "50px"
                       :anchor "bottom left")
   :stacking "bottom"
   (systray :class "tray-widget"
@@ -65,6 +66,8 @@
            :icon-size 24
            :space-evenly false
            :spacing 10))
+
+
 
 (defwidget ram []
   (box :class "ram-widget"
@@ -78,7 +81,6 @@
     (box :orientation "v" :space-evenly false :class "ram-text"
       (label :text "ram" :class "ram-label" :halign "start")
       (label :text "${round(EWW_RAM.used_mem_perc, 0)}%" :class "ram-percent" :halign "start"))))
-
 (defwindow ram
   :monitor 1
   :geometry (geometry :x "20px"
@@ -88,6 +90,8 @@
                       :anchor "bottom left")
   :stacking "bottom"
   (ram))
+
+
 
 (defwidget disk []
   (box :class "disk-widget"
@@ -101,7 +105,6 @@
     (box :orientation "v" :space-evenly false :class "disk-text"
       (label :text "disk" :class "disk-label" :halign "start")
       (label :text "${round(EWW_DISK["/"].used_perc, 0)}%" :class "disk-percent" :halign "start"))))
-
 (defwindow disk
   :monitor 1
   :geometry (geometry :x "190px"
@@ -112,6 +115,8 @@
   :stacking "bottom"
   (disk))
 
+
+
 (defpoll net-down :interval "1s"
   `awk '/enp|wlan/ {rx+=$2} END {
     file="/tmp/eww-rx-prev"
@@ -120,7 +125,6 @@
     close(file)
     print rx > file
   }' /proc/net/dev`)
-
 (defpoll net-up :interval "1s"
   `awk '/enp|wlan/ {tx+=$10} END {
     file="/tmp/eww-tx-prev"
@@ -129,7 +133,6 @@
     close(file)
     print tx > file
   }' /proc/net/dev`)
-
 (defwidget network []
   (box :class "network-widget"
        :orientation "v"
@@ -141,7 +144,6 @@
     (box :orientation "h" :space-evenly false
       (label :text "↓" :class "net-arrow-down")
       (label :text "${net-down} MB/s" :class "net-speed"))))
-
 (defwindow network
   :monitor 1
   :geometry (geometry :x "360px"
@@ -151,3 +153,177 @@
                       :anchor "bottom left")
   :stacking "bottom"
   (network))
+
+
+
+(defpoll cpu-temp :interval "2s"
+  `cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | awk '{sum+=$1; n++} END {if(n>0) printf "%.0f", sum/n/1000; else print "N/A"}'`)
+(defpoll gpu-temp :interval "2s"
+  `nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null || echo "N/A"`)
+(defwidget temps []
+  (box :class "temps-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :text "temps" :class "temps-label" :halign "start")
+    (box :orientation "h" :space-evenly false
+      (label :text "cpu:" :class "temp-name")
+      (label :text "${cpu-temp}°C" :class "temp-value"))
+    (box :orientation "h" :space-evenly false
+      (label :text "gpu:" :class "temp-name")
+      (label :text "${gpu-temp}°C" :class "temp-value"))))
+(defwindow temps
+  :monitor 1
+  :geometry (geometry :x "420"
+                      :y "170px"
+                      :width "100px"
+                      :height "100px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (temps))
+
+
+
+(defpoll uptime :interval "60s"
+  `uptime -p | sed 's/up //' | awk -F', ' '{print $1}'`)
+(defwidget uptime []
+  (box :class "uptime-widget"
+    (label :text "↑ ${uptime}" :class "uptime-label")))
+(defwindow uptime
+  :monitor 1
+  :geometry (geometry :x "420px"
+                      :y "280px"
+                      :width "100"
+                      :height "40"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (uptime))
+
+
+
+(defpoll weather-temp :interval "600s"
+  `curl -s "wttr.in/?format=%c%t" 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' || echo "N/A"`)
+
+(defpoll weather-condition :interval "600s"
+  `curl -s "wttr.in/?format=%C" 2>/dev/null || echo "N/A"`)
+
+(defpoll weather-humidity :interval "600s"
+  `curl -s "wttr.in/?format=%h" 2>/dev/null || echo "N/A"`)
+
+(defpoll weather-wind :interval "600s"
+  `curl -s "wttr.in/?format=%w" 2>/dev/null || echo "N/A"`)
+
+(defwidget weather []
+  (box :class "weather-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :text weather-temp :class "weather-temp" :halign "start")
+    (label :text weather-condition :class "weather-detail" :halign "start")
+    (box :orientation "h" :space-evenly false
+      (label :text "💧${weather-humidity} " :class "weather-detail")
+      (label :text "  💨${weather-wind}" :class "weather-detail"))))
+(defwindow weather
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "460px"
+                      :width "200"
+                      :height "110"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (weather))
+
+
+
+(defpoll notif-json :interval "2s"
+  `dunstctl history | jq -c '[.data[0][:5] // [] | .[] | {app: (.appname.data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}]' 2>/dev/null || echo "[]"`)
+(defpoll notif-paused :interval "2s"
+  `dunstctl is-paused`)
+(defwidget notifications []
+  (box :class "notif-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "notif-header"
+      (label :text "notifications" :class "notif-label" :hexpand true :halign "start")
+      (button :class "notif-btn" :onclick "dunstctl set-paused toggle"
+        (label :text {notif-paused == "true" ? "󰂛" : "󰂚"}))
+      (button :class "notif-btn" :onclick "dunstctl history-clear"
+        (label :text "󰆴")))
+    (scroll :vscroll true :hscroll false :vexpand true :class "notif-scroll"
+      (box :orientation "v" :space-evenly false
+        (for notif in notif-json
+          (box :class "notif-card" :orientation "v" :space-evenly false
+            (label :text {notif.app} :class "notif-app" :halign "start")
+            (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
+(defwindow notifications
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "20px"
+                      :width "300px"
+                      :height "300px"
+                      :anchor "top left")
+  :stacking "bottom"
+  (notifications))
+
+
+
+(defpoll mpd-title :interval "1s"
+  `mpc current -f "%title%" 2>/dev/null || echo ""`)
+(defpoll mpd-artist :interval "1s"
+  `mpc current -f "%artist%" 2>/dev/null || echo ""`)
+(defpoll mpd-status :interval "1s"
+  `mpc status 2>/dev/null | grep -q playing && echo "playing" || echo "paused"`)
+(defpoll mpd-progress :interval "1s"
+  `mpc status 2>/dev/null | grep -oP '\d+(?=%)' || echo "0"`)
+(defwidget mpd []
+  (box :class "mpd-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :text {mpd-title != "" ? mpd-title : "Not playing"} 
+           :class "mpd-title" 
+           :halign "start"
+           :limit-width 30)
+    (label :text mpd-artist 
+           :class "mpd-artist" 
+           :halign "start"
+           :limit-width 30)
+    (box :class "mpd-controls" :orientation "h" :space-evenly true
+      (button :class "mpd-btn" :onclick "mpc prev" "󰒮")
+      (button :class "mpd-btn" :onclick "mpc toggle" 
+        {mpd-status == "playing" ? "󰏤" : "󰐊"})
+      (button :class "mpd-btn" :onclick "mpc next" "󰒭"))
+    (progress :class "mpd-progress" :value mpd-progress :orientation "h")))
+
+(defwindow mpd
+  :monitor 1
+  :geometry (geometry :x "240px"
+                      :y "460px"
+                      :width "280px"
+                      :height "110px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (mpd))
+
+
+
+(defpoll updates :interval "1800s"
+  `checkupdates 2>/dev/null | wc -l`)
+
+(defpoll aur-updates :interval "1800s"
+  `yay -Qua 2>/dev/null | wc -l`)
+
+(defwidget updates []
+  (box :class "updates-widget"
+       :orientation "h"
+       :space-evenly false
+    (label :text "󰏔" :class "updates-icon")
+    (label :text "${updates} + ${aur-updates} AUR" :class "updates-label")))
+
+(defwindow updates
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "590px"
+                      :width "120"
+                      :height "50"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (updates))
+
