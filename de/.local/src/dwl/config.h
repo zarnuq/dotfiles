@@ -146,7 +146,9 @@ static const Keychord keychords[] = {
     SPAWN2(MOD,  r,    0,     s,        "steam"),
     SPAWN2(MOD,  r,    0,     w,        "/bin/sh", "-c", "$HOME/.local/bin/runbar.sh"),
     SPAWN2(MOD,  s,    0,     d,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh section && notify-send 'Screenshot' 'Section saved!'"),
-    SPAWN2(MOD,  s,    0,     f,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-2 && notify-send 'Screenshot' 'Fullscreen saved!'"),
+    SPAWN2(MOD,  s,    0,     1,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-1 && notify-send 'Screenshot' 'Fullscreen saved!'"),
+    SPAWN2(MOD,  s,    0,     2,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-2 && notify-send 'Screenshot' 'Fullscreen saved!'"),
+    SPAWN2(MOD,  s,    0,     3,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-3 && notify-send 'Screenshot' 'Fullscreen saved!'"),
     
 /* Media controls */
     /*     mod  key            cmd_args... */
@@ -185,8 +187,8 @@ static const Keychord keychords[] = {
     MASTER(   MOD,         m,           MOD,          n       ),
     FOCUSMON( MOD,         comma,       MOD,          period  ),
     TAGMON(   MOD|SHIFT,   less,        MOD|SHIFT,    greater ),
-    MOVE(   Up, Left, Down, Right, 40),
-    RESIZE( Up, Left, Down, Right, 40),
+    MOVE(   Up, Right, Down, Left, 40),
+    RESIZE( Up, Right, Down, Left, 40),
     
 /* Tag management */
     /*  key  shift_key   tag_number */

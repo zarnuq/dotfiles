@@ -1,0 +1,21 @@
+/* Remove rounded corners from all widgets */
+* {
+    border-radius: 0px !important;
+}
+
+/* Specific overrides if needed */
+window {
+    border-radius: 0px;
+}
+
+button {
+    border-radius: 0px;
+}
+
+entry {
+    border-radius: 0px;
+}
+
+.titlebar {
+    border-radius: 0px;
+}
