@@ -10,13 +10,13 @@
 
 - btop
 - dunst
+- doom emacs
 - dwl
 - dwlb
 - easyeffects(eq)
-- doom emacs
+- eww
 - fastfetch
 - ghostty
-- ghostwriter
 - gtk themes
 - hypr(land,paper,idle,lock)
 - kitty
