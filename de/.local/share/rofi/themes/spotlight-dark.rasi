@@ -38,7 +38,7 @@ window {
     border-color: @mauve;
     border:         1px;
     width:              35%;
-    height:             35%;
+    height:             50%;
 }
 
 inputbar {
