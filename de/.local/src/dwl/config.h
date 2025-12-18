@@ -42,6 +42,7 @@ static const Rule rules[] = {
     /* app_id        title   tags mask   switchtotag   isfloating   monitor   x     y     width   height */
     { "rmpc",        NULL,   0,          0,            0,           2,        0,    0,    0,      0   },
     { "zen",         NULL,   1 << 2,     1,            0,          -1,        0,    0,    0,      0   },
+    { "mpv",         NULL,   1 << 0,     1,            0,          -1,        0,    0,    0,      0   },
     { "^steam",      NULL,   1 << 4,     0,            0,          -1,        0,    0,    0,      0   },
     { "^float",      NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5 },
     { "pavucontrol", NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5 },
@@ -57,9 +58,9 @@ static const Layout layouts[] = {
 static const MonitorRule monrules[] = {
     /* name     mfact  nmaster scale layout       rotate/reflect              x     y  resx   resy   rate  mode   adaptive*/
     { "eDP-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 1920,  1200,  0.0f, 0,     0},
-    { "DP-3",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    0, 3440,  1440,  0.0f, 1,     0},
-    { "DP-2",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 3440, 0, 3440,  1440,  0.0f, 1,     0},
-    { "DP-1",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    6880, 0, 1920,  1080,  0.0f, 2,     0},
+    { "DP-2",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 1440, 3440,  1440,  0.0f, 1,     0},
+    { "DP-3",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_180,    0,    0, 3440,  1440,  0.0f, 1,     0},
+    { "DP-1",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    3440, 1440, 1920,  1080,  0.0f, 2,     0},
     { NULL,     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 0,     0,     0.0f, 0,     0},
 };
 
@@ -115,11 +116,11 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
     {1, {{m1, K(k1)}}, incnmaster, {.i = -1}}, \
     {1, {{m2, K(k2)}}, incnmaster, {.i = +1}}
 #define FOCUSMON(m1, k1, m2, k2) \
-    {1, {{m1, K(k1)}}, focusmon, {.i = WLR_DIRECTION_LEFT}}, \
-    {1, {{m2, K(k2)}}, focusmon, {.i = WLR_DIRECTION_RIGHT}}
+    {1, {{m1, K(k1)}}, focusmon, {.i = -1}}, \
+    {1, {{m2, K(k2)}}, focusmon, {.i = +1}}
 #define TAGMON(m1, k1, m2, k2) \
-    {1, {{m1, K(k1)}}, tagmon, {.i = WLR_DIRECTION_LEFT}}, \
-    {1, {{m2, K(k2)}}, tagmon, {.i = WLR_DIRECTION_RIGHT}}
+    {1, {{m1, K(k1)}}, tagmon, {.i = -1}}, \
+    {1, {{m2, K(k2)}}, tagmon, {.i = +1}}
 #define LAYOUT(m1, k1, idx) {1, {{m1, K(k1)}}, setlayout, {.v = &layouts[idx]}}  /* Switch layout */
 #define ACTION(m1, k1, func) {1, {{m1, K(k1)}}, func, {0}}
 #define CHVT(n) { 1, {{CTRL|ALT,XKB_KEY_XF86Switch_VT_##n}}, chvt, {.ui = (n)} }  /* Virtual terminal */

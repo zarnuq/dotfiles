@@ -1525,7 +1525,28 @@ destroykeyboardgroup(struct wl_listener *listener, void *data)
 Monitor *
 dirtomon(enum wlr_direction dir)
 {
+	Monitor *m;
 	struct wlr_output *next;
+
+	/* Handle index-based cycling (+1 or -1) */
+	if (dir == 1 || dir == -1) {
+		if (dir == 1) {
+			/* Next monitor */
+			if (selmon->link.next == &mons)
+				m = wl_container_of(mons.next, m, link);
+			else
+				m = wl_container_of(selmon->link.next, m, link);
+		} else {
+			/* Previous monitor */
+			if (selmon->link.prev == &mons)
+				m = wl_container_of(mons.prev, m, link);
+			else
+				m = wl_container_of(selmon->link.prev, m, link);
+		}
+		return m;
+	}
+
+	/* Original directional logic */
 	if (!wlr_output_layout_get(output_layout, selmon->wlr_output))
 		return selmon;
 	if ((next = wlr_output_layout_adjacent_output(output_layout,
