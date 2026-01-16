@@ -1,5 +1,5 @@
 #ALIASES
-alias y='yazi'
+#alias y='yazi'
 alias gs='git status -s'
 alias gac='git add .; git commit -m'
 alias gp='git push'
@@ -17,6 +17,15 @@ alias doomsync='pkill emacs;systemctl --user stop emacs;doom sync;systemctl --us
 alias ta='tmux attach-session -t'
 alias p='paru'
 alias pf="yay -Slq | fzf --multi --preview 'yay -Sii {1}' --preview-window=down:75% --layout=reverse | xargs -ro yay -S"
+
+function y() {
+  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+    cd -- "$cwd"
+  fi
+  rm -f -- "$tmp"
+}
 
 #CONFIG
 _comp_options+=(globdots)
