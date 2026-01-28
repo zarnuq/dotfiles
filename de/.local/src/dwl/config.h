@@ -27,6 +27,7 @@ static const char *const autostart[] = {
     "gammastep", "-O", "4000:4000",                       NULL,
     "nm-applet",                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                   NULL,
+    "syncthing",                                          NULL,
     NULL 
 };
 

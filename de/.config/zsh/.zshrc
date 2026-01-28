@@ -73,3 +73,4 @@ eval "$(fzf --zsh)"
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git "
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+export TERM=xterm-256color
