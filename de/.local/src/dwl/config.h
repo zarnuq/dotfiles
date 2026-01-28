@@ -23,11 +23,12 @@ static const char *const autostart[] = {
     "swww-daemon",                                        NULL,
     "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
     "easyeffects", "--gapplication-service",              NULL,
-    "xremap", "~/.config/xremap/config.yml",              NULL,
+    "xremap", "$HOME/.config/xremap/config.yml",          NULL,
     "gammastep", "-O", "4000:4000",                       NULL,
     "nm-applet",                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                   NULL,
-    "syncthing",                                          NULL,
+    "sh", "-c", "syncthing --no-browser",                 NULL,
+    "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
     NULL 
 };
 

@@ -1,290 +1,359 @@
+// Dashboard Widget Styles - Catppuccin Mocha Theme
+
+// Catppuccin Mocha palette
+$base: #1e1e2e;
+$surface0: #313244;
+$surface1: #45475a;
+$text: #cdd6f4;
+$subtext0: #a6adc8;
+$subtext1: #bac2de;
+$blue: #89b4fa;
+$green: #a6e3a1;
+$red: #f38ba8;
+$yellow: #f9e2af;
+$peach: #fab387;
+$mauve: #cba6f7;
+$teal: #94e2d5;
+$lavender: #b4befe;
+
+$border-radius: 12px;
+
 * {
   all: unset;
-  font-family: JetBrains Mono Nerd Font;
+  font-family: "JetBrains Mono Nerd Font", monospace;
 }
+
+window {
+  background-color: transparent;
+}
+
+// Context menus (systray)
 menu, .menu, menuitem, .menuitem {
-  background: rgba(30, 30, 30, 0.95);
-  color: #ffffff;
+  background: $base;
+  color: $text;
   padding: 5px 10px;
+  border: 1px solid $surface0;
+  border-radius: 8px;
 }
 
 menuitem:hover {
-  background: rgba(80, 80, 80, 0.95);
+  background: $surface0;
 }
 
-.widget {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 10px;
-  color: #ffffff;
-}
-
+// Clock widget
 .clock-widget {
-  background-color: rgba(0, 0, 0, 0.4);
-  color: #ffffff;
+  background-color: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
+  color: $text;
   padding: 15px;
-  font-size: 36;
+
+  .time {
+    font-size: 36px;
+    font-weight: bold;
+    color: $text;
+  }
+
+  .date {
+    font-size: 14px;
+    color: $subtext0;
+  }
 }
 
-
+// CPU/GPU graph widget
 .cpu-graph-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
-}
-.graph-labels {
-  margin-bottom: 5px;
-}
-.cpu-label {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-right: 10px;
-}
-.gpu-label {
-  font-size: 18px;
-  color: rgba(100, 200, 255, 0.8);
-}
-.cpu-line {
-  color: rgba(255, 255, 255, 0.8);
-}
-.gpu-line {
-  color: rgba(100, 200, 255, 0.8);
+
+  .cpu-label {
+    font-size: 18px;
+    color: $text;
+    margin-right: 10px;
+  }
+
+  .gpu-label {
+    font-size: 18px;
+    color: $blue;
+  }
+
+  .cpu-line {
+    color: $text;
+  }
+
+  .gpu-line {
+    color: $blue;
+  }
 }
 
+// System tray
 .tray-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 15px;
 }
 
+// RAM widget
 .ram-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .ram-circle {
+    color: $green;
+    background-color: $surface0;
+    min-width: 80px;
+    min-height: 80px;
+    margin-right: 10px;
+  }
+
+  .ram-label {
+    font-size: 14px;
+    color: $subtext0;
+  }
+
+  .ram-percent {
+    font-size: 18px;
+    color: $green;
+    font-weight: bold;
+  }
 }
 
-.ram-circle {
-  color: rgba(100, 255, 150, 0.8);
-  background-color: rgba(255, 255, 255, 0.1);
-  min-width: 100px;
-  min-height: 100px;
-  margin-right: 10px;
-}
-
-.ram-label {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.ram-percent {
-  font-size: 18px;
-  color: #ffffff;
-  font-weight: bold;
-}
-
+// Disk widget
 .disk-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .disk-circle {
+    color: $peach;
+    background-color: $surface0;
+    min-width: 80px;
+    min-height: 80px;
+    margin-right: 10px;
+  }
+
+  .disk-label {
+    font-size: 14px;
+    color: $subtext0;
+  }
+
+  .disk-percent {
+    font-size: 18px;
+    color: $peach;
+    font-weight: bold;
+  }
 }
 
-.disk-circle {
-  color: rgba(255, 200, 100, 0.8);
-  background-color: rgba(255, 255, 255, 0.1);
-  min-width: 80px;
-  min-height: 80px;
-  margin-right: 10px;
-}
-
-.disk-label {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.disk-percent {
-  font-size: 18px;
-  color: #ffffff;
-  font-weight: bold;
-}
-
-
+// Network widget
 .network-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .network-label {
+    font-size: 14px;
+    color: $subtext0;
+    margin-bottom: 5px;
+  }
+
+  .net-arrow-up {
+    color: $green;
+    margin-right: 5px;
+  }
+
+  .net-arrow-down {
+    color: $blue;
+    margin-right: 5px;
+  }
+
+  .net-speed {
+    font-size: 14px;
+    color: $text;
+  }
 }
 
-.network-label {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 5px;
-}
-
-.net-arrow-up {
-  color: rgba(100, 255, 150, 0.8);
-  margin-right: 5px;
-}
-
-.net-arrow-down {
-  color: rgba(100, 200, 255, 0.8);
-  margin-right: 5px;
-}
-
-.net-speed {
-  font-size: 14px;
-  color: #ffffff;
-}
-
+// Temperature widget
 .temps-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .temps-label {
+    font-size: 12px;
+    color: $subtext0;
+    margin-bottom: 5px;
+  }
+
+  .temp-name {
+    font-size: 14px;
+    color: $subtext0;
+    margin-right: 5px;
+  }
+
+  .temp-value {
+    font-size: 14px;
+    color: $text;
+  }
 }
 
-.temps-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 5px;
-}
-
-.temp-name {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-right: 5px;
-}
-
-.temp-value {
-  font-size: 14px;
-  color: #ffffff;
-}
-
+// Uptime widget
 .uptime-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 8px 12px;
+
+  .uptime-label {
+    font-size: 12px;
+    color: $text;
+  }
 }
 
-.uptime-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
+// Weather widget
 .weather-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .weather-temp {
+    font-size: 24px;
+    color: $text;
+  }
+
+  .weather-detail {
+    font-size: 14px;
+    color: $subtext0;
+  }
 }
 
-.weather-temp {
-  font-size: 24;
-  color: #ffffff;
-}
-
-.weather-detail {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-
+// Notifications widget
 .notif-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .notif-header {
+    margin-bottom: 8px;
+  }
+
+  .notif-label {
+    font-size: 12px;
+    color: $subtext0;
+  }
+
+  .notif-btn {
+    background: none;
+    color: $subtext0;
+    font-size: 14px;
+    margin-left: 8px;
+    transition: color 200ms ease;
+
+    &:hover {
+      color: $text;
+    }
+  }
+
+  .notif-scroll {
+    min-height: 200px;
+  }
+
+  .notif-card {
+    background: $surface0;
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+  }
+
+  .notif-app {
+    font-size: 10px;
+    color: $subtext0;
+  }
+
+  .notif-summary {
+    font-size: 12px;
+    color: $text;
+  }
 }
 
-.notif-header {
-  margin-bottom: 8px;
-}
-
-.notif-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.notif-btn {
-  background: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
-  margin-left: 8px;
-}
-
-.notif-btn:hover {
-  color: #ffffff;
-}
-
-.notif-scroll {
-  min-height: 200px;
-}
-
-.notif-card {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 8px;
-  margin-bottom: 5px;
-  border-radius: 4px;
-}
-
-.notif-app {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.notif-summary {
-  font-size: 12px;
-  color: #ffffff;
-}
-
+// MPD widget
 .mpd-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 10px;
+
+  .mpd-cover-box {
+    min-width: 80px;
+    min-height: 80px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    margin-right: 10px;
+  }
+
+  .mpd-title {
+    font-size: 14px;
+    color: $text;
+    font-weight: bold;
+  }
+
+  .mpd-artist {
+    font-size: 12px;
+    color: $subtext0;
+    margin-bottom: 8px;
+  }
+
+  .mpd-controls {
+    margin-bottom: 8px;
+  }
+
+  .mpd-btn {
+    background: none;
+    color: $subtext0;
+    font-size: 18px;
+    transition: color 200ms ease;
+
+    &:hover {
+      color: $text;
+    }
+  }
+
+  .mpd-progress {
+    background-color: $surface0;
+    min-height: 4px;
+    border-radius: 2px;
+  }
+
+  .mpd-progress progress {
+    background-color: $mauve;
+    border-radius: 2px;
+  }
 }
 
-.mpd-cover-box {
-  min-width: 80px;
-  min-height: 80px;
-  background-size: cover;
-  background-position: center;
-  border-radius: 4px;
-  margin-right: 10px;
-}
-
-.mpd-title {
-  font-size: 14px;
-  color: #ffffff;
-  font-weight: bold;
-}
-
-.mpd-artist {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 8px;
-}
-
-.mpd-controls {
-  margin-bottom: 8px;
-}
-
-.mpd-btn {
-  background: none;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 18px;
-}
-
-.mpd-btn:hover {
-  color: #ffffff;
-}
-
-.mpd-progress {
-  background-color: rgba(255, 255, 255, 0.1);
-  min-height: 4px;
-}
-
-.mpd-progress progress {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
+// Updates widget
 .updates-widget {
-  background: rgba(0, 0, 0, 0.4);
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
   padding: 8px 12px;
-}
 
-.updates-icon {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-right: 8px;
-}
+  .updates-icon {
+    font-size: 16px;
+    color: $blue;
+    margin-right: 8px;
+  }
 
-.updates-label {
-  font-size: 12px;
-  color: #ffffff;
+  .updates-label {
+    font-size: 12px;
+    color: $text;
+  }
 }
-
