@@ -1,0 +1,95 @@
+// VPN Selector Widget Styles
+
+$bg-color: #1e1e2e;
+$bg-lighter: #313244;
+$fg-color: #cdd6f4;
+$accent-color: #89b4fa;
+$green: #a6e3a1;
+$red: #f38ba8;
+$yellow: #f9e2af;
+$border-radius: 12px;
+window {
+  background-color: transparent;
+}
+.vpn-container {
+  background-color: $bg-color;
+  border-radius: 12px;
+  border: 1px solid $bg-lighter;
+  min-width: 250px;
+
+
+}
+
+.vpn-header {
+  padding: 12px 16px;
+  background-color: transparent;
+
+  &:hover {
+    background-color: transparent;
+  }
+
+  &.connected {
+    .vpn-icon, .vpn-label {
+      color: $green;
+    }
+  }
+
+  &.disconnected {
+    .vpn-icon, .vpn-label {
+      color: $fg-color;
+    }
+  }
+}
+
+.vpn-icon {
+  font-size: 18px;
+}
+
+.vpn-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.vpn-arrow {
+  margin-left: 10px;
+  color: $fg-color;
+  font-size: 12px;
+}
+
+.vpn-list {
+  padding: 8px;
+  border-top: 1px solid $bg-lighter;
+  background-color: transparent;
+}
+
+.vpn-item {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background-color: transparent;
+  border: none;
+  color: $fg-color;
+  font-size: 13px;
+  transition: background-color 200ms ease;
+
+  &:hover {
+    background-color: $bg-lighter;
+  }
+
+  &.active {
+    background-color: rgba($green, 0.15);
+    color: $green;
+  }
+
+  &.disconnect {
+    color: $red;
+    margin-bottom: 4px;
+
+    &:hover {
+      background-color: rgba($red, 0.15);
+    }
+  }
+
+  label {
+    color: inherit;
+  }
+}

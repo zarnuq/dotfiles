@@ -1,6 +1,3 @@
-[Presets]
-lastLoadedOutputPreset=EQ
-
 [StreamInputs]
 inputDevice=alsa_input.usb-FuZhou_Kingwayinfo_CO._LTD_TONOR_TC30_Audio_Device_20200707-00.mono-fallback
 

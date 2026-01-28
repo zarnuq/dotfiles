@@ -1,0 +1,67 @@
+; VPN Selector Widget for EWW
+
+(defpoll vpn-list :interval "5s"
+  :initial "[]"
+  `~/.config/eww/scripts/vpn-manager.sh list`)
+
+(defpoll vpn-status :interval "2s"
+  :initial ""
+  `~/.config/eww/scripts/vpn-manager.sh status`)
+
+(defvar vpn-expanded false)
+
+(defwidget vpn []
+  (box :class "vpn-container"
+       :orientation "v"
+       :space-evenly false
+    (eventbox :onclick {vpn-expanded ? "eww --config ~/.config/eww/vpn update vpn-expanded=false" : "eww --config ~/.config/eww/vpn update vpn-expanded=true"}
+      (box :class "vpn-header ${vpn-status != '' ? 'connected' : 'disconnected'}"
+           :space-evenly false
+           :spacing 10
+        (label :class "vpn-icon"
+               :text {vpn-status != "" ? "󰌆" : "󰌊"})
+        (label :class "vpn-label"
+               :text {vpn-status != "" ? vpn-status : "VPN Disconnected"})
+        (label :class "vpn-arrow"
+               :text {vpn-expanded ? "" : ""})
+      )
+    )
+    (revealer :transition "slidedown"
+              :reveal vpn-expanded
+              :duration "300ms"
+      (box :class "vpn-list"
+           :orientation "v"
+           :space-evenly false
+        (revealer :reveal {vpn-status != ""}
+                  :transition "slidedown"
+          (button :class "vpn-item disconnect"
+                  :onclick "~/.config/eww/scripts/vpn-manager.sh disconnect &"
+            (box :space-evenly false :spacing 10
+              (label :text "󰈂")
+              (label :text "Disconnect")
+            )
+          )
+        )
+        (for vpn in vpn-list
+          (button :class "vpn-item ${vpn.name == vpn-status ? 'active' : ''}"
+                  :onclick "~/.config/eww/scripts/vpn-manager.sh connect '${vpn.file}' &"
+            (box :space-evenly false :spacing 10
+              (label :text {vpn.name == vpn-status ? "󰌆" : "󰌊"})
+              (label :text {vpn.name})
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+(defwindow vpn
+  :monitor 1
+  :geometry (geometry :x "100px"
+                      :y "10px"
+                      :anchor "top right")
+  :stacking "bottom"
+  :exclusive false
+  (vpn)
+)
