@@ -12,6 +12,9 @@ usedPresets=None:2,EQ:3
 visiblePage=pluginsPage
 visiblePlugin=equalizer#0
 
+[Style]
+forceBreezeTheme=false
+
 [Window]
 height=1421
 lastLoadedOutputPreset=EQ
