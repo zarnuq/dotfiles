@@ -49,15 +49,82 @@ menuitem:hover {
   padding: 15px;
 
   .time {
-    font-size: 36px;
+    font-size: 64px;
     font-weight: bold;
     color: $text;
   }
 
   .date {
+    font-size: 20px;
+    color: $subtext0;
+  }
+}
+
+// Volume widget
+.volume-widget {
+  background-color: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
+  padding: 10px 20px;
+
+  .vol-bar {
+    padding: 4px 0;
+  }
+
+  .vol-btn {
+    background: none;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+
+  .vol-icon {
+    font-size: 18px;
+    color: $text;
+
+    &.muted {
+      color: $red;
+    }
+  }
+
+  .vol-text {
     font-size: 14px;
     color: $subtext0;
   }
+
+  .vol-sliders {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid $surface0;
+  }
+
+  .vol-slider-icon {
+    font-size: 16px;
+    color: $subtext0;
+    min-width: 20px;
+  }
+
+  .vol-scale {
+    min-height: 8px;
+    min-width: 200px;
+  }
+}
+
+.vol-scale trough {
+  background-color: #313244;
+  border-radius: 4px;
+  min-height: 8px;
+}
+
+.vol-scale trough highlight {
+  background-color: #89b4fa;
+  border-radius: 4px;
+}
+
+.vol-scale trough slider {
+  background-color: #cdd6f4;
+  border-radius: 50%;
+  min-width: 16px;
+  min-height: 16px;
 }
 
 // CPU/GPU graph widget

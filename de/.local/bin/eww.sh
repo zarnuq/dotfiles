@@ -13,6 +13,7 @@ fi
 
 open_dash() {
     eww --config "$EWW_DIR/dash" open --screen "$monitor" clock
+    eww --config "$EWW_DIR/dash" open --screen "$monitor" volume
     eww --config "$EWW_DIR/dash" open --screen "$monitor" cpu
     eww --config "$EWW_DIR/dash" open --screen "$monitor" tray
     eww --config "$EWW_DIR/dash" open --screen "$monitor" ram

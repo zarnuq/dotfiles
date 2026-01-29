@@ -8,14 +8,73 @@
     (label :text date :class "date")))
 (defwindow clock
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "20px"
-                      :width "500px"
+  :geometry (geometry :x "0px"
+                      :y "-150px"
+                      :width "520px"
                       :height "130px"
-                      :anchor "bottom left")
+                      :anchor "center")
   :stacking "bottom"
   (clock))
 
+
+(defpoll vol-out :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf "%.0f", $2 * 100}'`)
+(defpoll vol-mic :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | awk '{printf "%.0f", $2 * 100}'`)
+(defpoll vol-out-muted :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED && echo true || echo false`)
+(defpoll vol-mic-muted :interval "0.5s"
+  `wpctl get-volume @DEFAULT_AUDIO_SOURCE@ | grep -q MUTED && echo true || echo false`)
+
+(defvar vol-expanded false)
+
+(defwidget volume []
+  (box :class {vol-expanded ? "volume-widget expanded" : "volume-widget"}
+       :orientation "v"
+       :space-evenly false
+    (revealer :transition "slideup"
+              :reveal vol-expanded
+              :duration "200ms"
+      (box :orientation "v" :space-evenly false :spacing 10 :class "vol-sliders"
+        (box :orientation "h" :space-evenly false :spacing 10
+          (label :text "󰕾" :class "vol-slider-icon")
+          (scale :class "vol-scale"
+                 :orientation "h"
+                 :min 0
+                 :max 100
+                 :value vol-out
+                 :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
+        (box :orientation "h" :space-evenly false :spacing 10
+          (label :text "󰍬" :class "vol-slider-icon")
+          (scale :class "vol-scale"
+                 :orientation "h"
+                 :min 0
+                 :max 100
+                 :value vol-mic
+                 :onchange "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ {}%"))))
+    (eventbox :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
+      (box :orientation "h"
+           :space-evenly false
+           :spacing 20
+           :class "vol-bar"
+        (button :class "vol-btn" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+          (box :orientation "h" :space-evenly false :spacing 8
+            (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"} :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
+            (label :text "${vol-out}%" :class "vol-text")))
+        (button :class "vol-btn" :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+          (box :orientation "h" :space-evenly false :spacing 8
+            (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"} :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
+            (label :text "${vol-mic}%" :class "vol-text")))))))
+
+(defwindow volume
+  :monitor 1
+  :geometry (geometry :x "0px"
+                      :y "20px"
+                      :width "280px"
+                      :height "50px"
+                      :anchor "bottom center")
+  :stacking "bottom"
+  (volume))
 
 
 (defpoll gpu-usage :interval "2s" "nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits")
@@ -44,7 +103,7 @@
 (defwindow cpu
     :monitor 1
     :geometry (geometry :x "20px"
-        :y "170px"
+        :y "20px"
         :width "380px"
         :height "150px"
         :anchor "bottom left")
@@ -84,7 +143,7 @@
 (defwindow ram
   :monitor 1
   :geometry (geometry :x "20px"
-                      :y "340px"
+                      :y "190px"
                       :width "150px"
                       :height "100px"
                       :anchor "bottom left")
@@ -108,7 +167,7 @@
 (defwindow disk
   :monitor 1
   :geometry (geometry :x "190px"
-                      :y "340px"
+                      :y "190px"
                       :width "150"
                       :height "100px"
                       :anchor "bottom left")
@@ -147,7 +206,7 @@
 (defwindow network
   :monitor 1
   :geometry (geometry :x "360px"
-                      :y "340px"
+                      :y "190px"
                       :width "160px"
                       :height "100px"
                       :anchor "bottom left")
@@ -174,7 +233,7 @@
 (defwindow temps
   :monitor 1
   :geometry (geometry :x "420"
-                      :y "170px"
+                      :y "20px"
                       :width "100px"
                       :height "100px"
                       :anchor "bottom left")
@@ -191,7 +250,7 @@
 (defwindow uptime
   :monitor 1
   :geometry (geometry :x "420px"
-                      :y "280px"
+                      :y "130px"
                       :width "100"
                       :height "40"
                       :anchor "bottom left")
@@ -224,7 +283,7 @@
 (defwindow weather
   :monitor 1
   :geometry (geometry :x "20px"
-                      :y "460px"
+                      :y "310px"
                       :width "200"
                       :height "110"
                       :anchor "bottom left")
@@ -233,7 +292,7 @@
 
 
 
-(defpoll notif-json :interval "2s"
+(defpoll notif-json :interval "2s" :initial "[]"
   `dunstctl history | jq -c '[.data[0][:5] // [] | .[] | {app: (.appname.data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}]' 2>/dev/null || echo "[]"`)
 (defpoll notif-paused :interval "2s"
   `dunstctl is-paused`)
@@ -271,8 +330,8 @@
   `mpc current -f "%artist%" 2>/dev/null || echo ""`)
 (defpoll mpd-status :interval "1s"
   `mpc status 2>/dev/null | grep -q playing && echo "playing" || echo "paused"`)
-(defpoll mpd-progress :interval "1s"
-  `mpc status 2>/dev/null | grep -oP '\d+(?=%)' || echo "0"`)
+(defpoll mpd-progress :interval "1s" :initial "0"
+  `mpc 2>/dev/null | sed -n 's/.*( *\\([0-9]*\\)%).*/\\1/p'`)
 (defwidget mpd []
   (box :class "mpd-widget"
        :orientation "v"
@@ -295,7 +354,7 @@
 (defwindow mpd
   :monitor 1
   :geometry (geometry :x "240px"
-                      :y "460px"
+                      :y "310px"
                       :width "280px"
                       :height "110px"
                       :anchor "bottom left")
@@ -320,7 +379,7 @@
 (defwindow updates
   :monitor 1
   :geometry (geometry :x "20px"
-                      :y "590px"
+                      :y "440px"
                       :width "120"
                       :height "50"
                       :anchor "bottom left")
