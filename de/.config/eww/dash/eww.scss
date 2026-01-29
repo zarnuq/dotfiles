@@ -65,15 +65,15 @@ menuitem:hover {
   background-color: $base;
   border: 1px solid $surface0;
   border-radius: $border-radius;
-  padding: 10px 20px;
+  padding: 10px;
 
   .vol-bar {
-    padding: 4px 0;
+    padding: 6px 4px;
   }
-
+  
   .vol-btn {
     background: none;
-    padding: 4px 8px;
+    padding: 6px;
     border-radius: 8px;
   }
 
@@ -92,9 +92,9 @@ menuitem:hover {
   }
 
   .vol-sliders {
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid $surface0;
+    padding-left: 14px;
+    margin-left: 14px;
+    border-left: 1px solid $surface0;
   }
 
   .vol-slider-icon {
@@ -104,8 +104,8 @@ menuitem:hover {
   }
 
   .vol-scale {
+    min-width: 180px;
     min-height: 8px;
-    min-width: 200px;
   }
 }
 

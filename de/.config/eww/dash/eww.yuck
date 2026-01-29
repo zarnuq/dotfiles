@@ -29,48 +29,70 @@
 (defvar vol-expanded false)
 
 (defwidget volume []
-  (box :class {vol-expanded ? "volume-widget expanded" : "volume-widget"}
-       :orientation "v"
-       :space-evenly false
-    (revealer :transition "slideup"
-              :reveal vol-expanded
-              :duration "200ms"
-      (box :orientation "v" :space-evenly false :spacing 10 :class "vol-sliders"
-        (box :orientation "h" :space-evenly false :spacing 10
-          (label :text "󰕾" :class "vol-slider-icon")
-          (scale :class "vol-scale"
-                 :orientation "h"
-                 :min 0
-                 :max 100
-                 :value vol-out
-                 :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
-        (box :orientation "h" :space-evenly false :spacing 10
-          (label :text "󰍬" :class "vol-slider-icon")
-          (scale :class "vol-scale"
-                 :orientation "h"
-                 :min 0
-                 :max 100
-                 :value vol-mic
-                 :onchange "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ {}%"))))
-    (eventbox :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
-      (box :orientation "h"
-           :space-evenly false
-           :spacing 20
-           :class "vol-bar"
-        (button :class "vol-btn" :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-          (box :orientation "h" :space-evenly false :spacing 8
-            (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"} :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
-            (label :text "${vol-out}%" :class "vol-text")))
-        (button :class "vol-btn" :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-          (box :orientation "h" :space-evenly false :spacing 8
-            (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"} :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
-            (label :text "${vol-mic}%" :class "vol-text")))))))
+  (box
+    :class "volume-widget"
+    :orientation "h"
+    :space-evenly false
+
+    ;; === VALUES + ICONS COLUMN ===
+    (eventbox
+      :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
+      (box
+        :orientation "v"
+        :spacing 14
+        :class "vol-side"
+
+        ;; Speaker
+        (box :orientation "h" :spacing 8
+          (label
+            :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
+            :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
+          (label :text "${vol-out}%" :class "vol-value"))
+        ;; Mic
+        (box :orientation "h" :spacing 8
+          (label
+            :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
+            :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
+          (label :text "${vol-mic}%" :class "vol-value"))
+      )
+    )
+    ;; === SLIDERS (expand RIGHT, no overlap) ===
+    (revealer
+      :transition "slideright"
+      :reveal vol-expanded
+      :duration "200ms"
+      (box
+        :orientation "v"
+        :spacing 12
+        :class "vol-sliders"
+
+        (box :orientation "h" :spacing 10
+          (scale
+            :class "vol-scale"
+            :orientation "h"
+            :min 0
+            :max 100
+            :value vol-out
+            :onchange "wpctl set-volume @DEFAULT_AUDIO_SINK@ {}%"))
+
+        (box :orientation "h" :spacing 10
+          (scale
+            :class "vol-scale"
+            :orientation "h"
+            :min 0
+            :max 100
+            :value vol-mic
+            :onchange "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ {}%"))
+      )
+    )
+  )
+)
 
 (defwindow volume
   :monitor 1
   :geometry (geometry :x "0px"
                       :y "20px"
-                      :width "280px"
+                      :width "100px"
                       :height "50px"
                       :anchor "bottom center")
   :stacking "bottom"
