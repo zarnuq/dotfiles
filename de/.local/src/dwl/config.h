@@ -165,8 +165,8 @@ static const Keychord keychords[] = {
     SPAWN1(ALT, End,           "/bin/sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && kill -36 $(pidof someblocks)"),
     SPAWN1(ALT, bracketleft,   "/bin/sh", "-c", "$HOME/.local/bin/flip.sh && touch /tmp/update_audio && kill -35 $(pidof someblocks)"),
     /*     mod  key mod2 key2 cmd_args... */
-    SPAWN2(MOD, q,  0,   1,   "easyeffects", "-l", "EQ"),
-    SPAWN2(MOD, q,  0,   2,   "easyeffects", "-l", "None"),
+    SPAWN2(MOD, q,  0,   1,   "/bin/sh", "-c", "easyeffects -l eq"),
+    SPAWN2(MOD, q,  0,   2,   "/bin/sh", "-c", "easyeffects -l none"),
 
 /* Brightness control */
     /*     mod      key    cmd_args... */
