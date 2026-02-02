@@ -67,10 +67,14 @@ menuitem:hover {
   border-radius: $border-radius;
   padding: 10px;
 
+  .vol-side {
+    min-width: 80px;
+  }
+
   .vol-bar {
     padding: 6px 4px;
   }
-  
+
   .vol-btn {
     background: none;
     padding: 6px;

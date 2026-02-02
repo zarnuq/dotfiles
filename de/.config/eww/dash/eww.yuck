@@ -35,26 +35,29 @@
     :space-evenly false
 
     ;; === VALUES + ICONS COLUMN ===
-    (eventbox
-      :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
-      (box
-        :orientation "v"
-        :spacing 14
-        :class "vol-side"
+    (box
+      :orientation "v"
+      :spacing 14
+      :class "vol-side"
 
-        ;; Speaker
+      ;; Speaker
+      (eventbox
+        :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+        :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
         (box :orientation "h" :spacing 8
           (label
             :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
             :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-out}%" :class "vol-value"))
-        ;; Mic
+          (label :text "${vol-out}%" :class "vol-value")))
+      ;; Mic
+      (eventbox
+        :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+        :onrightclick "eww --config ~/.config/eww/dash update vol-expanded=${!vol-expanded}"
         (box :orientation "h" :spacing 8
           (label
             :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
             :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-mic}%" :class "vol-value"))
-      )
+          (label :text "${vol-mic}%" :class "vol-value")))
     )
     ;; === SLIDERS (expand RIGHT, no overlap) ===
     (revealer
@@ -90,11 +93,11 @@
 
 (defwindow volume
   :monitor 1
-  :geometry (geometry :x "0px"
-                      :y "20px"
+  :geometry (geometry :x "20px"
+                      :y "0px"
                       :width "100px"
                       :height "50px"
-                      :anchor "bottom center")
+                      :anchor "center left")
   :stacking "bottom"
   (volume))
 
