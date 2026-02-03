@@ -64,6 +64,7 @@
             "N":         PreviousResult,
             "a":         Add,
             "A":         AddAll,
+            "<C-a>":     Save(),
             "r":         Rename,
             "n":         NextResult,
             "g":         Top,
@@ -83,8 +84,7 @@
         queue: {
             "D":       DeleteAll,
             "<CR>":    Play,
-            "<C-s>":   Save,
-            "a":       AddToPlaylist,
+            "<C-s>":   AddToPlaylist,
             "c":       JumpToCurrent,
             "d":       Delete,
             "i":       ShowInfo,

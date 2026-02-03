@@ -93,7 +93,7 @@
 
 (defwindow volume
   :monitor 1
-  :geometry (geometry :x "20px"
+  :geometry (geometry :x "360px"
                       :y "0px"
                       :width "100px"
                       :height "50px"
@@ -339,10 +339,10 @@
             (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "260px"
+  :geometry (geometry :x "220px"
                       :y "20px"
                       :width "300px"
-                      :height "300px"
+                      :height "200px"
                       :anchor "top left")
   :stacking "bottom"
   (notifications))
@@ -357,32 +357,37 @@
   `mpc status 2>/dev/null | grep -q playing && echo "playing" || echo "paused"`)
 (defpoll mpd-progress :interval "1s" :initial "0"
   `mpc 2>/dev/null | sed -n 's/.*( *\\([0-9]*\\)%).*/\\1/p'`)
+(defpoll mpd-cover :interval "1s"
+  `file=$(mpc current -f "%file%" 2>/dev/null) && [ -n "$file" ] && mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null && echo "/tmp/eww-mpd-cover.jpg" || echo ""`)
 (defwidget mpd []
   (box :class "mpd-widget"
-       :orientation "v"
+       :orientation "h"
        :space-evenly false
-    (label :text {mpd-title != "" ? mpd-title : "Not playing"} 
-           :class "mpd-title" 
-           :halign "start"
-           :limit-width 30)
-    (label :text mpd-artist 
-           :class "mpd-artist" 
-           :halign "start"
-           :limit-width 30)
-    (box :class "mpd-controls" :orientation "h" :space-evenly true
-      (button :class "mpd-btn" :onclick "mpc prev" "󰒮")
-      (button :class "mpd-btn" :onclick "mpc toggle" 
-        {mpd-status == "playing" ? "󰏤" : "󰐊"})
-      (button :class "mpd-btn" :onclick "mpc next" "󰒭"))
-    (progress :class "mpd-progress" :value mpd-progress :orientation "h")))
+    (box :class "mpd-cover-box" :visible {mpd-cover != ""}
+      (image :path mpd-cover :image-width 80 :image-height 80))
+    (box :orientation "v" :space-evenly false :hexpand true
+      (label :text {mpd-title != "" ? mpd-title : "Not playing"}
+             :class "mpd-title"
+             :halign "start"
+             :limit-width 25)
+      (label :text mpd-artist
+             :class "mpd-artist"
+             :halign "start"
+             :limit-width 25)
+      (box :class "mpd-controls" :orientation "h" :space-evenly true
+        (button :class "mpd-btn" :onclick "mpc prev" "󰒮")
+        (button :class "mpd-btn" :onclick "mpc toggle"
+          {mpd-status == "playing" ? "󰏤" : "󰐊"})
+        (button :class "mpd-btn" :onclick "mpc next" "󰒭"))
+      (progress :class "mpd-progress" :value mpd-progress :orientation "h"))))
 
 (defwindow mpd
   :monitor 1
-  :geometry (geometry :x "240px"
-                      :y "310px"
-                      :width "280px"
-                      :height "110px"
-                      :anchor "bottom left")
+  :geometry (geometry :x "20px"
+                      :y "440px"
+                      :width "320px"
+                      :height "120px"
+                      :anchor "center left")
   :stacking "bottom"
   (mpd))
 
@@ -448,7 +453,7 @@
   :geometry (geometry :x "20px"
                       :y "20px"
                       :width "180"
-                      :height "240px"
+                      :height "200px"
                       :anchor "top left")
   :stacking "bottom"
   (uinfo))
