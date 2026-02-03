@@ -339,7 +339,7 @@
             (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "20px"
+  :geometry (geometry :x "260px"
                       :y "20px"
                       :width "300px"
                       :height "300px"
@@ -411,3 +411,44 @@
   :stacking "bottom"
   (updates))
 
+
+;; Fetch variables
+(defpoll distro :interval "24h" `cat /etc/os-release | grep "PRETTY_NAME" | cut -d'"' -f2 | awk '{print $1}'`)
+(defpoll wm :interval "24h" `echo $XDG_CURRENT_DESKTOP`)
+(defpoll shell :interval "24h" `basename $SHELL`)
+(defpoll fetch-uptime :interval "60s" `uptime -p | sed 's/up //' | awk -F', ' '{print $1}'`)
+(defpoll packages :interval "1h" `pacman -Q | wc -l`)
+
+;; Fetch widget
+(defwidget uinfo []
+  (box :class "fetch-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :class "fetch-title" :text "miles@arch" :halign "center")
+    (label :class "fetch-separator" :text "────────" :halign "center")
+    
+    (box :orientation "h" :space-evenly false :spacing 10
+      (box :orientation "v" :spacing 2
+        (label :class "fetch-icon distro" :halign "end" :text "󰣇 :")
+        (label :class "fetch-icon wm" :halign "end" :text "󰖯 :")
+        (label :class "fetch-icon shell" :halign "end" :text " :")
+        (label :class "fetch-icon uptime" :halign "end" :text "󰅐 :")
+        (label :class "fetch-icon packages" :halign "end" :text "󰏖 :"))
+            
+      (box :orientation "v" :spacing 2
+        (label :class "fetch-value distro" :halign "start" :text "${distro}")
+        (label :class "fetch-value wm" :halign "start" :text "${wm}")
+        (label :class "fetch-value shell" :halign "start" :text "${shell}")
+        (label :class "fetch-value uptime" :halign "start" :text "${fetch-uptime}")
+        (label :class "fetch-value packages" :halign "start" :text "${packages}")))))
+
+;; Fetch window
+(defwindow fetch
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "20px"
+                      :width "180"
+                      :height "240px"
+                      :anchor "top left")
+  :stacking "bottom"
+  (uinfo))

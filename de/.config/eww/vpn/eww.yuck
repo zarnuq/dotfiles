@@ -58,9 +58,9 @@
 
 (defwindow vpn
   :monitor 1
-  :geometry (geometry :x "20px"
+  :geometry (geometry :x "580px"
                       :y "20px"
-                      :anchor "top right")
+                      :anchor "top left")
   :stacking "bottom"
   :exclusive false
   (vpn)
