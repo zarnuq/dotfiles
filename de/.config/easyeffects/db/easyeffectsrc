@@ -1,9 +1,0 @@
-[StreamInputs]
-inputDevice=alsa_input.pci-0000_04_00.6.HiFi__Mic1__source
-
-[StreamOutputs]
-outputDevice=alsa_output.pci-0000_04_00.1.pro-output-3
-
-[Window]
-height=1181
-width=1056
