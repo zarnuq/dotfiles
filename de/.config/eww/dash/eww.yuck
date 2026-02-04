@@ -503,3 +503,45 @@
                       :anchor "bottom left")
   :stacking "bottom"
   (hwinfo))
+
+
+;; Calendar widget
+(defpoll cal-events :interval "60s" :initial "[]"
+  `~/.config/eww/scripts/calendar.sh events`)
+
+(defwidget outlook []
+  (box :class "calendar-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "cal-header"
+      (label :text "󰃭" :class "cal-icon")
+      (label :text "calendar" :class "cal-title" :hexpand true :halign "start")
+      (button :class "cal-refresh-btn"
+              :onclick "~/.config/eww/scripts/calendar.sh refresh"
+              :tooltip "Refresh"
+        (label :text "󰑓")))
+    (scroll :vscroll true :hscroll false :vexpand true :class "cal-scroll"
+      (box :orientation "v" :space-evenly false
+        (box :visible {arraylength(cal-events) == 0}
+          (label :text "No upcoming events" :class "cal-empty"))
+        (for event in cal-events
+          (box :class "cal-event" :orientation "v" :space-evenly false
+            (box :orientation "h" :space-evenly false
+              (label :text {event.day} :class "cal-day" :halign "start")
+              (label :text {event.time} :class "cal-time" :halign "end" :hexpand true))
+            (label :text {event.summary} :class "cal-summary" :halign "start" :wrap true :limit-width 30)
+            (label :visible {event.location != ""}
+                   :text "󰍎 ${event.location}"
+                   :class "cal-location"
+                   :halign "start"
+                   :limit-width 30)))))))
+
+(defwindow outlook
+  :monitor 1
+  :geometry (geometry :x "340px"
+                      :y "20px"
+                      :width "280px"
+                      :height "200px"
+                      :anchor "top right")
+  :stacking "bottom"
+  (outlook))

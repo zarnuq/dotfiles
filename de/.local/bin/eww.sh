@@ -27,6 +27,7 @@ open_dash() {
     eww --config "$EWW_DIR/dash" open --screen "$monitor" updates
     eww --config "$EWW_DIR/dash" open --screen "$monitor" fetch
     eww --config "$EWW_DIR/dash" open --screen "$monitor" hwinfo
+    eww --config "$EWW_DIR/dash" open --screen "$monitor" outlook
 }
 
 open_vpn() {
