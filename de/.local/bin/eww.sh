@@ -25,7 +25,8 @@ open_dash() {
     eww --config "$EWW_DIR/dash" open --screen "$monitor" notifications
     eww --config "$EWW_DIR/dash" open --screen "$monitor" mpd
     eww --config "$EWW_DIR/dash" open --screen "$monitor" updates
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" fetch 
+    eww --config "$EWW_DIR/dash" open --screen "$monitor" fetch
+    eww --config "$EWW_DIR/dash" open --screen "$monitor" hwinfo
 }
 
 open_vpn() {

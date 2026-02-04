@@ -424,7 +424,7 @@ menuitem:hover {
   }
 
   .updates-label {
-    font-size: 12px;
+    font-size: 18px;
     color: $text;
   }
 }
@@ -436,7 +436,7 @@ menuitem:hover {
   border: 1px solid $surface0;
   border-radius: $border-radius;
   padding: 8px 12px;
-  
+
   .fetch-title {
     font-size: 18px;
     font-weight: bold;
@@ -462,11 +462,42 @@ menuitem:hover {
 
   .fetch-value {
     font-size: 16px;
-    
+
     &.distro { color: $mauve; }
     &.wm { color: $yellow; }
     &.shell { color: $blue; }
     &.uptime { color: $green; }
     &.packages { color: $red; }
+  }
+}
+
+// Hardware info widget
+.hwinfo-widget {
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
+  padding: 8px 12px;
+
+  .hwinfo-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: $teal;
+  }
+
+  .hwinfo-separator {
+    font-size: 12px;
+    color: $surface1;
+    margin-bottom: 8px;
+  }
+
+  .hwinfo-icon {
+    font-size: 18px;
+    margin-right: 6px;
+    color: $subtext0;
+  }
+
+  .hwinfo-value {
+    font-size: 14px;
+    color: $text;
   }
 }

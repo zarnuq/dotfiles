@@ -93,11 +93,11 @@
 
 (defwindow volume
   :monitor 1
-  :geometry (geometry :x "360px"
-                      :y "0px"
+  :geometry (geometry :x "20"
+                      :y "160"
                       :width "100px"
                       :height "50px"
-                      :anchor "center left")
+                      :anchor "top left")
   :stacking "bottom"
   (volume))
 
@@ -307,9 +307,9 @@
       (label :text "  💨${weather-wind}" :class "weather-detail"))))
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "310px"
-                      :width "200"
+  :geometry (geometry :x "350px"
+                      :y "310"
+                      :width "170"
                       :height "110"
                       :anchor "bottom left")
   :stacking "bottom"
@@ -339,11 +339,11 @@
             (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "220px"
+  :geometry (geometry :x "20px"
                       :y "20px"
                       :width "300px"
                       :height "200px"
-                      :anchor "top left")
+                      :anchor "top right")
   :stacking "bottom"
   (notifications))
 
@@ -383,11 +383,11 @@
 
 (defwindow mpd
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "440px"
+  :geometry (geometry :x "20"
+                      :y "20"
                       :width "320px"
                       :height "120px"
-                      :anchor "center left")
+                      :anchor "top left")
   :stacking "bottom"
   (mpd))
 
@@ -408,10 +408,10 @@
 
 (defwindow updates
   :monitor 1
-  :geometry (geometry :x "20px"
+  :geometry (geometry :x "350px"
                       :y "440px"
-                      :width "120"
-                      :height "50"
+                      :width "170"
+                      :height "60"
                       :anchor "bottom left")
   :stacking "bottom"
   (updates))
@@ -421,7 +421,7 @@
 (defpoll distro :interval "24h" `cat /etc/os-release | grep "PRETTY_NAME" | cut -d'"' -f2 | awk '{print $1}'`)
 (defpoll wm :interval "24h" `echo $XDG_CURRENT_DESKTOP`)
 (defpoll shell :interval "24h" `basename $SHELL`)
-(defpoll fetch-uptime :interval "60s" `uptime -p | sed 's/up //' | awk -F', ' '{print $1}'`)
+(defpoll fetch-uptime :interval "60s" `uptime -p | sed 's/up //; s/ minutes\\?/m/g; s/ hours\\?/h/g; s/ days\\?/d/g; s/ weeks\\?/w/g; s/, / /g'`)
 (defpoll packages :interval "1h" `pacman -Q | wc -l`)
 
 ;; Fetch widget
@@ -451,9 +451,55 @@
 (defwindow fetch
   :monitor 1
   :geometry (geometry :x "20px"
-                      :y "20px"
-                      :width "180"
-                      :height "200px"
-                      :anchor "top left")
+                      :y "520px"
+                      :width "150px"
+                      :height "150px"
+                      :anchor "bottom left")
   :stacking "bottom"
   (uinfo))
+
+
+;; Hardware info variables
+(defpoll hw-cpu :interval "24h"
+  `grep "model name" /proc/cpuinfo | head -1 | sed 's/.*: //' | sed 's/(R)//g; s/(TM)//g; s/CPU //; s/ @.*//; s/  */ /g'`)
+(defpoll hw-gpu :interval "24h"
+  `nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || lspci | grep VGA | cut -d: -f3 | xargs`)
+(defpoll hw-disk :interval "24h"
+  `lsblk -d -o MODEL -n | grep -v "^$" | head -1 | xargs`)
+(defpoll hw-ram :interval "24h"
+  `mfr=$(sudo dmidecode -t memory 2>/dev/null | grep "Manufacturer" | grep -v "Not Specified" | head -1 | sed 's/.*: //' | awk '{print $1, $2}'); part=$(sudo dmidecode -t memory 2>/dev/null | grep "Part Number" | grep -v "Not Specified" | head -1 | sed 's/.*: //' | awk '{print $1, $2}'); echo "$mfr $part"`)
+(defpoll hw-mobo :interval "24h"
+  `cat /sys/devices/virtual/dmi/id/board_name 2>/dev/null || echo "Unknown"`)
+
+;; Hardware info widget
+(defwidget hwinfo []
+  (box :class "hwinfo-widget"
+       :orientation "v"
+       :space-evenly false
+    (label :class "hwinfo-title" :text "hardware" :halign "center")
+
+    (box :orientation "h" :space-evenly false :spacing 8
+      (box :orientation "v" :spacing 2
+        (label :class "hwinfo-icon" :halign "end" :text "󰻠 :")
+        (label :class "hwinfo-icon" :halign "end" :text "󰢮 :")
+        (label :class "hwinfo-icon" :halign "end" :text "󰋊 :")
+        (label :class "hwinfo-icon" :halign "end" :text "󰍛 :")
+        (label :class "hwinfo-icon" :halign "end" :text "󰚗 :"))
+
+      (box :orientation "v" :spacing 2
+        (label :class "hwinfo-value" :halign "start" :text hw-cpu :limit-width 28)
+        (label :class "hwinfo-value" :halign "start" :text hw-gpu :limit-width 28)
+        (label :class "hwinfo-value" :halign "start" :text hw-disk :limit-width 28)
+        (label :class "hwinfo-value" :halign "start" :text hw-ram :limit-width 28)
+        (label :class "hwinfo-value" :halign "start" :text hw-mobo :limit-width 28)))))
+
+;; Hardware info window
+(defwindow hwinfo
+  :monitor 1
+  :geometry (geometry :x "20px"
+                      :y "310px"
+                      :width "310"
+                      :height "190px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (hwinfo))
