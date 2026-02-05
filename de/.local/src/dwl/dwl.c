@@ -68,6 +68,13 @@
 #include <xcb/xcb_icccm.h>
 #endif
 
+#include <json-c/json.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+
 #include "dwl-ipc-unstable-v2-protocol.h"
 #include "util.h"
 
@@ -90,6 +97,33 @@ enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrTop, LyrFS, LyrOverlay, LyrBlock,
 enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 	NetWMWindowTypeUtility, NetLast }; /* EWMH atoms */
 #endif
+
+/* i3 IPC message types */
+enum ipc_command_type {
+	IPC_COMMAND = 0,
+	IPC_GET_WORKSPACES = 1,
+	IPC_SUBSCRIBE = 2,
+	IPC_GET_OUTPUTS = 3,
+	IPC_GET_TREE = 4,
+	IPC_GET_MARKS = 5,
+	IPC_GET_BAR_CONFIG = 6,
+	IPC_GET_VERSION = 7,
+	IPC_GET_BINDING_MODES = 8,
+	IPC_GET_CONFIG = 9,
+	IPC_SEND_TICK = 10,
+	IPC_SYNC = 11,
+	IPC_GET_BINDING_STATE = 12,
+	IPC_EVENT_WORKSPACE = ((1<<31) | 0),
+	IPC_EVENT_OUTPUT = ((1<<31) | 1),
+	IPC_EVENT_MODE = ((1<<31) | 2),
+	IPC_EVENT_WINDOW = ((1<<31) | 3),
+	IPC_EVENT_BARCONFIG_UPDATE = ((1<<31) | 4),
+	IPC_EVENT_BINDING = ((1<<31) | 5),
+	IPC_EVENT_SHUTDOWN = ((1<<31) | 6),
+	IPC_EVENT_TICK = ((1<<31) | 7),
+};
+
+#define event_mask(ev) (1 << (ev & 0x7F))
 
 typedef union {
 	int i;
@@ -151,6 +185,18 @@ typedef struct {
 	struct wl_resource *resource;
 	Monitor *mon;
 } DwlIpcOutput;
+
+typedef struct {
+	struct wl_event_source *event_source;
+	struct wl_event_source *writable_event_source;
+	int fd;
+	uint32_t subscribed_events;
+	size_t write_buffer_len;
+	size_t write_buffer_size;
+	char *write_buffer;
+	uint32_t pending_length;
+	enum ipc_command_type pending_type;
+} IpcClient;
 
 typedef struct {
 	uint32_t mod;
@@ -338,6 +384,17 @@ static void dwl_ipc_output_set_client_tags(struct wl_client *client, struct wl_r
 static void dwl_ipc_output_set_layout(struct wl_client *client, struct wl_resource *resource, uint32_t index);
 static void dwl_ipc_output_set_tags(struct wl_client *client, struct wl_resource *resource, uint32_t tagmask, uint32_t toggle_tagset);
 static void dwl_ipc_output_release(struct wl_client *client, struct wl_resource *resource);
+static void ipc_init(void);
+static void ipc_cleanup(void);
+static int ipc_handle_connection(int fd, uint32_t mask, void *data);
+static int ipc_client_handle_readable(int client_fd, uint32_t mask, void *data);
+static int ipc_client_handle_writable(int client_fd, uint32_t mask, void *data);
+static void ipc_client_disconnect(IpcClient *client);
+static void ipc_client_handle_command(IpcClient *client, uint32_t payload_length, enum ipc_command_type payload_type);
+static int ipc_send_reply(IpcClient *client, enum ipc_command_type payload_type, const char *payload, uint32_t payload_length);
+static void ipc_event_workspace(const char *change);
+static void ipc_event_window(Client *c, const char *change);
+static void ipc_event_output(void);
 static void focusclient(Client *c, int lift);
 static void focusmon(const Arg *arg);
 static void focusstack(const Arg *arg);
@@ -471,6 +528,16 @@ static Monitor *selmon;
 unsigned int currentkey = 0;
 static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {.release = dwl_ipc_manager_release, .get_output = dwl_ipc_manager_get_output};
 static struct zdwl_ipc_output_v2_interface dwl_output_implementation = {.release = dwl_ipc_output_release, .set_tags = dwl_ipc_output_set_tags, .set_layout = dwl_ipc_output_set_layout, .set_client_tags = dwl_ipc_output_set_client_tags};
+
+/* i3 IPC variables */
+static int ipc_socket = -1;
+static struct wl_event_source *ipc_event_source = NULL;
+static struct sockaddr_un *ipc_sockaddr = NULL;
+static IpcClient **ipc_clients = NULL;
+static int ipc_client_count = 0;
+static int ipc_client_capacity = 0;
+static const char ipc_magic[] = {'i', '3', '-', 'i', 'p', 'c'};
+#define IPC_HEADER_SIZE (sizeof(ipc_magic) + 8)
 
 #ifdef XWAYLAND
 static void activatex11(struct wl_listener *listener, void *data);
@@ -799,6 +866,9 @@ void
 cleanup(void)
 {
 	size_t i;
+
+	ipc_cleanup();
+
 #ifdef XWAYLAND
 	wlr_xwayland_destroy(xwayland);
 	xwayland = NULL;
@@ -837,6 +907,8 @@ cleanupmon(struct wl_listener *listener, void *data)
 	Monitor *m = wl_container_of(listener, m, destroy);
 	LayerSurface *l, *tmp;
 	size_t i;
+
+	ipc_event_output();
 
 	DwlIpcOutput *ipc_output, *ipc_output_tmp;
 	wl_list_for_each_safe(ipc_output, ipc_output_tmp, &m->dwl_ipc_outputs, link)
@@ -1218,6 +1290,7 @@ createmon(struct wl_listener *listener, void *data)
 
 	wl_list_insert(&mons, &m->link);
 	printstatus();
+	ipc_event_output();
 
 	/* The xdg-protocol specifies:
 	 *
@@ -1745,6 +1818,698 @@ dwl_ipc_output_release(struct wl_client *client, struct wl_resource *resource)
 	wl_resource_destroy(resource);
 }
 
+/* i3/sway IPC implementation */
+void
+ipc_init(void)
+{
+	ipc_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (ipc_socket == -1) {
+		fprintf(stderr, "Unable to create IPC socket\n");
+		return;
+	}
+	if (fcntl(ipc_socket, F_SETFD, FD_CLOEXEC) == -1) {
+		fprintf(stderr, "Unable to set CLOEXEC on IPC socket\n");
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+	if (fcntl(ipc_socket, F_SETFL, O_NONBLOCK) == -1) {
+		fprintf(stderr, "Unable to set NONBLOCK on IPC socket\n");
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+
+	ipc_sockaddr = malloc(sizeof(struct sockaddr_un));
+	if (!ipc_sockaddr) {
+		fprintf(stderr, "Unable to allocate ipc_sockaddr\n");
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+
+	ipc_sockaddr->sun_family = AF_UNIX;
+	int path_size = sizeof(ipc_sockaddr->sun_path);
+	const char *dir = getenv("XDG_RUNTIME_DIR");
+	if (!dir)
+		dir = "/tmp";
+
+	if (path_size <= snprintf(ipc_sockaddr->sun_path, path_size,
+			"%s/dwl-ipc.%u.%i.sock", dir, getuid(), getpid())) {
+		fprintf(stderr, "Socket path too long\n");
+		free(ipc_sockaddr);
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+
+	unlink(ipc_sockaddr->sun_path);
+	if (bind(ipc_socket, (struct sockaddr *)ipc_sockaddr, sizeof(*ipc_sockaddr)) == -1) {
+		fprintf(stderr, "Unable to bind IPC socket\n");
+		free(ipc_sockaddr);
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+
+	if (listen(ipc_socket, 3) == -1) {
+		fprintf(stderr, "Unable to listen on IPC socket\n");
+		free(ipc_sockaddr);
+		close(ipc_socket);
+		ipc_socket = -1;
+		return;
+	}
+
+	setenv("I3SOCK", ipc_sockaddr->sun_path, 1);
+	setenv("SWAYSOCK", ipc_sockaddr->sun_path, 1);
+
+	ipc_client_capacity = 8;
+	ipc_clients = calloc(ipc_client_capacity, sizeof(IpcClient *));
+
+	ipc_event_source = wl_event_loop_add_fd(event_loop, ipc_socket,
+			WL_EVENT_READABLE, ipc_handle_connection, NULL);
+}
+
+void
+ipc_cleanup(void)
+{
+	if (ipc_event_source)
+		wl_event_source_remove(ipc_event_source);
+	if (ipc_socket != -1) {
+		close(ipc_socket);
+		if (ipc_sockaddr)
+			unlink(ipc_sockaddr->sun_path);
+	}
+	for (int i = ipc_client_count - 1; i >= 0; i--)
+		ipc_client_disconnect(ipc_clients[i]);
+	free(ipc_clients);
+	free(ipc_sockaddr);
+}
+
+int
+ipc_handle_connection(int fd, uint32_t mask, void *data)
+{
+	(void)fd;
+	(void)data;
+
+	int client_fd = accept(ipc_socket, NULL, NULL);
+	if (client_fd == -1) {
+		fprintf(stderr, "Unable to accept IPC client connection\n");
+		return 0;
+	}
+
+	int flags;
+	if ((flags = fcntl(client_fd, F_GETFD)) == -1
+			|| fcntl(client_fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
+		close(client_fd);
+		return 0;
+	}
+	if ((flags = fcntl(client_fd, F_GETFL)) == -1
+			|| fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+		close(client_fd);
+		return 0;
+	}
+
+	IpcClient *client = calloc(1, sizeof(IpcClient));
+	if (!client) {
+		close(client_fd);
+		return 0;
+	}
+
+	client->fd = client_fd;
+	client->subscribed_events = 0;
+	client->event_source = wl_event_loop_add_fd(event_loop,
+			client_fd, WL_EVENT_READABLE, ipc_client_handle_readable, client);
+	client->writable_event_source = NULL;
+	client->write_buffer_size = 128;
+	client->write_buffer_len = 0;
+	client->write_buffer = malloc(client->write_buffer_size);
+	if (!client->write_buffer) {
+		wl_event_source_remove(client->event_source);
+		close(client_fd);
+		free(client);
+		return 0;
+	}
+
+	if (ipc_client_count >= ipc_client_capacity) {
+		ipc_client_capacity *= 2;
+		ipc_clients = realloc(ipc_clients, ipc_client_capacity * sizeof(IpcClient *));
+	}
+	ipc_clients[ipc_client_count++] = client;
+	return 0;
+}
+
+int
+ipc_client_handle_readable(int client_fd, uint32_t mask, void *data)
+{
+	IpcClient *client = data;
+
+	if (mask & WL_EVENT_ERROR) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+	if (mask & WL_EVENT_HANGUP) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	int read_available;
+	if (ioctl(client_fd, FIONREAD, &read_available) == -1) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	if (client->pending_length > 0) {
+		if ((uint32_t)read_available >= client->pending_length) {
+			uint32_t pending_length = client->pending_length;
+			enum ipc_command_type pending_type = client->pending_type;
+			client->pending_length = 0;
+			ipc_client_handle_command(client, pending_length, pending_type);
+		}
+		return 0;
+	}
+
+	if (read_available < (int)IPC_HEADER_SIZE)
+		return 0;
+
+	uint8_t buf[IPC_HEADER_SIZE];
+	ssize_t received = recv(client_fd, buf, IPC_HEADER_SIZE, 0);
+	if (received == -1) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	if (memcmp(buf, ipc_magic, sizeof(ipc_magic)) != 0) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	memcpy(&client->pending_length, buf + sizeof(ipc_magic), sizeof(uint32_t));
+	memcpy(&client->pending_type, buf + sizeof(ipc_magic) + sizeof(uint32_t), sizeof(uint32_t));
+
+	if (read_available - received >= (long)client->pending_length) {
+		uint32_t pending_length = client->pending_length;
+		enum ipc_command_type pending_type = client->pending_type;
+		client->pending_length = 0;
+		ipc_client_handle_command(client, pending_length, pending_type);
+	}
+
+	return 0;
+}
+
+int
+ipc_client_handle_writable(int client_fd, uint32_t mask, void *data)
+{
+	IpcClient *client = data;
+
+	if (mask & WL_EVENT_ERROR) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+	if (mask & WL_EVENT_HANGUP) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+	if (client->write_buffer_len <= 0)
+		return 0;
+
+	ssize_t written = write(client->fd, client->write_buffer, client->write_buffer_len);
+	if (written == -1 && errno == EAGAIN)
+		return 0;
+	if (written == -1) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	memmove(client->write_buffer, client->write_buffer + written,
+			client->write_buffer_len - written);
+	client->write_buffer_len -= written;
+
+	if (client->write_buffer_len == 0 && client->writable_event_source) {
+		wl_event_source_remove(client->writable_event_source);
+		client->writable_event_source = NULL;
+	}
+
+	return 0;
+}
+
+void
+ipc_client_disconnect(IpcClient *client)
+{
+	if (!client)
+		return;
+
+	shutdown(client->fd, SHUT_RDWR);
+	wl_event_source_remove(client->event_source);
+	if (client->writable_event_source)
+		wl_event_source_remove(client->writable_event_source);
+
+	for (int i = 0; i < ipc_client_count; i++) {
+		if (ipc_clients[i] == client) {
+			ipc_clients[i] = ipc_clients[--ipc_client_count];
+			break;
+		}
+	}
+
+	free(client->write_buffer);
+	close(client->fd);
+	free(client);
+}
+
+int
+ipc_send_reply(IpcClient *client, enum ipc_command_type payload_type,
+		const char *payload, uint32_t payload_length)
+{
+	char header[IPC_HEADER_SIZE];
+	memcpy(header, ipc_magic, sizeof(ipc_magic));
+	memcpy(header + sizeof(ipc_magic), &payload_length, sizeof(payload_length));
+	memcpy(header + sizeof(ipc_magic) + sizeof(payload_length), &payload_type, sizeof(payload_type));
+
+	while (client->write_buffer_len + IPC_HEADER_SIZE + payload_length >= client->write_buffer_size)
+		client->write_buffer_size *= 2;
+
+	if (client->write_buffer_size > 4 * 1024 * 1024) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+
+	char *new_buffer = realloc(client->write_buffer, client->write_buffer_size);
+	if (!new_buffer) {
+		ipc_client_disconnect(client);
+		return 0;
+	}
+	client->write_buffer = new_buffer;
+
+	memcpy(client->write_buffer + client->write_buffer_len, header, IPC_HEADER_SIZE);
+	client->write_buffer_len += IPC_HEADER_SIZE;
+	memcpy(client->write_buffer + client->write_buffer_len, payload, payload_length);
+	client->write_buffer_len += payload_length;
+
+	if (!client->writable_event_source) {
+		client->writable_event_source = wl_event_loop_add_fd(event_loop,
+				client->fd, WL_EVENT_WRITABLE, ipc_client_handle_writable, client);
+	}
+
+	return 1;
+}
+
+static json_object *
+ipc_json_create_rect(struct wlr_box *box)
+{
+	json_object *rect = json_object_new_object();
+	json_object_object_add(rect, "x", json_object_new_int(box->x));
+	json_object_object_add(rect, "y", json_object_new_int(box->y));
+	json_object_object_add(rect, "width", json_object_new_int(box->width));
+	json_object_object_add(rect, "height", json_object_new_int(box->height));
+	return rect;
+}
+
+static json_object *
+ipc_json_describe_output(Monitor *m)
+{
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)m));
+	json_object_object_add(obj, "name", json_object_new_string(m->wlr_output->name));
+	json_object_object_add(obj, "active", json_object_new_boolean(1));
+	json_object_object_add(obj, "dpms", json_object_new_boolean(m->wlr_output->enabled));
+	json_object_object_add(obj, "primary", json_object_new_boolean(m == selmon));
+	json_object_object_add(obj, "make", json_object_new_string(m->wlr_output->make ? m->wlr_output->make : "Unknown"));
+	json_object_object_add(obj, "model", json_object_new_string(m->wlr_output->model ? m->wlr_output->model : "Unknown"));
+	json_object_object_add(obj, "serial", json_object_new_string(m->wlr_output->serial ? m->wlr_output->serial : "Unknown"));
+	json_object_object_add(obj, "scale", json_object_new_double(m->wlr_output->scale));
+	json_object_object_add(obj, "focused", json_object_new_boolean(m == selmon));
+	json_object_object_add(obj, "rect", ipc_json_create_rect(&m->m));
+
+	char ws_name[16];
+	int active_tag = 0;
+	for (int i = 0; i < TAGCOUNT; i++) {
+		if (m->tagset[m->seltags] & (1 << i)) {
+			active_tag = i + 1;
+			break;
+		}
+	}
+	snprintf(ws_name, sizeof(ws_name), "%d", active_tag);
+	json_object_object_add(obj, "current_workspace", json_object_new_string(ws_name));
+
+	return obj;
+}
+
+static json_object *
+ipc_json_describe_workspace(Monitor *m, int tag)
+{
+	json_object *obj = json_object_new_object();
+	int num = tag + 1;
+	char name[16];
+	snprintf(name, sizeof(name), "%d", num);
+
+	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)m * 100 + tag));
+	json_object_object_add(obj, "num", json_object_new_int(num));
+	json_object_object_add(obj, "name", json_object_new_string(name));
+
+	int visible = (m->tagset[m->seltags] & (1 << tag)) != 0;
+	int focused = (m == selmon) && visible;
+	int urgent = 0;
+	Client *c;
+	wl_list_for_each(c, &clients, link) {
+		if (c->mon == m && (c->tags & (1 << tag)) && c->isurgent)
+			urgent = 1;
+	}
+
+	json_object_object_add(obj, "visible", json_object_new_boolean(visible));
+	json_object_object_add(obj, "focused", json_object_new_boolean(focused));
+	json_object_object_add(obj, "urgent", json_object_new_boolean(urgent));
+	json_object_object_add(obj, "output", json_object_new_string(m->wlr_output->name));
+	json_object_object_add(obj, "rect", ipc_json_create_rect(&m->w));
+
+	return obj;
+}
+
+static json_object *
+ipc_json_describe_window(Client *c)
+{
+	const char *title = client_get_title(c);
+	const char *appid = client_get_appid(c);
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)c));
+	json_object_object_add(obj, "type", json_object_new_string("con"));
+	json_object_object_add(obj, "name", json_object_new_string(title ? title : ""));
+	json_object_object_add(obj, "app_id", json_object_new_string(appid ? appid : ""));
+	json_object_object_add(obj, "focused", json_object_new_boolean(c == focustop(selmon)));
+	json_object_object_add(obj, "urgent", json_object_new_boolean(c->isurgent));
+	json_object_object_add(obj, "floating", json_object_new_boolean(c->isfloating));
+	json_object_object_add(obj, "fullscreen_mode", json_object_new_int(c->isfullscreen));
+	json_object_object_add(obj, "rect", ipc_json_create_rect(&c->geom));
+
+	return obj;
+}
+
+void
+ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
+		enum ipc_command_type payload_type)
+{
+	char *buf = NULL;
+	if (payload_length > 0) {
+		buf = malloc(payload_length + 1);
+		if (!buf) {
+			ipc_client_disconnect(client);
+			return;
+		}
+		ssize_t received = recv(client->fd, buf, payload_length, 0);
+		if (received == -1) {
+			free(buf);
+			ipc_client_disconnect(client);
+			return;
+		}
+		buf[payload_length] = '\0';
+	}
+
+	switch (payload_type) {
+	case IPC_GET_VERSION: {
+		json_object *version = json_object_new_object();
+		json_object_object_add(version, "human_readable", json_object_new_string(VERSION));
+		json_object_object_add(version, "variant", json_object_new_string("dwl"));
+		json_object_object_add(version, "major", json_object_new_int(0));
+		json_object_object_add(version, "minor", json_object_new_int(7));
+		json_object_object_add(version, "patch", json_object_new_int(0));
+		const char *json_string = json_object_to_json_string(version);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(version);
+		break;
+	}
+
+	case IPC_GET_OUTPUTS: {
+		json_object *outputs = json_object_new_array();
+		Monitor *m;
+		wl_list_for_each(m, &mons, link)
+			json_object_array_add(outputs, ipc_json_describe_output(m));
+		const char *json_string = json_object_to_json_string(outputs);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(outputs);
+		break;
+	}
+
+	case IPC_GET_WORKSPACES: {
+		json_object *workspaces = json_object_new_array();
+		Monitor *m;
+		wl_list_for_each(m, &mons, link) {
+			for (int tag = 0; tag < TAGCOUNT; tag++) {
+				int has_clients = 0;
+				Client *c;
+				wl_list_for_each(c, &clients, link) {
+					if (c->mon == m && (c->tags & (1 << tag))) {
+						has_clients = 1;
+						break;
+					}
+				}
+				if (has_clients || (m->tagset[m->seltags] & (1 << tag)))
+					json_object_array_add(workspaces, ipc_json_describe_workspace(m, tag));
+			}
+		}
+		const char *json_string = json_object_to_json_string(workspaces);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(workspaces);
+		break;
+	}
+
+	case IPC_GET_TREE: {
+		json_object *root = json_object_new_object();
+		json_object_object_add(root, "id", json_object_new_int(1));
+		json_object_object_add(root, "type", json_object_new_string("root"));
+		json_object_object_add(root, "name", json_object_new_string("root"));
+		json_object_object_add(root, "focused", json_object_new_boolean(0));
+
+		json_object *nodes = json_object_new_array();
+		Monitor *m;
+		wl_list_for_each(m, &mons, link) {
+			json_object *output = json_object_new_object();
+			json_object_object_add(output, "id", json_object_new_int64((int64_t)(uintptr_t)m));
+			json_object_object_add(output, "type", json_object_new_string("output"));
+			json_object_object_add(output, "name", json_object_new_string(m->wlr_output->name));
+			json_object_object_add(output, "focused", json_object_new_boolean(m == selmon));
+			json_object_object_add(output, "rect", ipc_json_create_rect(&m->m));
+
+			json_object *output_nodes = json_object_new_array();
+			for (int tag = 0; tag < TAGCOUNT; tag++) {
+				int has_clients = 0;
+				Client *c;
+				wl_list_for_each(c, &clients, link) {
+					if (c->mon == m && (c->tags & (1 << tag))) {
+						has_clients = 1;
+						break;
+					}
+				}
+				if (!has_clients && !(m->tagset[m->seltags] & (1 << tag)))
+					continue;
+
+				json_object *ws = ipc_json_describe_workspace(m, tag);
+				json_object_object_add(ws, "type", json_object_new_string("workspace"));
+
+				json_object *ws_nodes = json_object_new_array();
+				wl_list_for_each(c, &clients, link) {
+					if (c->mon == m && (c->tags & (1 << tag)))
+						json_object_array_add(ws_nodes, ipc_json_describe_window(c));
+				}
+				json_object_object_add(ws, "nodes", ws_nodes);
+				json_object_array_add(output_nodes, ws);
+			}
+			json_object_object_add(output, "nodes", output_nodes);
+			json_object_array_add(nodes, output);
+		}
+		json_object_object_add(root, "nodes", nodes);
+
+		const char *json_string = json_object_to_json_string(root);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(root);
+		break;
+	}
+
+	case IPC_SUBSCRIBE: {
+		struct json_object *request = json_tokener_parse(buf);
+		if (!request || !json_object_is_type(request, json_type_array)) {
+			const char msg[] = "{\"success\": false}";
+			ipc_send_reply(client, payload_type, msg, strlen(msg));
+			break;
+		}
+
+		int is_tick = 0;
+		for (size_t i = 0; i < json_object_array_length(request); i++) {
+			const char *event_type = json_object_get_string(json_object_array_get_idx(request, i));
+			if (strcmp(event_type, "workspace") == 0)
+				client->subscribed_events |= event_mask(IPC_EVENT_WORKSPACE);
+			else if (strcmp(event_type, "output") == 0)
+				client->subscribed_events |= event_mask(IPC_EVENT_OUTPUT);
+			else if (strcmp(event_type, "window") == 0)
+				client->subscribed_events |= event_mask(IPC_EVENT_WINDOW);
+			else if (strcmp(event_type, "mode") == 0)
+				client->subscribed_events |= event_mask(IPC_EVENT_MODE);
+			else if (strcmp(event_type, "shutdown") == 0)
+				client->subscribed_events |= event_mask(IPC_EVENT_SHUTDOWN);
+			else if (strcmp(event_type, "tick") == 0) {
+				client->subscribed_events |= event_mask(IPC_EVENT_TICK);
+				is_tick = 1;
+			}
+		}
+		json_object_put(request);
+
+		const char msg[] = "{\"success\": true}";
+		ipc_send_reply(client, payload_type, msg, strlen(msg));
+		if (is_tick) {
+			const char tickmsg[] = "{\"first\": true, \"payload\": \"\"}";
+			ipc_send_reply(client, IPC_EVENT_TICK, tickmsg, strlen(tickmsg));
+		}
+		break;
+	}
+
+	case IPC_GET_BINDING_MODES: {
+		json_object *modes = json_object_new_array();
+		json_object_array_add(modes, json_object_new_string("default"));
+		const char *json_string = json_object_to_json_string(modes);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(modes);
+		break;
+	}
+
+	case IPC_GET_BINDING_STATE: {
+		const char msg[] = "{\"name\": \"default\"}";
+		ipc_send_reply(client, payload_type, msg, strlen(msg));
+		break;
+	}
+
+	case IPC_GET_CONFIG: {
+		const char msg[] = "{\"config\": \"\"}";
+		ipc_send_reply(client, payload_type, msg, strlen(msg));
+		break;
+	}
+
+	case IPC_GET_MARKS: {
+		json_object *marks = json_object_new_array();
+		const char *json_string = json_object_to_json_string(marks);
+		ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+		json_object_put(marks);
+		break;
+	}
+
+	case IPC_GET_BAR_CONFIG: {
+		if (!buf || !buf[0]) {
+			json_object *bars = json_object_new_array();
+			json_object_array_add(bars, json_object_new_string("bar-0"));
+			const char *json_string = json_object_to_json_string(bars);
+			ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+			json_object_put(bars);
+		} else {
+			json_object *bar = json_object_new_object();
+			json_object_object_add(bar, "id", json_object_new_string("bar-0"));
+			json_object_object_add(bar, "mode", json_object_new_string("dock"));
+			json_object_object_add(bar, "position", json_object_new_string("bottom"));
+			json_object_object_add(bar, "status_command", json_object_new_string(""));
+			json_object_object_add(bar, "font", json_object_new_string("monospace 10"));
+			const char *json_string = json_object_to_json_string(bar);
+			ipc_send_reply(client, payload_type, json_string, strlen(json_string));
+			json_object_put(bar);
+		}
+		break;
+	}
+
+	case IPC_SEND_TICK: {
+		const char msg[] = "{\"success\": true}";
+		ipc_send_reply(client, payload_type, msg, strlen(msg));
+		break;
+	}
+
+	case IPC_COMMAND:
+	case IPC_SYNC:
+	default: {
+		const char msg[] = "[{\"success\": false, \"error\": \"not implemented\"}]";
+		ipc_send_reply(client, payload_type, msg, strlen(msg));
+		break;
+	}
+	}
+
+	free(buf);
+}
+
+static int
+ipc_has_event_listeners(enum ipc_command_type event)
+{
+	for (int i = 0; i < ipc_client_count; i++) {
+		if ((ipc_clients[i]->subscribed_events & event_mask(event)) != 0)
+			return 1;
+	}
+	return 0;
+}
+
+static void
+ipc_send_event(const char *json_string, enum ipc_command_type event)
+{
+	for (int i = 0; i < ipc_client_count; i++) {
+		IpcClient *client = ipc_clients[i];
+		if ((client->subscribed_events & event_mask(event)) == 0)
+			continue;
+		if (!ipc_send_reply(client, event, json_string, strlen(json_string)))
+			i--;
+	}
+}
+
+void
+ipc_event_workspace(const char *change)
+{
+	if (!ipc_has_event_listeners(IPC_EVENT_WORKSPACE))
+		return;
+
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "change", json_object_new_string(change));
+
+	if (selmon) {
+		int active_tag = 0;
+		for (int i = 0; i < TAGCOUNT; i++) {
+			if (selmon->tagset[selmon->seltags] & (1 << i)) {
+				active_tag = i;
+				break;
+			}
+		}
+		json_object_object_add(obj, "current", ipc_json_describe_workspace(selmon, active_tag));
+	} else {
+		json_object_object_add(obj, "current", NULL);
+	}
+	json_object_object_add(obj, "old", NULL);
+
+	const char *json_string = json_object_to_json_string(obj);
+	ipc_send_event(json_string, IPC_EVENT_WORKSPACE);
+	json_object_put(obj);
+}
+
+void
+ipc_event_window(Client *c, const char *change)
+{
+	if (!ipc_has_event_listeners(IPC_EVENT_WINDOW))
+		return;
+
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "change", json_object_new_string(change));
+	if (c)
+		json_object_object_add(obj, "container", ipc_json_describe_window(c));
+	else
+		json_object_object_add(obj, "container", NULL);
+
+	const char *json_string = json_object_to_json_string(obj);
+	ipc_send_event(json_string, IPC_EVENT_WINDOW);
+	json_object_put(obj);
+}
+
+void
+ipc_event_output(void)
+{
+	if (!ipc_has_event_listeners(IPC_EVENT_OUTPUT))
+		return;
+
+	json_object *obj = json_object_new_object();
+	json_object_object_add(obj, "change", json_object_new_string("unspecified"));
+
+	const char *json_string = json_object_to_json_string(obj);
+	ipc_send_event(json_string, IPC_EVENT_OUTPUT);
+	json_object_put(obj);
+}
+
 void
 drawclientborders(struct wlr_scene_tree *t, Client *c, int cidx, int n, const float color[static 4])
 {
@@ -1974,6 +2739,8 @@ focusclient(Client *c, int lift)
 
 	/* Activate the new client */
 	client_activate_surface(client_surface(c), 1);
+
+	ipc_event_window(c, "focus");
 }
 
 void
@@ -2352,6 +3119,7 @@ mapnotify(struct wl_listener *listener, void *data)
 		}
 	}
 	printstatus();
+	ipc_event_window(c, "new");
 
 unset_fullscreen:
 	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
@@ -3225,6 +3993,9 @@ setup(void)
 
 	wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL, dwl_ipc_manager_bind);
 
+	/* Initialize i3/sway compatible IPC */
+	ipc_init();
+
 	/* Make sure XWayland clients don't connect to the parent X server,
 	 * e.g when running in the x11 backend or the wayland backend and the
 	 * compositor has Xwayland support */
@@ -3278,6 +4049,7 @@ tag(const Arg *arg)
 	focusclient(focustop(selmon), 1);
 	arrange(selmon);
 	printstatus();
+	ipc_event_workspace("focus");
 }
 
 void
@@ -3486,6 +4258,7 @@ unmapnotify(struct wl_listener *listener, void *data)
 		view(&a);
 	}
 
+	ipc_event_window(c, "close");
 	wlr_scene_node_destroy(&c->scene->node);
 	printstatus();
 	motionnotify(0, NULL, 0, 0, 0, 0);
@@ -3634,6 +4407,7 @@ view(const Arg *arg)
 	focusclient(focustop(selmon), 1);
 	arrange(selmon);
 	printstatus();
+	ipc_event_workspace("focus");
 }
 
 void

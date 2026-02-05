@@ -1,0 +1,48 @@
+@use "/home/<USERNAME>/.cache/wal/colors.scss" as cols;
+* {
+  all: unset;
+}
+$foreground: cols.$foreground;
+$grey: cols.$color8;
+$foreground-alt: cols.$color15;
+$background: cols.$background;
+$background-alt: cols.$color2;
+$red: cols.$color5;
+$green: cols.$color3;
+$yellow: cols.$color14;
+$blue: cols.$color5;
+$magenta: cols.$color7;
+$cyan: cols.$color13;
+$black: #000000;
+$white: #ffffff;
+
+window {
+  background: $background;
+  border-radius: 10px;
+  opacity: 0.75;
+  // background-color: transparent;
+}
+.bar {
+  font-family: "Inter Black";
+  font-size: 14px;
+  margin-right: 4px;
+  padding: 2px;
+  color: $foreground;
+}
+.icon-module {
+  margin: 4px;
+  & > &__icon {
+    margin-right: 4px;
+    color: $cyan;
+    font-family: "Font Awesome 5 Free";
+  }
+  background: $background;
+}
+.workspaces {
+  background: $background;
+  button {
+    margin: 0 4px 1px 4px;
+    padding: 1px;
+  }
+
+}
