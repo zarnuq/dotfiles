@@ -15,7 +15,6 @@ window {
   background-color: $bg-color;
   border-radius: 12px;
   border: 1px solid $bg-lighter;
-  min-width: 250px;
 
 
 }
@@ -54,6 +53,10 @@ window {
   margin-left: 10px;
   color: $fg-color;
   font-size: 12px;
+}
+
+.vpn-scroll {
+  min-height: 150px;
 }
 
 .vpn-list {

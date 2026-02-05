@@ -1,188 +1,189 @@
-#!/bin/bash
+#!/usr/bin/env python3
+"""Calendar widget script - fetches and parses ICS calendar with recurring event support"""
 
-# Calendar widget script - fetches and parses ICS calendar
-# Config: Put your ICS URL in ~/.config/eww/calendar.url
+import json
+import os
+import sys
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
 
-CONFIG_FILE="$HOME/.config/eww/calendar.url"
-CACHE_FILE="/tmp/eww-calendar.ics"
-CACHE_AGE=300  # Refresh every 5 minutes
+try:
+    import icalendar
+    import recurring_ical_events
+except ImportError:
+    print("[]")
+    sys.exit(0)
 
-fetch_calendar() {
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        echo "[]"
-        return
-    fi
+CONFIG_FILE = Path.home() / ".config/eww/calendar.url"
+CACHE_FILE = Path("/tmp/eww-calendar.ics")
+CACHE_AGE = 300  # 5 minutes
 
-    local url
-    url=$(cat "$CONFIG_FILE" | tr -d '[:space:]')
 
-    if [[ -z "$url" ]]; then
-        echo "[]"
-        return
-    fi
+def fetch_calendar():
+    """Fetch ICS file, using cache if fresh enough."""
+    if not CONFIG_FILE.exists():
+        return None
+
+    url = CONFIG_FILE.read_text().strip()
+    if not url:
+        return None
 
     # Check cache age
-    local now
-    now=$(date +%s)
-    local cache_time=0
+    now = time.time()
+    cache_time = CACHE_FILE.stat().st_mtime if CACHE_FILE.exists() else 0
 
-    if [[ -f "$CACHE_FILE" ]]; then
-        cache_time=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
-    fi
+    if now - cache_time > CACHE_AGE:
+        import urllib.request
+        try:
+            with urllib.request.urlopen(url, timeout=10) as response:
+                CACHE_FILE.write_bytes(response.read())
+        except Exception:
+            if not CACHE_FILE.exists():
+                return None
 
-    if (( now - cache_time > CACHE_AGE )); then
-        curl -s "$url" > "$CACHE_FILE" 2>/dev/null
-    fi
+    if not CACHE_FILE.exists():
+        return None
 
-    if [[ ! -f "$CACHE_FILE" ]]; then
-        echo "[]"
-        return
-    fi
+    return CACHE_FILE.read_bytes()
 
-    parse_ics
-}
 
-parse_ics() {
-    local today tomorrow
-    today=$(date +%Y%m%d)
-    tomorrow=$(date -d "+1 day" +%Y%m%d)
-    local today_ts=$(date +%s)
-    local week_later=$((today_ts + 7*24*60*60))
+def parse_events(ics_data):
+    """Parse ICS and expand recurring events."""
+    # Rainbow colors by days from today
+    DAY_COLORS = [
+        "#f38ba8",  # red - today
+        "#fab387",  # orange - tomorrow
+        "#f9e2af",  # yellow
+        "#a6e3a1",  # green
+        "#89b4fa",  # blue
+        "#b4befe",  # indigo
+        "#cba6f7",  # violet
+    ]
 
-    awk -v today="$today" -v tomorrow="$tomorrow" -v now_ts="$today_ts" -v week_ts="$week_later" '
-    BEGIN {
-        RS = "BEGIN:VEVENT"
-        FS = "\n"
-        first = 1
-        printf "["
-    }
+    try:
+        calendar = icalendar.Calendar.from_ical(ics_data)
+    except Exception:
+        return []
 
-    NR > 1 {
-        summary = ""
-        dtstart = ""
-        dtend = ""
-        location = ""
-        all_day = 0
+    now = datetime.now()
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_later = today + timedelta(days=7)
 
-        for (i = 1; i <= NF; i++) {
-            line = $i
-            # Handle line continuations
-            gsub(/\r/, "", line)
+    # Get all events in the next 7 days (expanded from recurrences)
+    events = recurring_ical_events.of(calendar).between(today, week_later)
 
-            if (line ~ /^SUMMARY/) {
-                sub(/^SUMMARY[^:]*:/, "", line)
-                summary = line
-            }
-            else if (line ~ /^DTSTART/) {
-                if (line ~ /VALUE=DATE:/) {
-                    all_day = 1
-                    sub(/^DTSTART[^:]*:/, "", line)
-                    dtstart = line
-                } else {
-                    sub(/^DTSTART[^:]*:/, "", line)
-                    dtstart = line
-                }
-            }
-            else if (line ~ /^DTEND/) {
-                sub(/^DTEND[^:]*:/, "", line)
-                dtend = line
-            }
-            else if (line ~ /^LOCATION/) {
-                sub(/^LOCATION[^:]*:/, "", line)
-                location = line
-            }
-        }
+    result = []
+    for event in events:
+        try:
+            summary = str(event.get("SUMMARY", ""))
+            location = str(event.get("LOCATION", "")) if event.get("LOCATION") else ""
 
-        if (summary == "" || dtstart == "") next
+            dtstart = event.get("DTSTART")
+            dtend = event.get("DTEND")
 
-        # Parse date - handle both YYYYMMDD and YYYYMMDDTHHMMSS formats
-        if (length(dtstart) >= 8) {
-            event_date = substr(dtstart, 1, 8)
+            if not dtstart:
+                continue
 
-            # Check if event is today, tomorrow, or within a week
-            if (event_date >= today) {
-                # Format time
-                time_str = ""
-                if (all_day) {
-                    time_str = "All day"
-                } else if (length(dtstart) >= 15) {
-                    hour = substr(dtstart, 10, 2)
-                    min = substr(dtstart, 12, 2)
-                    # Convert to 12-hour format
-                    h = int(hour)
-                    ampm = "AM"
-                    if (h >= 12) { ampm = "PM"; if (h > 12) h -= 12 }
-                    if (h == 0) h = 12
-                    time_str = sprintf("%d:%s %s", h, min, ampm)
+            start = dtstart.dt
+            end = dtend.dt if dtend else None
 
-                    if (length(dtend) >= 15) {
-                        ehour = substr(dtend, 10, 2)
-                        emin = substr(dtend, 12, 2)
-                        eh = int(ehour)
-                        eampm = "AM"
-                        if (eh >= 12) { eampm = "PM"; if (eh > 12) eh -= 12 }
-                        if (eh == 0) eh = 12
-                        time_str = time_str " - " sprintf("%d:%s %s", eh, emin, eampm)
-                    }
-                }
+            # Check if all-day event
+            all_day = not isinstance(start, datetime)
 
-                # Determine day label
-                day_label = ""
-                if (event_date == today) {
-                    day_label = "Today"
-                } else if (event_date == tomorrow) {
-                    day_label = "Tomorrow"
-                } else {
-                    # Format as weekday
-                    cmd = "date -d " event_date " +%A 2>/dev/null"
-                    cmd | getline day_label
-                    close(cmd)
-                }
+            if all_day:
+                start_dt = datetime.combine(start, datetime.min.time())
+                time_str = "All day"
+                event_date = start.strftime("%Y%m%d")
+            else:
+                start_dt = start
+                event_date = start.strftime("%Y%m%d")
 
-                # Escape quotes in strings
-                gsub(/"/, "\\\"", summary)
-                gsub(/"/, "\\\"", location)
-                gsub(/\\/, "\\\\", summary)
-                gsub(/\\/, "\\\\", location)
+                # Format time in 12-hour format
+                time_str = start.strftime("%-I:%M %p")
+                if end and isinstance(end, datetime):
+                    time_str += " - " + end.strftime("%-I:%M %p")
 
-                if (!first) printf ","
-                first = 0
+            # Determine day label
+            event_day = start_dt.date() if isinstance(start_dt, datetime) else start
+            today_date = today.date()
+            tomorrow_date = (today + timedelta(days=1)).date()
 
-                printf "{\"summary\":\"%s\",\"time\":\"%s\",\"day\":\"%s\",\"date\":\"%s\",\"location\":\"%s\",\"allday\":%s}",
-                    summary, time_str, day_label, event_date, location, (all_day ? "true" : "false")
-            }
-        }
-    }
+            if event_day == today_date:
+                day_label = "Today"
+                days_from_today = 0
+            elif event_day == tomorrow_date:
+                day_label = "Tomorrow"
+                days_from_today = 1
+            else:
+                day_label = start_dt.strftime("%A") if isinstance(start_dt, datetime) else start.strftime("%A")
+                days_from_today = (event_day - today_date).days
 
-    END {
-        printf "]"
-    }
-    ' "$CACHE_FILE" 2>/dev/null | jq -c 'sort_by(.date, .time) | .[0:10]' 2>/dev/null || echo "[]"
-}
+            # Get color based on days from today (rainbow)
+            color = DAY_COLORS[min(days_from_today, len(DAY_COLORS) - 1)]
 
-get_status() {
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        echo "not configured"
-    elif [[ ! -f "$CACHE_FILE" ]]; then
-        echo "no data"
-    else
-        echo "ok"
-    fi
-}
+            result.append({
+                "summary": summary,
+                "time": time_str,
+                "day": day_label,
+                "date": event_date,
+                "location": location,
+                "allday": all_day,
+                "color": color,
+                "_sort": start_dt.timestamp() if isinstance(start_dt, datetime) else datetime.combine(start, datetime.min.time()).timestamp()
+            })
+        except Exception:
+            continue
 
-case "$1" in
-    events)
-        fetch_calendar
-        ;;
-    status)
-        get_status
-        ;;
-    refresh)
-        rm -f "$CACHE_FILE"
-        fetch_calendar
-        ;;
-    *)
-        echo "Usage: $0 {events|status|refresh}"
-        exit 1
-        ;;
-esac
+    # Sort by date/time and limit to 10
+    result.sort(key=lambda x: x["_sort"])
+    for r in result:
+        del r["_sort"]
+
+    return result[:10]
+
+
+def get_status():
+    """Get calendar status."""
+    if not CONFIG_FILE.exists():
+        return "not configured"
+    elif not CACHE_FILE.exists():
+        return "no data"
+    return "ok"
+
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: calendar.sh {events|status|refresh}")
+        sys.exit(1)
+
+    cmd = sys.argv[1]
+
+    if cmd == "events":
+        ics_data = fetch_calendar()
+        if ics_data:
+            events = parse_events(ics_data)
+            print(json.dumps(events))
+        else:
+            print("[]")
+
+    elif cmd == "status":
+        print(get_status())
+
+    elif cmd == "refresh":
+        if CACHE_FILE.exists():
+            CACHE_FILE.unlink()
+        ics_data = fetch_calendar()
+        if ics_data:
+            events = parse_events(ics_data)
+            print(json.dumps(events))
+        else:
+            print("[]")
+
+    else:
+        print("Usage: calendar.sh {events|status|refresh}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

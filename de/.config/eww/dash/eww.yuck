@@ -9,7 +9,7 @@
 (defwindow clock
   :monitor 1
   :geometry (geometry :x "0px"
-                      :y "-150px"
+                      :y "0px"
                       :width "520px"
                       :height "130px"
                       :anchor "center")
@@ -37,7 +37,7 @@
     ;; === VALUES + ICONS COLUMN ===
     (box
       :orientation "v"
-      :spacing 14
+      :spacing 4
       :class "vol-side"
 
       ;; Speaker
@@ -93,11 +93,11 @@
 
 (defwindow volume
   :monitor 1
-  :geometry (geometry :x "20"
-                      :y "160"
-                      :width "100px"
-                      :height "50px"
-                      :anchor "top left")
+  :geometry (geometry :x "340"
+                      :y "670"
+                      :width "60px"
+                      :height "120px"
+                      :anchor "bottom left")
   :stacking "bottom"
   (volume))
 
@@ -127,9 +127,9 @@
              :class "gpu-line"))))
 (defwindow cpu
     :monitor 1
-    :geometry (geometry :x "20px"
-        :y "20px"
-        :width "380px"
+    :geometry (geometry :x "10px"
+        :y "10px"
+        :width "310px"
         :height "150px"
         :anchor "bottom left")
     :stacking "bottom"
@@ -139,17 +139,17 @@
 
 (defwindow tray
   :monitor 1
-  :geometry (geometry :x "540px"
-                      :y "20px"
+  :geometry (geometry :x "500px"
+                      :y "-20px"
                       :width "100"
-                      :height "50px"
-                      :anchor "bottom left")
-  :stacking "bottom"
+                      :height "20px"
+                      :anchor "top right")
+  :stacking "overlay"
   (systray :class "tray-widget"
            :orientation "h"
-           :icon-size 24
+           :icon-size 18
            :space-evenly false
-           :spacing 10))
+           :spacing 0))
 
 
 
@@ -167,8 +167,8 @@
       (label :text "${round(EWW_RAM.used_mem_perc, 0)}%" :class "ram-percent" :halign "start"))))
 (defwindow ram
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "190px"
+  :geometry (geometry :x "10px"
+                      :y "170px"
                       :width "150px"
                       :height "100px"
                       :anchor "bottom left")
@@ -191,8 +191,8 @@
       (label :text "${round(EWW_DISK["/"].used_perc, 0)}%" :class "disk-percent" :halign "start"))))
 (defwindow disk
   :monitor 1
-  :geometry (geometry :x "190px"
-                      :y "190px"
+  :geometry (geometry :x "170px"
+                      :y "170px"
                       :width "150"
                       :height "100px"
                       :anchor "bottom left")
@@ -230,9 +230,9 @@
       (label :text "${net-down} MB/s" :class "net-speed"))))
 (defwindow network
   :monitor 1
-  :geometry (geometry :x "360px"
-                      :y "190px"
-                      :width "160px"
+  :geometry (geometry :x "330px"
+                      :y "170px"
+                      :width "100px"
                       :height "100px"
                       :anchor "bottom left")
   :stacking "bottom"
@@ -257,8 +257,8 @@
       (label :text "${gpu-temp}°C" :class "temp-value"))))
 (defwindow temps
   :monitor 1
-  :geometry (geometry :x "420"
-                      :y "20px"
+  :geometry (geometry :x "330"
+                      :y "10px"
                       :width "100px"
                       :height "100px"
                       :anchor "bottom left")
@@ -266,21 +266,6 @@
   (temps))
 
 
-
-(defpoll uptime :interval "60s"
-  `uptime -p | sed 's/up //' | awk -F', ' '{print $1}'`)
-(defwidget uptime []
-  (box :class "uptime-widget"
-    (label :text "↑ ${uptime}" :class "uptime-label")))
-(defwindow uptime
-  :monitor 1
-  :geometry (geometry :x "420px"
-                      :y "130px"
-                      :width "100"
-                      :height "40"
-                      :anchor "bottom left")
-  :stacking "bottom"
-  (uptime))
 
 
 
@@ -307,8 +292,8 @@
       (label :text "  💨${weather-wind}" :class "weather-detail"))))
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "350px"
-                      :y "310"
+  :geometry (geometry :x "10px"
+                      :y "500"
                       :width "170"
                       :height "110"
                       :anchor "bottom left")
@@ -339,8 +324,8 @@
             (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "20px"
+  :geometry (geometry :x "300px"
+                      :y "10px"
                       :width "300px"
                       :height "200px"
                       :anchor "top right")
@@ -383,11 +368,11 @@
 
 (defwindow mpd
   :monitor 1
-  :geometry (geometry :x "20"
-                      :y "20"
+  :geometry (geometry :x "10"
+                      :y "670"
                       :width "320px"
                       :height "120px"
-                      :anchor "top left")
+                      :anchor "bottom left")
   :stacking "bottom"
   (mpd))
 
@@ -404,20 +389,22 @@
        :orientation "h"
        :space-evenly false
     (label :text "󰏔" :class "updates-icon")
-    (label :text "${updates} + ${aur-updates} AUR" :class "updates-label")))
+    (label :text "${updates} + ${aur-updates}" :class "updates-label")))
 
 (defwindow updates
   :monitor 1
-  :geometry (geometry :x "350px"
-                      :y "440px"
-                      :width "170"
-                      :height "60"
+  :geometry (geometry :x "330px"
+                      :y "120px"
+                      :width "100"
+                      :height "40"
                       :anchor "bottom left")
   :stacking "bottom"
   (updates))
 
 
 ;; Fetch variables
+(defpoll fetch-user :interval "24h" `whoami`)
+(defpoll fetch-host :interval "24h" `hostname`)
 (defpoll distro :interval "24h" `cat /etc/os-release | grep "PRETTY_NAME" | cut -d'"' -f2 | awk '{print $1}'`)
 (defpoll wm :interval "24h" `echo $XDG_CURRENT_DESKTOP`)
 (defpoll shell :interval "24h" `basename $SHELL`)
@@ -429,10 +416,10 @@
   (box :class "fetch-widget"
        :orientation "v"
        :space-evenly false
-    (label :class "fetch-title" :text "miles@arch" :halign "center")
+    (label :class "fetch-title" :text "${fetch-user}@${fetch-host}" :halign "center")
     (label :class "fetch-separator" :text "────────" :halign "center")
     
-    (box :orientation "h" :space-evenly false :spacing 10
+    (box :orientation "h" :space-evenly false :spacing 1
       (box :orientation "v" :spacing 2
         (label :class "fetch-icon distro" :halign "end" :text "󰣇 :")
         (label :class "fetch-icon wm" :halign "end" :text "󰖯 :")
@@ -450,9 +437,9 @@
 ;; Fetch window
 (defwindow fetch
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "520px"
-                      :width "150px"
+  :geometry (geometry :x "300px"
+                      :y "280px"
+                      :width "130px"
                       :height "150px"
                       :anchor "bottom left")
   :stacking "bottom"
@@ -478,15 +465,15 @@
        :space-evenly false
     (label :class "hwinfo-title" :text "hardware" :halign "center")
 
-    (box :orientation "h" :space-evenly false :spacing 8
-      (box :orientation "v" :spacing 2
-        (label :class "hwinfo-icon" :halign "end" :text "󰻠 :")
-        (label :class "hwinfo-icon" :halign "end" :text "󰢮 :")
-        (label :class "hwinfo-icon" :halign "end" :text "󰋊 :")
-        (label :class "hwinfo-icon" :halign "end" :text "󰍛 :")
-        (label :class "hwinfo-icon" :halign "end" :text "󰚗 :"))
+    (box :orientation "h" :space-evenly false :spacing 0
+      (box :orientation "v" :spacing 0
+        (label :class "hwinfo-icon" :halign "end" :text "󰻠")
+        (label :class "hwinfo-icon" :halign "end" :text "󰢮")
+        (label :class "hwinfo-icon" :halign "end" :text "󰋊")
+        (label :class "hwinfo-icon" :halign "end" :text "󰍛")
+        (label :class "hwinfo-icon" :halign "end" :text "󰚗"))
 
-      (box :orientation "v" :spacing 2
+      (box :orientation "v" :spacing 0
         (label :class "hwinfo-value" :halign "start" :text hw-cpu :limit-width 28)
         (label :class "hwinfo-value" :halign "start" :text hw-gpu :limit-width 28)
         (label :class "hwinfo-value" :halign "start" :text hw-disk :limit-width 28)
@@ -496,13 +483,46 @@
 ;; Hardware info window
 (defwindow hwinfo
   :monitor 1
-  :geometry (geometry :x "20px"
-                      :y "310px"
-                      :width "310"
-                      :height "190px"
+  :geometry (geometry :x "10px"
+                      :y "280px"
+                      :width "280"
+                      :height "150px"
                       :anchor "bottom left")
   :stacking "bottom"
   (hwinfo))
+
+
+;; Port monitor widget
+(defpoll ports-json :interval "5s" :initial "[]"
+  `~/.config/eww/scripts/ports.sh`)
+
+(defwidget ports []
+  (box :class "ports-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "ports-header"
+      (label :text "󰖟" :class "ports-icon")
+      (label :text "ports" :class "ports-title" :hexpand true :halign "start")
+      (label :text {arraylength(ports-json)} :class "ports-count"))
+    (scroll :vscroll true :hscroll false :vexpand true :class "ports-scroll"
+      (box :orientation "v" :space-evenly false
+        (box :visible {arraylength(ports-json) == 0}
+          (label :text "No listening ports" :class "ports-empty"))
+        (for port in ports-json
+          (box :class "port-entry" :orientation "h" :space-evenly false
+            (label :text {port.proto} :class "port-proto")
+            (label :text {port.port} :class "port-number")
+            (label :text {port.process} :class "port-process" :hexpand true :halign "end" :limit-width 12)))))))
+
+(defwindow ports
+  :monitor 1
+  :geometry (geometry :x "10px"
+                      :y "460px"
+                      :width "200px"
+                      :height "200px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (ports))
 
 
 ;; Calendar widget
@@ -526,8 +546,9 @@
           (label :text "No upcoming events" :class "cal-empty"))
         (for event in cal-events
           (box :class "cal-event" :orientation "v" :space-evenly false
+               :style "border-left: 3px solid ${event.color};"
             (box :orientation "h" :space-evenly false
-              (label :text {event.day} :class "cal-day" :halign "start")
+              (label :text {event.day} :class "cal-day" :halign "start" :style "color: ${event.color};")
               (label :text {event.time} :class "cal-time" :halign "end" :hexpand true))
             (label :text {event.summary} :class "cal-summary" :halign "start" :wrap true :limit-width 30)
             (label :visible {event.location != ""}
@@ -538,10 +559,10 @@
 
 (defwindow outlook
   :monitor 1
-  :geometry (geometry :x "340px"
-                      :y "20px"
+  :geometry (geometry :x "10px"
+                      :y "10px"
                       :width "280px"
-                      :height "200px"
+                      :height "800px"
                       :anchor "top right")
   :stacking "bottom"
   (outlook))

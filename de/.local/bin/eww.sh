@@ -20,7 +20,6 @@ open_dash() {
     eww --config "$EWW_DIR/dash" open --screen "$monitor" disk
     eww --config "$EWW_DIR/dash" open --screen "$monitor" network
     eww --config "$EWW_DIR/dash" open --screen "$monitor" temps
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" uptime
     eww --config "$EWW_DIR/dash" open --screen "$monitor" weather
     eww --config "$EWW_DIR/dash" open --screen "$monitor" notifications
     eww --config "$EWW_DIR/dash" open --screen "$monitor" mpd
@@ -28,6 +27,7 @@ open_dash() {
     eww --config "$EWW_DIR/dash" open --screen "$monitor" fetch
     eww --config "$EWW_DIR/dash" open --screen "$monitor" hwinfo
     eww --config "$EWW_DIR/dash" open --screen "$monitor" outlook
+    eww --config "$EWW_DIR/dash" open --screen "$monitor" ports
 }
 
 open_vpn() {
