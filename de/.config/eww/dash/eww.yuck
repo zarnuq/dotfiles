@@ -293,7 +293,7 @@
 (defwindow weather
   :monitor 1
   :geometry (geometry :x "10px"
-                      :y "500"
+                      :y "800"
                       :width "170"
                       :height "110"
                       :anchor "bottom left")
