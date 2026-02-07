@@ -216,6 +216,27 @@ menuitem:hover {
     color: $peach;
     font-weight: bold;
   }
+
+  .disk-io {
+    margin-top: 2px;
+  }
+
+  .disk-arrow-read {
+    color: $green;
+    font-size: 10px;
+    margin-right: 4px;
+  }
+
+  .disk-arrow-write {
+    color: $red;
+    font-size: 10px;
+    margin-right: 4px;
+  }
+
+  .disk-speed {
+    font-size: 10px;
+    color: $subtext1;
+  }
 }
 
 // Network widget
@@ -560,6 +581,59 @@ menuitem:hover {
   .port-process {
     font-size: 12px;
     color: $subtext0;
+  }
+}
+
+// Processes widget
+.procs-widget {
+  background: $base;
+  border: 1px solid $surface0;
+  border-radius: $border-radius;
+  padding: 10px;
+
+  .procs-header {
+    margin-bottom: 6px;
+  }
+
+  .procs-icon {
+    font-size: 16px;
+    color: $mauve;
+    margin-right: 8px;
+  }
+
+  .procs-title {
+    font-size: 14px;
+    color: $subtext0;
+  }
+
+  .procs-labels {
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid $surface0;
+  }
+
+  .procs-col-label {
+    font-size: 10px;
+    color: $subtext0;
+  }
+
+  .proc-entry {
+    padding: 3px 0;
+  }
+
+  .proc-name {
+    font-size: 12px;
+    color: $text;
+  }
+
+  .proc-cpu {
+    font-size: 12px;
+    color: $green;
+  }
+
+  .proc-mem {
+    font-size: 12px;
+    color: $blue;
   }
 }
 

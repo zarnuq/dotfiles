@@ -177,6 +177,23 @@
 
 
 
+(defpoll disk-read :interval "1s"
+  `awk '/nvme0n1 / {rd=$6} END {
+    file="/tmp/eww-disk-rd-prev"
+    if ((getline prev < file) > 0) { speed=(rd-prev)*512/1000000; if(speed<0)speed=0; printf "%.1f", speed }
+    else { printf "0.0" }
+    close(file)
+    print rd > file
+  }' /proc/diskstats`)
+(defpoll disk-write :interval "1s"
+  `awk '/nvme0n1 / {wr=$10} END {
+    file="/tmp/eww-disk-wr-prev"
+    if ((getline prev < file) > 0) { speed=(wr-prev)*512/1000000; if(speed<0)speed=0; printf "%.1f", speed }
+    else { printf "0.0" }
+    close(file)
+    print wr > file
+  }' /proc/diskstats`)
+
 (defwidget disk []
   (box :class "disk-widget"
        :orientation "h"
@@ -188,7 +205,13 @@
                        :class "disk-circle")
     (box :orientation "v" :space-evenly false :class "disk-text"
       (label :text "disk" :class "disk-label" :halign "start")
-      (label :text "${round(EWW_DISK["/"].used_perc, 0)}%" :class "disk-percent" :halign "start"))))
+      (label :text "${round(EWW_DISK["/"].used_perc, 0)}%" :class "disk-percent" :halign "start")
+      (box :orientation "h" :space-evenly false :class "disk-io"
+        (label :text "R" :class "disk-arrow-read")
+        (label :text "${disk-read}" :class "disk-speed"))
+      (box :orientation "h" :space-evenly false :class "disk-io"
+        (label :text "W" :class "disk-arrow-write")
+        (label :text "${disk-write}" :class "disk-speed")))))
 (defwindow disk
   :monitor 1
   :geometry (geometry :x "170px"
@@ -292,7 +315,7 @@
       (label :text "  💨${weather-wind}" :class "weather-detail"))))
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "10px"
+  :geometry (geometry :x "220px"
                       :y "800"
                       :width "170"
                       :height "110"
@@ -523,6 +546,39 @@
                       :anchor "bottom left")
   :stacking "bottom"
   (ports))
+
+
+;; Top processes widget
+(defpoll top-procs :interval "2s" :initial "[]"
+  `~/.config/eww/scripts/procs.sh`)
+
+(defwidget procs []
+  (box :class "procs-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "procs-header"
+      (label :text "" :class "procs-icon")
+      (label :text "processes" :class "procs-title" :hexpand true :halign "start"))
+    (box :orientation "h" :space-evenly false :class "procs-labels"
+      (label :text "name" :class "procs-col-label" :width 80)
+      (label :text "cpu" :class "procs-col-label" :width 40)
+      (label :text "mem" :class "procs-col-label" :width 40))
+    (box :orientation "v" :space-evenly false
+      (for proc in top-procs
+        (box :class "proc-entry" :orientation "h" :space-evenly false
+          (label :text {proc.name} :class "proc-name" :width 80 :limit-width 10)
+          (label :text "${proc.cpu}%" :class "proc-cpu" :width 40)
+          (label :text "${proc.mem}%" :class "proc-mem" :width 40))))))
+
+(defwindow procs
+  :monitor 1
+  :geometry (geometry :x "10px"
+                      :y "800px"
+                      :width "200px"
+                      :height "160px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (procs))
 
 
 ;; Calendar widget

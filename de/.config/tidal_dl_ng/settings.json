@@ -31,7 +31,7 @@
     "metadata_replay_gain": true,
     "metadata_write_url": true,
     "window_x": 0,
-    "window_y": 0,
+    "window_y": 1440,
     "window_w": 3440,
     "window_h": 1421,
     "metadata_delimiter_artist": ", ",
