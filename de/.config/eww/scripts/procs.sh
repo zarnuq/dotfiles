@@ -1,5 +1,5 @@
 #!/bin/sh
-ps -eo pid=,comm=,%cpu=,%mem= --sort=-%cpu | head -5 | awk '{
+ps -eo pid=,comm=,%cpu=,%mem= --sort=-%cpu | head -6 | awk '{
   name=$2
   for(i=3; i<=NF-2; i++) name=name" "$i
   cpu=$(NF-1)

@@ -315,11 +315,11 @@
       (label :text "  💨${weather-wind}" :class "weather-detail"))))
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "220px"
-                      :y "800"
+  :geometry (geometry :x "610"
+                      :y "10"
                       :width "170"
                       :height "110"
-                      :anchor "bottom left")
+                      :anchor "top right")
   :stacking "bottom"
   (weather))
 
@@ -574,8 +574,8 @@
   :monitor 1
   :geometry (geometry :x "10px"
                       :y "800px"
-                      :width "200px"
-                      :height "160px"
+                      :width "200"
+                      :height "210"
                       :anchor "bottom left")
   :stacking "bottom"
   (procs))
@@ -622,3 +622,76 @@
                       :anchor "top right")
   :stacking "bottom"
   (outlook))
+
+
+;; Services widget
+(defpoll services-json :interval "5s" :initial "[]"
+  `~/.config/eww/scripts/services.sh`)
+
+(defwidget services []
+  (box :class "services-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "services-header"
+      (label :text "󰒋" :class "services-icon")
+      (label :text "services" :class "services-title" :hexpand true :halign "start")
+      (label :text {arraylength(services-json)} :class "services-count"))
+    (scroll :vscroll true :hscroll false :vexpand true :class "services-scroll"
+      (box :orientation "v" :space-evenly false
+        (box :visible {arraylength(services-json) == 0}
+          (label :text "No services running" :class "services-empty"))
+        (for svc in services-json
+          (box :class "service-entry" :orientation "h" :space-evenly false
+            (label :text {svc.type} :class "service-type")
+            (label :text {svc.status == "active" ? "󰄬" : svc.status == "failed" ? "󰅜" : "󰦗"}
+                   :class {svc.status == "active" ? "service-status active" : svc.status == "failed" ? "service-status failed" : "service-status other"})
+            (label :text {svc.name} :class "service-name" :hexpand true :halign "start" :limit-width 14)))))))
+
+(defwindow services
+  :monitor 1
+  :geometry (geometry :x "220px"
+                      :y "800px"
+                      :width "210px"
+                      :height "210px"
+                      :anchor "bottom left")
+  :stacking "bottom"
+  (services))
+
+
+;; Quick notes widget
+(defvar notes-file "~/.local/share/eww/notes.txt")
+(defpoll notes-content :interval "5s" :initial ""
+  `cat ~/.local/share/eww/notes.txt 2>/dev/null || echo ""`)
+
+(defwidget notes []
+  (box :class "notes-widget"
+       :orientation "v"
+       :space-evenly false
+    (box :orientation "h" :space-evenly false :class "notes-header"
+      (label :text "󰎚" :class "notes-icon")
+      (label :text "quick notes" :class "notes-title" :hexpand true :halign "start")
+      (button :class "notes-edit-btn"
+              :onclick "ghostty -e nvim ~/.local/share/eww/notes.txt &"
+              :tooltip "Edit notes"
+        (label :text "󰏫")))
+    (scroll :vscroll true :hscroll false :vexpand true :class "notes-scroll"
+      (box :orientation "v" :space-evenly false
+        (label :visible {notes-content == ""}
+               :text "No notes yet. Click edit to add some."
+               :class "notes-empty")
+        (label :visible {notes-content != ""}
+               :text notes-content
+               :class "notes-text"
+               :halign "start"
+               :valign "start"
+               :wrap true)))))
+
+(defwindow notes
+  :monitor 1
+  :geometry (geometry :x "300px"
+                      :y "270px"
+                      :width "300px"
+                      :height "200px"
+                      :anchor "top right")
+  :stacking "bottom"
+  (notes))
