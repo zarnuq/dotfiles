@@ -18,7 +18,6 @@ static int log_level = WLR_ERROR;
 
 static const char *const autostart[] = {
     "dunst",                                              NULL,
-    "copyq",                                              NULL,
     "dwlb",                                               NULL,
     "swww-daemon",                                        NULL,
     "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
@@ -27,6 +26,7 @@ static const char *const autostart[] = {
     "gammastep", "-O", "4000:4000",                       NULL,
     "nm-applet",                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                   NULL,
+    "sh", "-c", "wl-clip-persist --clipboard regular",    NULL,
     "sh", "-c", "syncthing --no-browser",                 NULL,
     "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
     NULL 
