@@ -965,16 +965,18 @@ closemon(Monitor *m)
 	/* update selmon if needed and
 	 * move closed monitor's clients to the focused one */
 	Client *c;
-	int i = 0, nmons = wl_list_length(&mons);
+	int nmons = wl_list_length(&mons);
 	if (!nmons) {
 		selmon = NULL;
 	} else if (m == selmon) {
-		do /* don't switch to disabled mons */
-			selmon = wl_container_of(mons.next, selmon, link);
-		while (!selmon->wlr_output->enabled && i++ < nmons);
-
-		if (!selmon->wlr_output->enabled)
-			selmon = NULL;
+		Monitor *newmon;
+		selmon = NULL;
+		wl_list_for_each(newmon, &mons, link) {
+			if (newmon != m && newmon->wlr_output->enabled) {
+				selmon = newmon;
+				break;
+			}
+		}
 	}
 
 	destroyborders(m->borders);
@@ -2747,10 +2749,16 @@ void
 focusmon(const Arg *arg)
 {
 	int i = 0, nmons = wl_list_length(&mons);
+	Monitor *newmon;
 	if (nmons) {
-		do /* don't switch to disabled mons */
-			selmon = dirtomon(arg->i);
-		while (!selmon->wlr_output->enabled && i++ < nmons);
+		do {
+			newmon = dirtomon(arg->i);
+			if (newmon->wlr_output->enabled) {
+				selmon = newmon;
+				break;
+			}
+			selmon = newmon; /* temporarily set for next dirtomon call */
+		} while (++i < nmons);
 	}
 	focusclient(focustop(selmon), 1);
 }
@@ -3078,7 +3086,6 @@ mapnotify(struct wl_listener *listener, void *data)
 		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
 		if (client_wants_focus(c)) {
 			focusclient(c, 1);
-			exclusive_focus = c;
 		}
 		goto unset_fullscreen;
 	}
@@ -3237,8 +3244,11 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
 		wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
 		/* Update selmon (even while dragging a window) */
-		if (sloppyfocus)
-			selmon = xytomon(cursor->x, cursor->y);
+		if (sloppyfocus) {
+			Monitor *m = xytomon(cursor->x, cursor->y);
+			if (m)
+				selmon = m;
+		}
 	}
 
 	/* Update drag icon's position */
@@ -4477,9 +4487,12 @@ xytonode(double x, double y, struct wlr_surface **psurface,
 		if (!(node = wlr_scene_node_at(&layers[layer]->node, x, y, nx, ny)))
 			continue;
 
-		if (node->type == WLR_SCENE_NODE_BUFFER)
-			surface = wlr_scene_surface_try_from_buffer(
-					wlr_scene_buffer_from_node(node))->surface;
+		if (node->type == WLR_SCENE_NODE_BUFFER) {
+			struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(
+					wlr_scene_buffer_from_node(node));
+			if (scene_surface)
+				surface = scene_surface->surface;
+		}
 		/* Walk the tree to find a node that knows the client */
 		for (pnode = node; pnode && !c; pnode = &pnode->parent->node)
 			c = pnode->data;
