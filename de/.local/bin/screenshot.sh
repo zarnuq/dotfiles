@@ -1,6 +1,9 @@
 #!/bin/sh
 
 case "$1" in
+    ss)
+        grim -g "$(slurp)" - | wl-copy
+        ;;
     section)
         filename="$HOME/Pictures/screenshot-$(date +'%Y-%m-%d_%H-%M-%S').png"
         grim -g "$(slurp)" "$filename" \

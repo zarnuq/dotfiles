@@ -1,5 +1,4 @@
 -- plugins/lsp.lua
-
 return {
   "neovim/nvim-lspconfig",
   dependencies = {
@@ -9,11 +8,8 @@ return {
   config = function()
     local lspconfig = require("lspconfig")
     local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-    -- Setup servers via mason-lspconfig
     local mason_lspconfig = require("mason-lspconfig")
 
-    -- This is the safest version of setup_handlers
     if mason_lspconfig.setup_handlers then
       mason_lspconfig.setup_handlers({
         function(server_name)
@@ -21,8 +17,7 @@ return {
             capabilities = capabilities,
           })
         end,
-
-        -- Optional: custom Lua settings
+        -- Lua
         ["lua_ls"] = function()
           lspconfig.lua_ls.setup({
             capabilities = capabilities,
@@ -39,8 +34,22 @@ return {
             },
           })
         end,
+        -- Python
+        ["pyright"] = function()
+          lspconfig.pyright.setup({
+            capabilities = capabilities,
+            settings = {
+              python = {
+                analysis = {
+                  typeCheckingMode = "basic", -- "off" | "basic" | "strict"
+                  autoSearchPaths = true,
+                  useLibraryCodeForTypes = true,
+                },
+              },
+            },
+          })
+        end,
       })
     end
   end,
 }
-

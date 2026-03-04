@@ -38,6 +38,7 @@ static const Env envs[] = {
     { "QT_QPA_PLATFORMTHEME", "qt6ct" },
     { "QT_STYLE_OVERRIDE",    "kvantum" },
     { "WAYLAND_DISPLAY",      "wayland-0" },
+    { "JAVA_HOME",            "/usr/lib/jvm/java-21-openjdk"},
 };
 
 static const Rule rules[] = {
@@ -148,6 +149,7 @@ static const Keychord keychords[] = {
     SPAWN2(MOD,  r,    0,     a,        "pavucontrol"),
     SPAWN2(MOD,  r,    0,     s,        "steam"),
     SPAWN2(MOD,  r,    0,     w,        "/bin/sh", "-c", "$HOME/.local/bin/runbar.sh"),
+    SPAWN2(MOD,  s,    0,     s,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh ss && notify-send 'Screenshot' 'Quick capture saved!'"),
     SPAWN2(MOD,  s,    0,     d,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh section && notify-send 'Screenshot' 'Section saved!'"),
     SPAWN2(MOD,  s,    0,     1,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-1 && notify-send 'Screenshot' 'Fullscreen saved!'"),
     SPAWN2(MOD,  s,    0,     2,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh DP-2 && notify-send 'Screenshot' 'Fullscreen saved!'"),
