@@ -1,88 +1,95 @@
 #!/bin/bash
-#groups
-group_list=(power video storage kvm disk audio nordvpn mpd)
-for group in "${group_list[@]}"; do
-  if ! groups "$USER" | grep -qw "$group"; then
-    sudo usermod -a -G "$group" "$USER"
+
+# Shared installation functions - can be sourced by other scripts
+[[ -z "$SOURCED" ]] && set -e
+
+log() { echo "$(tput setaf 2)==>$(tput sgr0) $*"; }
+
+install_groups() {
+  log "Adding user to groups"
+  for group in power video storage kvm disk audio nordvpn mpd; do
+    groups "$USER" | grep -qw "$group" || sudo usermod -aG "$group" "$USER"
+  done
+}
+
+install_system() {
+  log "Configuring pacman"
+  sudo pacman -Syu --noconfirm
+  sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
+  if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+    echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf >/dev/null
+    sudo pacman -Sy
   fi
-done
-echo "groups added"
+}
 
+install_packages() {
+  log "Installing packages"
+  packages=(
+    base-devel git stow dash zsh tmux neovim vim man-db
+    yazi fd fzf zoxide tree tldr fastfetch btop
+    mpd rmpc playerctl easyeffects lsp-plugins
+    kitty rofi-wayland dunst swaylock nemo pavucontrol nwg-look qt6ct
+    swww wlr-randr grim slurp brightnessctl gammastep wtype
+    mpv zathura loupe qbittorrent
+    ufw udisks2 bluez blueberry
+    greetd greetd-tuigreet xdg-desktop-portal xdg-desktop-portal-wlr
+    ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
+    papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
+    steam github-cli
+  )
+  missing_pkgs=()
+  for pkg in "${packages[@]}"; do
+    pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
+  done
+  [[ ${#missing_pkgs[@]} -gt 0 ]] && sudo pacman -S --noconfirm "${missing_pkgs[@]}"
+  tldr --update || true
+  sudo rm -f /usr/share/applications/in.lsp_plug.lsp_plugins_*
+}
 
-#needed packages
-sudo pacman -Syu --noconfirm
-if ! grep -Fxq "[multilib]" /etc/pacman.conf; then
-  echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" | sudo tee -a /etc/pacman.conf
-fi
+install_paru() {
+  if ! command -v paru &>/dev/null; then
+    log "Installing paru"
+    git clone https://aur.archlinux.org/paru.git /tmp/paru
+    (cd /tmp/paru && makepkg -si --noconfirm)
+    rm -rf /tmp/paru
+    grep -q "BottomUp" /etc/paru.conf || echo "BottomUp" | sudo tee -a /etc/paru.conf >/dev/null
+  fi
+}
 
-if ! grep -Fxq "Color" /etc/pacman.conf; then
-  echo -e "\n[options]\nColor" | sudo tee -a /etc/pacman.conf
-fi
-packages=(base-devel yazi stow rmpc mpd easyeffects neovim kitty wezterm fastfetch river rofi-wayland zsh pavucontrol zathura hyprland gammastep wtype nemo brightnessctl swaybg wlr-randr vlc mpv github-cli git fd fzf zoxide tree vim btop dunst ufw udisks2 greetd greetd-tuigreet ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme grim slurp xdg-desktop-portal xdg-desktop-portal-wlr dash nwg-look swaylock man-db tmux 7zip steam lsp-plugins bluez blueberry glow starship imagemagick noto-fonts-emoji loupe tldr playerctl qbittorrent qt6ct ghostwriter noto-fonts-cjk emacs)
-missing_pkgs=()
-for pkg in "${packages[@]}"; do
-  pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
-done
-if (( ${#missing_pkgs[@]} )); then
-  sudo pacman -S --noconfirm "${missing_pkgs[@]}"
-fi
-tldr --update
-sudo rm /usr/share/applications/in.lsp_plug.lsp_plugins_*
-echo "arch repo packages installed"
+install_aur() {
+  log "Installing AUR packages"
+  aur_packages=(
+    zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin legcord
+    catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha
+    kvantum-theme-catppuccin-git bibata-cursor-theme
+  )
+  for pkg in "${aur_packages[@]}"; do
+    paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
+  done
+}
 
+install_dwl() {
+  log "Building window managers"
+  for dir in dwl dwlb someblocks; do
+    (cd ~/.local/src/"$dir" && make clean install 2>/dev/null || make)
+    sudo ln -sf ~/.local/src/"$dir"/"$dir" /bin/"$dir"
+  done
+}
 
+install_grub() {
+  log "Configuring GRUB theme"
+  if ! grep -q "catppuccin-mocha" /etc/default/grub; then
+    sudo cp ~/dotfiles/de/Documents/logo.png /usr/share/grub/themes/catppuccin-mocha/logo.png
+    echo 'GRUB_THEME="/usr/share/grub/themes/catppuccin-mocha/theme.txt"' | sudo tee -a /etc/default/grub >/dev/null
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+  fi
+}
 
-#paru
-if ! command -v paru &>/dev/null; then
-  git clone https://aur.archlinux.org/paru.git ~/paru
-  (cd ~/paru && makepkg -si --noconfirm)
-  rm -rf ~/paru
-  echo "BottomUp" | sudo tee -a /etc/paru.conf
-fi
-echo "paru installed"
-
-
-
-#dwl configured
-cd ~/.local/src/dwl
-make clean install
-cd ~/.local/src/dwlb
-make clean install
-cd ~/.local/src/someblocks
-make
-cd ~
-sudo ln -s ~/.local/src/dwl/dwl /bin/dwl
-sudo ln -s ~/.local/src/dwlb/dwlb /bin/dwlb
-sudo ln -s ~/.local/src/someblocks/someblocks /bin/someblocks
-
-
-
-#paru packages
-aur_packages=(zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin yambar catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha bibata-cursor-theme legcord kvantum-theme-catppuccin-git nordvpn-bin)
-for pkg in "${aur_packages[@]}"; do
-  paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
-done
-echo "AUR pkgs added"
-
-
-
-#grub
-if ! grep "catppuccin-mocha" /etc/default/grub; then
-  sudo rm /usr/share/grub/themes/catppuccin-mocha/logo.png
-  sudo cp ~/dotfiles/de/Documents/logo.png /usr/share/grub/themes/catppuccin-mocha
-  echo 'GRUB_THEME="/usr/share/grub/themes/catppuccin-mocha/theme.txt"' | sudo tee -a /etc/default/grub
-  sudo grub-mkconfig -o /boot/grub/grub.cfg
-  echo "grub themed"
-else
-  echo "grub already themed"
-fi
-
-
-
-#greetd
-if [ ! -f /etc/greetd/config.toml ]; then
-  sudo mkdir /etc/greetd
-  sudo tee /etc/greetd/config.toml > /dev/null <<EOF
+install_greetd() {
+  log "Configuring greetd"
+  if [[ ! -f /etc/greetd/config.toml ]]; then
+    sudo mkdir -p /etc/greetd
+    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
 
@@ -90,76 +97,73 @@ vt = 1
 command = "/usr/bin/tuigreet -r --asterisks -c dwl"
 user = "greeter"
 EOF
-  echo "greetd configured"
-else
-  echo "greetd already configured"
-fi
+  fi
+}
 
-
-
-#swap
-if [ ! -f "/swapfile" ]; then
+install_swap() {
+  log "Creating swapfile"
+  if [[ ! -f /swapfile ]]; then
     sudo dd if=/dev/zero of=/swapfile bs=1G count=16 status=progress
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
-    echo "/swapfile none swap defaults 0 0" | sudo tee -a /etc/fstab
-    echo "swap made"
-else 
-  echo "swap already made"
+    grep -q "/swapfile" /etc/fstab || echo "/swapfile none swap defaults 0 0" | sudo tee -a /etc/fstab >/dev/null
+  fi
+}
+
+install_shell() {
+  log "Configuring shell"
+  [[ "$SHELL" != "/bin/zsh" ]] && sudo chsh "$USER" -s /bin/zsh
+  if [[ ! -f /etc/zsh/zshenv ]]; then
+    sudo mkdir -p /etc/zsh
+    echo "export ZDOTDIR=$HOME/.config/zsh" | sudo tee /etc/zsh/zshenv >/dev/null
+  fi
+  [[ "$(readlink /bin/sh)" != "/bin/dash" ]] && sudo ln -sf /bin/dash /bin/sh
+  [[ ! -d ~/.local/share/zplug ]] && git clone https://github.com/zplug/zplug ~/.local/share/zplug
+}
+
+install_zen() {
+  log "Configuring Zen browser"
+  if [[ -f ~/.zen/profiles.ini ]]; then
+    DEFAULT_PROFILE=$(grep -A1 '\[Install' ~/.zen/profiles.ini | grep '^Default=' | cut -d= -f2-)
+    if [[ -n "$DEFAULT_PROFILE" ]]; then
+      PROFILE_DIR="$HOME/.zen/$DEFAULT_PROFILE"
+      ln -sf ~/dotfiles/de/.zen/chrome "$PROFILE_DIR"/chrome
+      ln -sf ~/dotfiles/de/.zen/user.js "$PROFILE_DIR"/user.js
+      xdg-settings set default-web-browser zen.desktop || true
+    fi
+  fi
+}
+
+install_tpm() {
+  log "Installing tmux plugin manager"
+  [[ ! -d ~/.local/share/tmux/plugins/tpm ]] && git clone https://github.com/tmux-plugins/tpm ~/.local/share/tmux/plugins/tpm
+}
+
+install_services() {
+  log "Enabling services"
+  mkdir -p ~/.local/share/mpd
+  systemctl --user enable --now mpd mpdris xdg-desktop-portal 2>/dev/null || true
+  sudo systemctl enable --now ufw bluetooth dbus udisks2
+  sudo systemctl enable greetd
+  sudo ufw --force enable
+}
+
+# Run all if executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  install_groups
+  install_system
+  install_packages
+  install_paru
+  install_aur
+  install_dwl
+  install_grub
+  install_greetd
+  install_swap
+  install_shell
+  install_zen
+  install_tpm
+  install_services
+  log "Installation complete! Reboot to apply all changes."
 fi
-
-
-
-#change shell
-if [ "$SHELL" != "/bin/zsh" ]; then
-  sudo chsh "$USER" -s /bin/zsh
-fi
-
-if [ ! -f /etc/zsh/zshenv ]; then
-  sudo mkdir -p /etc/zsh
-  echo "export ZDOTDIR=/home/$USER/.config/zsh" | sudo tee /etc/zsh/zshenv
-fi
-sudo rm /bin/sh
-sudo ln -s /bin/dash /bin/sh
-git clone https://github.com/zplug/zplug ~/.local/share
-echo "shell changed"
-
-
-
-#zen theme
-DEFAULT_PROFILE=$(grep -A1 '\[Install' "$HOME/.zen/profiles.ini" | grep '^Default=' | cut -d= -f2-)
-PROFILE_DIR="$HOME/.zen/$DEFAULT_PROFILE"
-rm -rf "$PROFILE_DIR"/chrome
-rm -rf "$PROFILE_DIR"/user.js
-ln -s ~/dotfiles/de/.zen/chrome "$PROFILE_DIR"/chrome
-ln -s ~/dotfiles/de/.zen/user.js "$PROFILE_DIR"/user.js
-xdg-settings set default-web-browser zen.desktop
-echo "zen configured"
-
-
-
-#doom emacs
-git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
-sh ~/.config/emacs/bin/doom install
-
-
-
-#tpm
-git clone https://github.com/tmux-plugins/tpm ~/.local/share/tmux/plugins/tpm
-
-
-
-#services
-mkdir ~/.local/share/mpd
-systemctl --user enable --now mpd
-systemctl --user enable --now mpdris
-systemctl --user enable --now xdg-desktop-portal 
-sudo systemctl enable --now ufw
-sudo systemctl enable --now bluetooth 
-sudo systemctl enable --now dbus 
-sudo systemctl enable --now udisks2 
-sudo systemctl enable greetd
-sudo ufw enable
-echo "services started"
 
