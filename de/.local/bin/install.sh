@@ -1,4 +1,9 @@
 #!/bin/bash
+mkdir -p ~/.config/zsh
+mkdir -p ~/.local/share
+mkdir -p ~/.local/src
+mkdir -p ~/.local/bin
+mkdir -p ~/.local/share
 
 # Shared installation functions - can be sourced by other scripts
 [[ -z "$SOURCED" ]] && set -e
@@ -7,6 +12,7 @@ log() { echo "$(tput setaf 2)==>$(tput sgr0) $*"; }
 
 install_groups() {
   log "Adding user to groups"
+  sudo groupadd nordvpn
   for group in power video storage kvm disk audio nordvpn mpd; do
     groups "$USER" | grep -qw "$group" || sudo usermod -aG "$group" "$USER"
   done
@@ -31,11 +37,12 @@ install_packages() {
     kitty rofi-wayland dunst swaylock nemo pavucontrol nwg-look qt6ct
     swww wlr-randr grim slurp brightnessctl gammastep wtype
     mpv zathura loupe qbittorrent
-    ufw udisks2 bluez blueberry
+    ufw udisks2 
+    luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
     greetd greetd-tuigreet xdg-desktop-portal xdg-desktop-portal-wlr
     ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
     papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
-    steam github-cli
+    github-cli
   )
   missing_pkgs=()
   for pkg in "${packages[@]}"; do
@@ -59,7 +66,7 @@ install_paru() {
 install_aur() {
   log "Installing AUR packages"
   aur_packages=(
-    zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin legcord
+    zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin legcord nordvpn-bin
     catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha
     kvantum-theme-catppuccin-git bibata-cursor-theme
   )
@@ -87,9 +94,8 @@ install_grub() {
 
 install_greetd() {
   log "Configuring greetd"
-  if [[ ! -f /etc/greetd/config.toml ]]; then
-    sudo mkdir -p /etc/greetd
-    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+  sudo mkdir -p /etc/greetd
+  sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
 [terminal]
 vt = 1
 
@@ -97,7 +103,6 @@ vt = 1
 command = "/usr/bin/tuigreet -r --asterisks -c dwl"
 user = "greeter"
 EOF
-  fi
 }
 
 install_swap() {

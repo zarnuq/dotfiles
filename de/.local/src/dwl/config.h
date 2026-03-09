@@ -22,7 +22,6 @@ static const char *const autostart[] = {
     "swww-daemon",                                        NULL,
     "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
     "easyeffects", "--gapplication-service",              NULL,
-    "xremap", "$HOME/.config/xremap/config.yml",          NULL,
     "gammastep", "-O", "4000:4000",                       NULL,
     "nm-applet",                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                   NULL,
