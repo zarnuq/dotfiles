@@ -38,7 +38,7 @@ install_packages() {
     swww wlr-randr grim slurp brightnessctl gammastep wtype
     mpv zathura loupe qbittorrent
     ufw udisks2 
-    luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
+    rg wget tree-sitter-cli lua lua51 luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
     greetd greetd-tuigreet xdg-desktop-portal xdg-desktop-portal-wlr
     ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
     papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
