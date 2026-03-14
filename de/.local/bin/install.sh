@@ -37,8 +37,8 @@ install_packages() {
     kitty rofi-wayland dunst swaylock nemo pavucontrol nwg-look qt6ct
     swww wlr-randr grim slurp brightnessctl gammastep wtype
     mpv zathura loupe qbittorrent
-    ufw udisks2 
-    rg wget tree-sitter-cli lua lua51 luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
+    ufw udisks2 caligula
+    rigprep wget tree-sitter-cli lua lua51 luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
     greetd greetd-tuigreet xdg-desktop-portal xdg-desktop-portal-wlr
     ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
     papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
