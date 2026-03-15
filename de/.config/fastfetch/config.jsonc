@@ -52,7 +52,7 @@
         },
         {
             "type": "host",
-            "key": " OS",
+            "key": "OS",
             "keyColor": "blue"
         },
         {

@@ -4,6 +4,8 @@ mkdir -p ~/.local/share
 mkdir -p ~/.local/src
 mkdir -p ~/.local/bin
 mkdir -p ~/.local/share
+mkdir -p ~/.zen
+mkdir -p ~/Documents
 
 # Shared installation functions - can be sourced by other scripts
 [[ -z "$SOURCED" ]] && set -e
@@ -31,18 +33,46 @@ install_system() {
 install_packages() {
   log "Installing packages"
   packages=(
-    base-devel git stow dash zsh tmux neovim vim man-db
-    yazi fd fzf zoxide tree tldr fastfetch btop
-    mpd rmpc playerctl easyeffects lsp-plugins
-    kitty rofi-wayland dunst swaylock nemo pavucontrol nwg-look qt6ct
-    swww wlr-randr grim slurp brightnessctl gammastep wtype
-    mpv zathura loupe qbittorrent
-    ufw udisks2 caligula
-    rigprep wget tree-sitter-cli lua lua51 luarocks wlroots0.18 fcft pixman hyprland tllist wl-clip-persist eww network-manager-applet satty
-    greetd greetd-tuigreet xdg-desktop-portal xdg-desktop-portal-wlr
+    # Base
+    base-devel git stow dash zsh man-db
+
+    # Terminal & shell tools
+    tmux kitty
+    fd fzf zoxide tree tldr ripgrep wget fastfetch btop yazi
+
+    # Editors
+    neovim vim
+
+    # Wayland compositor & protocols
+    wlroots0.18 wayland-utils wlr-protocols xdg-desktop-portal xdg-desktop-portal-wlr
+
+    # Wayland desktop tools
+    rofi-wayland dunst swaylock swww wlr-randr grim slurp hyprland
+    brightnessctl gammastep wtype wl-clip-persist satty
+
+    # Display manager
+    greetd greetd-tuigreet
+
+    # Audio
+    mpd rmpc playerctl easyeffects lsp-plugins pavucontrol
+
+    # Media & files
+    mpv zathura loupe qbittorrent nemo udisks2 caligula  
+
+    # Networking & system
+    ufw syncthing network-manager-applet
+
+    # Dev tools & languages
+    npm github-cli tree-sitter-cli lua lua51 luarocks
+
+    # GUI theming
+    nwg-look qt6ct adw-gtk-theme adwaita-fonts adwaita-cursors papirus-icon-theme
+
+    # Fonts
     ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
-    papirus-icon-theme adwaita-fonts adwaita-cursors adw-gtk-theme
-    github-cli
+
+    # Libraries
+    fcft pixman tllist
   )
   missing_pkgs=()
   for pkg in "${packages[@]}"; do
@@ -68,7 +98,7 @@ install_aur() {
   aur_packages=(
     zen-browser-bin brave-bin mpdris-bin xremap-wlroots-bin legcord nordvpn-bin
     catppuccin-mocha-grub-theme-git catppuccin-gtk-theme-mocha
-    kvantum-theme-catppuccin-git bibata-cursor-theme
+    kvantum-theme-catppuccin-git bibata-cursor-theme eww
   )
   for pkg in "${aur_packages[@]}"; do
     paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
@@ -149,7 +179,7 @@ install_services() {
   log "Enabling services"
   mkdir -p ~/.local/share/mpd
   systemctl --user enable --now mpd mpdris xdg-desktop-portal 2>/dev/null || true
-  sudo systemctl enable --now ufw bluetooth dbus udisks2
+  sudo systemctl enable --now ufw dbus udisks2
   sudo systemctl enable greetd
   sudo ufw --force enable
 }
