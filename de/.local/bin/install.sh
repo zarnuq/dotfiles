@@ -54,10 +54,10 @@ install_packages() {
     greetd greetd-tuigreet
 
     # Audio
-    mpd rmpc playerctl easyeffects lsp-plugins pavucontrol
+    mpc mpd rmpc playerctl easyeffects lsp-plugins pavucontrol
 
     # Media & files
-    mpv zathura loupe qbittorrent nemo udisks2 caligula  
+    mpv zathura loupe qbittorrent nemo udisks2 caligula imagemagick
 
     # Networking & system
     ufw syncthing network-manager-applet
@@ -72,7 +72,7 @@ install_packages() {
     ttf-font-awesome otf-font-awesome ttf-jetbrains-mono-nerd noto-fonts-emoji noto-fonts-cjk
 
     # Libraries
-    fcft pixman tllist
+    fcft pixman tllist jq python-recurring-ical-events
   )
   missing_pkgs=()
   for pkg in "${packages[@]}"; do

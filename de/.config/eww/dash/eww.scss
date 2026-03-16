@@ -65,24 +65,24 @@ menuitem:hover {
   background-color: $base;
   border: 1px solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: 6px;
 
   .vol-side {
     min-width: 70px;
   }
 
   .vol-bar {
-    padding: 6px 4px;
+    padding: 0px 0px;
   }
 
   .vol-btn {
     background: none;
-    padding: 6px;
+    padding: 0px;
     border-radius: 8px;
   }
 
   .vol-icon {
-    font-size: 24px;
+    font-size: 20px;
     color: $text;
 
     &.muted {
@@ -91,7 +91,7 @@ menuitem:hover {
   }
 
   .vol-text {
-    font-size: 14px;
+    font-size: 10px;
     color: $subtext0;
   }
 
@@ -102,7 +102,7 @@ menuitem:hover {
   }
 
   .vol-slider-icon {
-    font-size: 16px;
+    font-size: 10px;
     color: $subtext0;
     min-width: 20px;
   }

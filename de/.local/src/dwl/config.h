@@ -26,7 +26,6 @@ static const char *const autostart[] = {
     "nm-applet",                                          NULL,
     "kitty", "--class", "rmpc", "rmpc",                   NULL,
     "sh", "-c", "wl-clip-persist --clipboard regular",    NULL,
-    "sh", "-c", "syncthing --no-browser",                 NULL,
     "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
     NULL 
 };

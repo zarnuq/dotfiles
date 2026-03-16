@@ -40,7 +40,7 @@
 - yambar
 - yazi
 - zen-browser theme
-- zsh (starship, zplug)
+- zsh (spaceship, zplug)
 
 
 ## My Custom DWL Repo
