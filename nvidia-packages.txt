@@ -1,0 +1,1 @@
+cuda lib32-nvidia-utils lib32-vulkan-icd-loader linux-firmware-nvidia nvidia-open-dkms nvidia-utils opencl-nvidia vulkan-icd-loader vulkan-mesa-implicit-layers vulkan-nouveau
