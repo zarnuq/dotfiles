@@ -103,6 +103,13 @@ install_aur() {
   for pkg in "${aur_packages[@]}"; do
     paru -Qq "$pkg" &>/dev/null || paru -S --noconfirm "$pkg"
   done
+  gsettings set org.gnome.desktop.interface gtk-theme 'catppuccin-mocha-mauve-standard+default'
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  kvantummanager --set catppuccin-mocha-mauve
+  gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+  gsettings set org.gnome.desktop.interface cursor-theme 'catppuccin-mocha-mauve-cursors'
+
+
 }
 
 install_dwl() {
