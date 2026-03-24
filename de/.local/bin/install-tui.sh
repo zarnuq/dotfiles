@@ -26,6 +26,7 @@ modules=(
   "zen - Configure Zen browser"
   "tpm - Install tmux plugin manager"
   "services - Enable systemd services"
+  "nvidia - Install Nvidia packages"
 )
 
 # Show menu
@@ -71,6 +72,7 @@ is_selected "shell" && install_shell
 is_selected "zen" && install_zen
 is_selected "tpm" && install_tpm
 is_selected "services" && install_services
+is_selected "nvidia" && install_nvidia
 
 echo -e "\n=========================================="
 echo "Installation complete!"

@@ -48,6 +48,7 @@ stow de
 - `install_zen()` — symlinks Zen browser configs
 - `install_tpm()` — tmux plugin manager
 - `install_services()` — enables: mpd, mpdris, xdg-desktop-portal, ufw, udisks2, bluetooth, dbus, greetd
+- `install_nvidia()` — installs Nvidia packages from `~/dotfiles/nvidia-packages.txt` (opt-in, not in auto-run; available via install-tui.sh)
 
 ### Stow Commands
 ```bash

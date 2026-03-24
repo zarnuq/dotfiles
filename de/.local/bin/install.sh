@@ -182,6 +182,20 @@ install_tpm() {
   [[ ! -d ~/.local/share/tmux/plugins/tpm ]] && git clone https://github.com/tmux-plugins/tpm ~/.local/share/tmux/plugins/tpm
 }
 
+install_nvidia() {
+  log "Installing Nvidia packages"
+  nvidia_pkgs=(
+    cuda lib32-nvidia-utils lib32-vulkan-icd-loader linux-firmware-nvidia
+    nvidia-open-dkms nvidia-utils opencl-nvidia vulkan-icd-loader
+    vulkan-mesa-implicit-layers vulkan-nouveau
+  )
+  missing_pkgs=()
+  for pkg in "${nvidia_pkgs[@]}"; do
+    pacman -Qq "$pkg" &>/dev/null || missing_pkgs+=("$pkg")
+  done
+  [[ ${#missing_pkgs[@]} -gt 0 ]] && sudo pacman -S --noconfirm "${missing_pkgs[@]}"
+}
+
 install_services() {
   log "Enabling services"
   mkdir -p ~/.local/share/mpd
