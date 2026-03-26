@@ -17,9 +17,11 @@ static const char cursor_size[]            = "24";
 static int log_level = WLR_ERROR;
 
 static const char *const autostart[] = {
+    "sh", "-c", "systemctl --user import-environment WAYLAND_DISPLAY XDG_RUNTIME_DIR", NULL,
+    "sh", "-c", "systemctl --user start xdg-desktop-portal-wlr",                       NULL,
     "dunst",                                              NULL,
     "dwlb",                                               NULL,
-    "swww-daemon",                                        NULL,
+    "awww-daemon",                                        NULL,
     "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
     "easyeffects", "--gapplication-service",              NULL,
     "gammastep", "-O", "4000:4000",                       NULL,
@@ -138,7 +140,7 @@ static const Keychord keychords[] = {
     SPAWN1(MOD|SHIFT,W,         "/bin/sh", "-c", "rmpc rescan"),
     SPAWN1(MOD,      t,         "zen-browser"),
     SPAWN1(MOD|SHIFT,B,         "kitty", "-e", "yazi", "$HOME/Pictures/bgs"),
-    SPAWN1(MOD,      b,         "/bin/sh", "-c", "swww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
+    SPAWN1(MOD,      b,         "/bin/sh", "-c", "awww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
     SPAWN1(MOD,      e,         "/bin/sh", "-c", "$HOME/.local/bin/eww.sh open"),
     SPAWN1(MOD|SHIFT,E,         "/bin/sh", "-c", "pkill -9 eww"),
     /*     mod2  key   mod2   key2      cmd_args... */
