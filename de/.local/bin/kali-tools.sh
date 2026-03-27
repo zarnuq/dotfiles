@@ -23,6 +23,7 @@ packages=(
   zsteg             # LSB steganography detection for PNG/BMP
   evil-winrm-py     # WinRM shell for pentesting Windows hosts
   seclists          # Collection of security-related wordlists
+  perl-image-exiftool
 )
 
 paru -S "${packages[@]}"

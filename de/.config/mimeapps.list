@@ -19,6 +19,7 @@ application/x-pksz=CiscoPacketTracer-9.0.0.desktop
 x-scheme-handler/discord=legcord.desktop
 x-scheme-handler/sgnl=signal.desktop
 x-scheme-handler/signalcaptcha=signal.desktop
+x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 
 [Added Associations]
 x-scheme-handler/http=zen.desktop;

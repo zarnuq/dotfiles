@@ -1,4 +1,4 @@
---- @since 25.5.28
+--- @since 25.12.29
 
 local toggle_ui = ya.sync(function(self)
 	if self.children then
@@ -7,7 +7,7 @@ local toggle_ui = ya.sync(function(self)
 	else
 		self.children = Modal:children_add(self, 10)
 	end
-	ya.render()
+	ui.render()
 end)
 
 local subscribe = ya.sync(function(self)
@@ -18,7 +18,7 @@ end)
 local update_partitions = ya.sync(function(self, partitions)
 	self.partitions = partitions
 	self.cursor = math.max(0, math.min(self.cursor or 0, #self.partitions - 1))
-	ya.render()
+	ui.render()
 end)
 
 local active_partition = ya.sync(function(self) return self.partitions[self.cursor + 1] end)
@@ -29,12 +29,14 @@ local update_cursor = ya.sync(function(self, cursor)
 	else
 		self.cursor = ya.clamp(0, self.cursor + cursor, #self.partitions - 1)
 	end
-	ya.render()
+	ui.render()
 end)
 
 local M = {
 	keys = {
 		{ on = "q", run = "quit" },
+		{ on = "<Esc>", run = "quit" },
+		{ on = "<Enter>", run = { "enter", "quit" } },
 
 		{ on = "k", run = "up" },
 		{ on = "j", run = "down" },
@@ -127,11 +129,11 @@ function M:entry(job)
 			if run == "quit" then
 				break
 			elseif run == "mount" then
-				self.operate("mount")
+				require(".cross").operate("mount", active_partition())
 			elseif run == "unmount" then
-				self.operate("unmount")
+				require(".cross").operate("unmount", active_partition())
 			elseif run == "eject" then
-				self.operate("eject")
+				require(".cross").operate("eject", active_partition())
 			end
 		until not run
 	end
@@ -209,6 +211,7 @@ function M.split(src)
 		{ "^/dev/nvme%d+n%d+", "p%d+$" }, -- /dev/nvme0n1p1
 		{ "^/dev/mmcblk%d+", "p%d+$" }, -- /dev/mmcblk0p1
 		{ "^/dev/disk%d+", ".+$" }, -- /dev/disk1s1
+		{ "^/dev/sr%d+", ".+$" }, -- /dev/sr0
 	}
 	for _, p in ipairs(pats) do
 		local main = src:match(p[1])
@@ -245,36 +248,6 @@ function M.fillin(tbl)
 	end
 	return tbl
 end
-
-function M.operate(type)
-	local active = active_partition()
-	if not active then
-		return
-	elseif not active.sub then
-		return -- TODO: mount/unmount main disk
-	end
-
-	local output, err
-	if ya.target_os() == "macos" then
-		output, err = Command("diskutil"):arg({ type, active.src }):output()
-	end
-	if ya.target_os() == "linux" then
-		if type == "eject" then
-			Command("udisksctl"):arg({ "unmount", "-b", active.src }):status()
-			output, err = Command("udisksctl"):arg({ "power-off", "-b", active.src }):output()
-		else
-			output, err = Command("udisksctl"):arg({ type, "-b", active.src }):output()
-		end
-	end
-
-	if not output then
-		M.fail("Failed to %s `%s`: %s", type, active.src, err)
-	elseif not output.status.success then
-		M.fail("Failed to %s `%s`: %s", type, active.src, output.stderr)
-	end
-end
-
-function M.fail(s, ...) ya.notify { title = "Mount", content = string.format(s, ...), timeout = 10, level = "error" } end
 
 function M:click() end
 

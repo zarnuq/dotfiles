@@ -1,4 +1,4 @@
---- @since 25.5.28
+--- @since 26.1.22
 
 local M = {}
 
@@ -6,7 +6,7 @@ local function fail(job, s) ya.preview_widget(job, ui.Text.parse(s):area(job.are
 
 function M:peek(job)
 	local child, err = Command("sh")
-		:arg({ "-c", job.args[1], "sh", tostring(job.file.url) })
+		:arg({ "-c", job.args[1], "sh", tostring(job.file.path) })
 		:env("w", job.area.w)
 		:env("h", job.area.h)
 		:stdout(Command.PIPED)
@@ -57,7 +57,7 @@ function M.format(job, lines)
 
 		local icon = File({
 			url = Url(lines[i]),
-			cha = Cha { kind = lines[i]:sub(-1) == "/" and 1 or 0 },
+			cha = Cha { mode = tonumber(lines[i]:sub(-1) == "/" and "40700" or "100644", 8) },
 		}):icon()
 
 		if icon then
