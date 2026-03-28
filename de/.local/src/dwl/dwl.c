@@ -2130,7 +2130,7 @@ static json_object *
 ipc_json_describe_output(Monitor *m)
 {
 	json_object *obj = json_object_new_object();
-	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)m));
+	json_object_object_add(obj, "id", json_object_new_int((int)((uintptr_t)m & 0x7FFFFFFF)));
 	json_object_object_add(obj, "name", json_object_new_string(m->wlr_output->name));
 	json_object_object_add(obj, "active", json_object_new_boolean(1));
 	json_object_object_add(obj, "dpms", json_object_new_boolean(m->wlr_output->enabled));
@@ -2164,7 +2164,7 @@ ipc_json_describe_workspace(Monitor *m, int tag)
 	char name[16];
 	snprintf(name, sizeof(name), "%d", num);
 
-	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)m * 100 + tag));
+	json_object_object_add(obj, "id", json_object_new_int((int)(((uintptr_t)m * 100 + tag) & 0x7FFFFFFF)));
 	json_object_object_add(obj, "num", json_object_new_int(num));
 	json_object_object_add(obj, "name", json_object_new_string(name));
 
@@ -2177,11 +2177,23 @@ ipc_json_describe_workspace(Monitor *m, int tag)
 			urgent = 1;
 	}
 
+	const char *layout;
+	if (!m->lt[m->sellt]->arrange)
+		layout = "splith";
+	else if (strstr(m->lt[m->sellt]->symbol, "M"))
+		layout = "tabbed";
+	else
+		layout = "splith";
+
 	json_object_object_add(obj, "visible", json_object_new_boolean(visible));
 	json_object_object_add(obj, "focused", json_object_new_boolean(focused));
 	json_object_object_add(obj, "urgent", json_object_new_boolean(urgent));
 	json_object_object_add(obj, "output", json_object_new_string(m->wlr_output->name));
 	json_object_object_add(obj, "rect", ipc_json_create_rect(&m->w));
+	json_object_object_add(obj, "layout", json_object_new_string(layout));
+	json_object_object_add(obj, "nodes", json_object_new_array());
+	json_object_object_add(obj, "floating_nodes", json_object_new_array());
+	json_object_object_add(obj, "focus", json_object_new_array());
 
 	return obj;
 }
@@ -2192,15 +2204,21 @@ ipc_json_describe_window(Client *c)
 	const char *title = client_get_title(c);
 	const char *appid = client_get_appid(c);
 	json_object *obj = json_object_new_object();
-	json_object_object_add(obj, "id", json_object_new_int64((int64_t)(uintptr_t)c));
+	json_object_object_add(obj, "id", json_object_new_int((int)((uintptr_t)c & 0x7FFFFFFF)));
 	json_object_object_add(obj, "type", json_object_new_string("con"));
 	json_object_object_add(obj, "name", json_object_new_string(title ? title : ""));
 	json_object_object_add(obj, "app_id", json_object_new_string(appid ? appid : ""));
-	json_object_object_add(obj, "focused", json_object_new_boolean(c == focustop(selmon)));
+	json_object_object_add(obj, "focused", json_object_new_boolean(c->mon && c == focustop(c->mon)));
+	json_object_object_add(obj, "output", json_object_new_string(
+		(c->mon && c->mon->wlr_output) ? c->mon->wlr_output->name : ""));
 	json_object_object_add(obj, "urgent", json_object_new_boolean(c->isurgent));
 	json_object_object_add(obj, "floating", json_object_new_boolean(c->isfloating));
 	json_object_object_add(obj, "fullscreen_mode", json_object_new_int(c->isfullscreen));
 	json_object_object_add(obj, "rect", ipc_json_create_rect(&c->geom));
+	json_object_object_add(obj, "nodes", json_object_new_array());
+	json_object_object_add(obj, "floating_nodes", json_object_new_array());
+	json_object_object_add(obj, "focus", json_object_new_array());
+	json_object_object_add(obj, "marks", json_object_new_array());
 
 	return obj;
 }
@@ -2279,16 +2297,36 @@ ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
 		json_object_object_add(root, "type", json_object_new_string("root"));
 		json_object_object_add(root, "name", json_object_new_string("root"));
 		json_object_object_add(root, "focused", json_object_new_boolean(0));
+		json_object_object_add(root, "floating_nodes", json_object_new_array());
 
 		json_object *nodes = json_object_new_array();
 		Monitor *m;
 		wl_list_for_each(m, &mons, link) {
 			json_object *output = json_object_new_object();
-			json_object_object_add(output, "id", json_object_new_int64((int64_t)(uintptr_t)m));
+			json_object_object_add(output, "id", json_object_new_int((int)((uintptr_t)m & 0x7FFFFFFF)));
 			json_object_object_add(output, "type", json_object_new_string("output"));
 			json_object_object_add(output, "name", json_object_new_string(m->wlr_output->name));
 			json_object_object_add(output, "focused", json_object_new_boolean(m == selmon));
 			json_object_object_add(output, "rect", ipc_json_create_rect(&m->m));
+			json_object_object_add(output, "layout", json_object_new_string("output"));
+			json_object_object_add(output, "nodes", json_object_new_array());
+			json_object_object_add(output, "floating_nodes", json_object_new_array());
+			json_object_object_add(output, "focus", json_object_new_array());
+			json_object_object_add(output, "marks", json_object_new_array());
+			/* current_workspace: waybar uses this to filter which workspace to display */
+			{
+				char ws_name[16];
+				int active_tag = 0;
+				for (int i = 0; i < TAGCOUNT; i++) {
+					if (m->tagset[m->seltags] & (1 << i)) {
+						active_tag = i;
+						break;
+					}
+				}
+				snprintf(ws_name, sizeof(ws_name), "%d", active_tag + 1);
+				json_object_object_add(output, "current_workspace",
+					json_object_new_string(ws_name));
+			}
 
 			json_object *output_nodes = json_object_new_array();
 			for (int tag = 0; tag < TAGCOUNT; tag++) {
@@ -2305,13 +2343,28 @@ ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
 
 				json_object *ws = ipc_json_describe_workspace(m, tag);
 				json_object_object_add(ws, "type", json_object_new_string("workspace"));
+				json_object_object_add(ws, "focused", json_object_new_boolean(0));
 
+				/* Populate nodes with tiled clients, floating_nodes with floating clients */
 				json_object *ws_nodes = json_object_new_array();
+				json_object *ws_floating = json_object_new_array();
+				json_object *ws_focus = json_object_new_array();
+				Client *top = focustop(m);
 				wl_list_for_each(c, &clients, link) {
-					if (c->mon == m && (c->tags & (1 << tag)))
-						json_object_array_add(ws_nodes, ipc_json_describe_window(c));
+					if (c->mon == m && (c->tags & (1 << tag))) {
+						json_object *win = ipc_json_describe_window(c);
+						if (c->isfloating)
+							json_object_array_add(ws_floating, win);
+						else
+							json_object_array_add(ws_nodes, win);
+						if (c == top)
+							json_object_array_add(ws_focus,
+								json_object_new_int((int)((uintptr_t)c & 0x7FFFFFFF)));
+					}
 				}
 				json_object_object_add(ws, "nodes", ws_nodes);
+				json_object_object_add(ws, "floating_nodes", ws_floating);
+				json_object_object_add(ws, "focus", ws_focus);
 				json_object_array_add(output_nodes, ws);
 			}
 			json_object_object_add(output, "nodes", output_nodes);
@@ -2326,6 +2379,11 @@ ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
 	}
 
 	case IPC_SUBSCRIBE: {
+		if (!buf) {
+			const char msg[] = "{\"success\": false}";
+			ipc_send_reply(client, payload_type, msg, strlen(msg));
+			break;
+		}
 		struct json_object *request = json_tokener_parse(buf);
 		if (!request || !json_object_is_type(request, json_type_array)) {
 			const char msg[] = "{\"success\": false}";
@@ -2336,6 +2394,7 @@ ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
 		int is_tick = 0;
 		for (size_t i = 0; i < json_object_array_length(request); i++) {
 			const char *event_type = json_object_get_string(json_object_array_get_idx(request, i));
+			if (!event_type) continue;
 			if (strcmp(event_type, "workspace") == 0)
 				client->subscribed_events |= event_mask(IPC_EVENT_WORKSPACE);
 			else if (strcmp(event_type, "output") == 0)
@@ -2418,7 +2477,68 @@ ipc_client_handle_command(IpcClient *client, uint32_t payload_length,
 		break;
 	}
 
-	case IPC_COMMAND:
+	case IPC_COMMAND: {
+		int success = 0;
+		if (payload_length == 0) {
+			const char msg[] = "[]";
+			ipc_send_reply(client, payload_type, msg, strlen(msg));
+			break;
+		}
+
+		if (buf && payload_length > 0) {
+			if (strncmp(buf, "workspace ", 10) == 0) {
+				int ws = atoi(buf + 10);
+				if (ws > 0 && ws <= TAGCOUNT) {
+					view(&(Arg){.ui = 1 << (ws - 1)});
+					success = 1;
+				}
+			} else if (strncmp(buf, "move container to workspace ", 28) == 0) {
+				int ws = atoi(buf + 28);
+				if (ws > 0 && ws <= TAGCOUNT) {
+					tag(&(Arg){.ui = 1 << (ws - 1)});
+					success = 1;
+				}
+			} else if (strcmp(buf, "kill") == 0) {
+				killclient(&(Arg){0});
+				success = 1;
+			} else if (strcmp(buf, "floating toggle") == 0) {
+				togglefloating(&(Arg){0});
+				success = 1;
+			} else if (strcmp(buf, "fullscreen toggle") == 0) {
+				togglefullscreen(&(Arg){0});
+				success = 1;
+			} else if (strncmp(buf, "focus ", 6) == 0) {
+				if (strcmp(buf + 6, "left") == 0 || strcmp(buf + 6, "up") == 0) {
+					focusstack(&(Arg){.i = -1});
+					success = 1;
+				} else if (strcmp(buf + 6, "right") == 0 || strcmp(buf + 6, "down") == 0) {
+					focusstack(&(Arg){.i = +1});
+					success = 1;
+				}
+			} else if (strncmp(buf, "layout ", 7) == 0) {
+				const char *l_name = buf + 7;
+				for (unsigned int i = 0; i < LENGTH(layouts); i++) {
+					if (strcmp(layouts[i].symbol, l_name) == 0 || 
+					   (strcmp(l_name, "tabbed") == 0 && layouts[i].arrange == monocle) ||
+					   (strcmp(l_name, "default") == 0 && i == 0)) {
+						setlayout(&(Arg){.v = &layouts[i]});
+						success = 1;
+						break;
+					}
+				}
+			}
+		}
+
+		if (success) {
+			const char msg[] = "[{\"success\": true}]";
+			ipc_send_reply(client, payload_type, msg, strlen(msg));
+		} else {
+			const char msg[] = "[{\"success\": false, \"error\": \"command not found or invalid\"}]";
+			ipc_send_reply(client, payload_type, msg, strlen(msg));
+		}
+		break;
+	}
+
 	case IPC_SYNC:
 	default: {
 		const char msg[] = "[{\"success\": false, \"error\": \"not implemented\"}]";
@@ -2730,6 +2850,7 @@ focusclient(Client *c, int lift)
 	if (!c) {
 		/* With no client, all we have left is to clear focus */
 		wlr_seat_keyboard_notify_clear_focus(seat);
+		ipc_event_window(NULL, "focus");
 		return;
 	}
 
@@ -4386,6 +4507,7 @@ updatetitle(struct wl_listener *listener, void *data)
 	Client *c = wl_container_of(listener, c, set_title);
 	if (c == focustop(c->mon))
 		printstatus();
+	ipc_event_window(c, "title");
 }
 
 void

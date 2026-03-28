@@ -3,12 +3,12 @@
     "position": "top",
     "height": 5,
     "modules-left": [
-    "dwl/tags",
+    "sway/workspaces",
     "custom/space",
-    "dwl/window"
+    "sway/window"
     ],
     "modules-center": [
-      "clock",         
+      "clock"
     ],
     "modules-right": [
       "tray",
@@ -21,15 +21,13 @@
     "battery", 
     "custom/power"
     ],
-    "dwl/window": {
-    "format": "{layout} {app_id} {title}",
-    "hide-vacant-tags": true,
-    "max-length": 50,
+    "sway/window": {
+      "format": "{title}",
+      "max-length": 50
     },
-      "dwl/tags": {
-        "num-tags": 9,
-        "hide-vacant-tags": true,
-        "disable-click": false,
+      "sway/workspaces": {
+        "disable-scroll": true,
+        "disable-click": false
     },
       "memory": {
         "interval": 5,
@@ -127,5 +125,5 @@
         "format": "",
         "tooltip": false,
         "on-click-middle": "shutdown now"
-      },
-},
+      }
+}
