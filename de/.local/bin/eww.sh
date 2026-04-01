@@ -11,58 +11,44 @@ else
     monitor="0"  # Laptop display
 fi
 
+DASH="eww --config $EWW_DIR/dash"
+
 open_dash() {
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" clock
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" volume
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" cpu
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" tray
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" ram
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" disk
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" network
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" temps
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" weather
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" notifications
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" mpd
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" updates
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" fetch
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" hwinfo
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" outlook
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" ports
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" procs
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" services
-    eww --config "$EWW_DIR/dash" open --screen "$monitor" notes
-}
-
-open_vpn() {
-    eww --config "$EWW_DIR/vpn" open --screen "$monitor" vpn
-}
-
-close_dash() {
-    eww --config "$EWW_DIR/dash" close-all
-}
-
-close_vpn() {
-    eww --config "$EWW_DIR/vpn" close-all
+    $DASH open --screen "$monitor" clock
+    $DASH open --screen "$monitor" cpu
+    $DASH open --screen "$monitor" tray
+    $DASH open --screen "$monitor" network
+    $DASH open --screen "$monitor" ipaddrs
+    $DASH open --screen "$monitor" weather
+    $DASH open --screen "$monitor" notifications
+    $DASH open --screen "$monitor" mpd-volume
+    $DASH open --screen "$monitor" updates
+    $DASH open --screen "$monitor" fetch
+    $DASH open --screen "$monitor" hwinfo
+    $DASH open --screen "$monitor" outlook
+    $DASH open --screen "$monitor" ports
+    $DASH open --screen "$monitor" procs
+    $DASH open --screen "$monitor" services
+    $DASH open --screen "$monitor" notes
+    $DASH open --screen "$monitor" vpn
 }
 
 case "$1" in
     open)
         open_dash
-        open_vpn
         ;;
     close)
-        close_dash
-        close_vpn
+        $DASH close-all
         ;;
     dash)
         open_dash
         ;;
     vpn)
         # Toggle VPN widget
-        if eww --config "$EWW_DIR/vpn" active-windows | grep -q "vpn"; then
-            close_vpn
+        if $DASH active-windows | grep -q "vpn"; then
+            $DASH close vpn
         else
-            open_vpn
+            $DASH open --screen "$monitor" vpn
         fi
         ;;
     *)
