@@ -24,6 +24,7 @@ packages=(
   evil-winrm-py     # WinRM shell for pentesting Windows hosts
   seclists          # Collection of security-related wordlists
   perl-image-exiftool
+  bind-tools
 )
 
 paru -S "${packages[@]}"
