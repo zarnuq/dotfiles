@@ -34,11 +34,11 @@ static char *tags_names[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
 static pixman_color_t active_fg_color =          HEX_COLOR(0xffffffff); // #cdd6f4
 static pixman_color_t active_bg_color =          HEX_COLOR(0xcba6f7ff); // #cba6f7
 static pixman_color_t occupied_fg_color =        HEX_COLOR(0x7f849cff); // #7f849c
-static pixman_color_t occupied_bg_color =        HEX_COLOR(0x313244ff); // #313244
+static pixman_color_t occupied_bg_color =        HEX_COLOR(0x1e1e2eff); // #313244
 static pixman_color_t inactive_fg_color =        HEX_COLOR(0x7f849cff); // #7f849c
-static pixman_color_t inactive_bg_color =        HEX_COLOR(0x313244ff); // #313244
+static pixman_color_t inactive_bg_color =        HEX_COLOR(0x1e1e2eff); // #313244
 static pixman_color_t urgent_fg_color =          HEX_COLOR(0x11111bff); // #11111b
 static pixman_color_t urgent_bg_color =          HEX_COLOR(0xf38ba8ff); // #f38ba8
-static pixman_color_t middle_bg_color =          HEX_COLOR(0x313244ff); // #313244
+static pixman_color_t middle_bg_color =          HEX_COLOR(0x1e1e2eff); // #313244
 static pixman_color_t middle_bg_color_selected = HEX_COLOR(0xcba6f7ff); // #cba6f7
 
