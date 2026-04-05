@@ -1,6 +1,8 @@
 #!/bin/bash
-pactl list sinks | awk '
-    /State: RUNNING/ { in_sink=1 }
+default=$(pactl get-default-sink 2>/dev/null)
+[ -z "$default" ] && exit
+pactl list sinks | awk -v name="$default" '
+    /Name:/ { in_sink = ($2 == name) }
     in_sink && /Description:/ { print $0; exit }
 ' | cut -d ':' -f2- | xargs | sed -E \
     -e 's/\([^)]*\)//g' \
