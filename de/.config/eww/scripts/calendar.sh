@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Calendar widget script - fetches and parses ICS calendar with recurring event support"""
 
+import os
+import sys
+os.environ.setdefault("PYTHONPATH", os.path.expanduser("~/.nix-profile/lib/python3.13/site-packages"))
+sys.path.insert(0, os.path.expanduser("~/.nix-profile/lib/python3.13/site-packages"))
+
 import json
 import os
 import sys

@@ -13,22 +13,25 @@ static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You ca
 static const int respect_monitor_reserved_area = 0;  /* 1 to monitor center while respecting the monitor's reserved area, 0 to monitor center */
 static const char *cursor_theme            = "Bibata-Modern-Classic";
 static const char cursor_size[]            = "24";
-#define TAGCOUNT (9)
 static int log_level = WLR_ERROR;
+#define TAGCOUNT (9)
 
 static const char *const autostart[] = {
-    "dunst",                                              NULL,
-    "dwlb",                                               NULL,
-//    "swww-daemon",                                        NULL,
-    "someblocks", "-p", "|", "dwlb", "-status-stdin", "all", NULL,
-    "easyeffects", "--gapplication-service",              NULL,
-    "gammastep", "-O", "4000:4000",                       NULL,
-    "kitty", "--class", "rmpc", "rmpc",                   NULL,
-    "wl-clip-persist", "-c", "regular",                   NULL,
-    "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
     "pipewire",                                           NULL,
     "pipewire-pulse",                                     NULL,
     "wireplumber",                                        NULL,
+    "sh", "-c", "pgrep mpd || mpd",                       NULL,
+    "mpDris2",                                            NULL,
+    "kitty", "--class", "rmpc", "rmpc",                   NULL,
+    "easyeffects", "--gapplication-service",              NULL,
+    "dunst",                                              NULL,
+    "dwlb",                                               NULL,
+    "syncthing",                                          NULL,
+    "gammastep", "-O", "4000:4000",                       NULL,
+    "wl-clip-persist", "-c", "regular",                   NULL,
+    "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
+    "swww-daemon",                                        NULL,
+    "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
     NULL
 };
 
@@ -39,6 +42,7 @@ static const Env envs[] = {
     { "QT_STYLE_OVERRIDE",    "kvantum" },
     { "WAYLAND_DISPLAY",      "wayland-0" },
     { "JAVA_HOME",            "/usr/lib/jvm/java-21-openjdk"},
+    { "XDG_DATA_DIRS",        "/home/miles/.nix-profile/share:/usr/local/share:/usr/share"},
 };
 
 static const Rule rules[] = {
@@ -167,8 +171,8 @@ static const Keychord keychords[] = {
     SPAWN1(ALT, End,           "/bin/sh", "-c", "pactl set-source-mute @DEFAULT_SOURCE@ toggle && kill -36 $(pidof someblocks)"),
     SPAWN1(ALT, bracketleft,   "/bin/sh", "-c", "$HOME/.local/bin/flip.sh && touch /tmp/update_audio && kill -35 $(pidof someblocks)"),
     /*     mod  key mod2 key2 cmd_args... */
-    SPAWN2(MOD, q,  0,   1,   "/bin/sh", "-c", "easyeffects -l eq"),
-    SPAWN2(MOD, q,  0,   2,   "/bin/sh", "-c", "easyeffects -l none"),
+    SPAWN2(MOD, q,  0,   1,   "/bin/sh", "-c", "easyeffects -l EQ"),
+    SPAWN2(MOD, q,  0,   2,   "/bin/sh", "-c", "easyeffects -l None"),
 
 /* Brightness control */
     /*     mod      key    cmd_args... */

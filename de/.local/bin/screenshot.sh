@@ -2,7 +2,7 @@
 
 case "$1" in
     ss)
-        grim -g "$(slurp)" - | wl-copy
+        grim -g "$(slurp)" - | wl-copy --type image/png
         ;;
     section)
         filename="$HOME/Pictures/screenshot-$(date +'%Y-%m-%d_%H-%M-%S').png"

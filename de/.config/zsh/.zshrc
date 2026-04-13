@@ -1,4 +1,3 @@
-
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 if [ ! -d "$XDG_RUNTIME_DIR" ]; then
     sudo mkdir -p "$XDG_RUNTIME_DIR"
@@ -10,13 +9,9 @@ if [[ ! -f $HOME/.local/share/zplug/init.zsh ]]; then
     curl -sL --proto-redir -all,https \
         https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
 fi
-
-export XDG_RUNTIME_DIR=/run/user/1000
-export ZPLUG_HOME=$HOME/.local/share/zplug
 source $ZPLUG_HOME/init.zsh
 
 #ALIASES
-#alias y='yazi'
 alias gs='git status -s'
 alias gac='git add .; git commit -m'
 alias gp='git push'
@@ -25,8 +20,6 @@ alias vim='nvim'
 alias ls='ls --color=auto'
 alias ll='ls -l --color=auto'
 alias grep='grep --color=auto'
-alias nord='sudo systemctl start nordvpnd && nordvpn c Chicago'
-alias ka='killall'
 alias pickcolor='grim -g "$(slurp -p)" -t ppm - | convert - -format "%[pixel:p{0,0}]" txt:-'
 alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias ff='fastfetch'
@@ -38,6 +31,7 @@ alias xi='sudo xbps-install -S'
 alias xr='sudo xbps-remove -R'
 alias xu='sudo xbps-install -Su'
 alias xq='xbps-query'
+alias pyserver='python -m http.server'
 
 function y() {
   local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
@@ -68,7 +62,6 @@ SPACESHIP_PROMPT_ORDER=(
 )
 SPACESHIP_CHAR_SYMBOL="> "
 SPACESHIP_CHAR_SYMBOL_FAILURE="x "
-SPACESHIP_CHAR_COLOR_SUCCESS="white"
 SPACESHIP_DIR_TRUNC_REPO="false"
 SPACESHIP_DIR_LOCK_SYMBOL=""
 SPACESHIP_GIT_PREFIX=""

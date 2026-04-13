@@ -1,17 +1,18 @@
-export PATH=:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:$PATH
+export PATH="/usr/bin:/usr/sbin:/bin:/sbin:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin"
+export LD_PRELOAD=/usr/lib/libstdc++.so.6
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_CONFIG_HOME=$HOME/.config
 export XDG_DATA_HOME=$HOME/.local/share
 export XDG_STATE_HOME=$HOME/.local/state
+export XDG_DATA_DIRS=/home/miles/.nix-profile/share:/usr/local/share:/usr/share
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh
 export EDITOR=nvim
 export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
 export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
 export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie
 export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc
-export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
 export ZPLUG_HOME=$XDG_DATA_HOME/zplug
-alias wget=wget --hsts-file="$XDG_DATA_HOME/wget-hsts"
+alias wget='wget --hsts-file="$XDG_DATA_HOME/wget-hsts"'
 export ZSH_CUSTOM=$XDG_DATA_HOME
 export M2_REPO=$XDG_DATA_HOME
 export WINEPREFIX=$XDG_DATA_HOME
@@ -36,3 +37,6 @@ export YARN_GLOBAL_FOLDER=$XDG_DATA_HOME
 export WG_CONFIG_DIR=$XDG_DATA_HOME
 export GOPATH=$XDG_DATA_HOME
 export CLAUDE_CONFIG_DIR=$XDG_CACHE_HOME/claude
+export LIBVA_DRIVER_NAME=nvidia
+export NVD_BACKEND=direct
+export MOZ_DISABLE_RDD_SANDBOX=1
