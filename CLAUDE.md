@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal dotfiles for an Arch Linux system. Wayland compositor stack centered on DWL (custom-patched dwm port). GNU Stow manages all symlinks from `de/` to `$HOME`. Terminal emulator is **kitty** (not ghostty, not wezterm). Theme is **Catppuccin Mocha (Mauve accent)** across all applications.
+Personal dotfiles for a **Void Linux** system. Wayland compositor stack centered on DWL (custom-patched dwm port). GNU Stow manages all symlinks from `de/` to `$HOME`. Terminal emulator is **kitty** (not ghostty, not wezterm). Theme is **Catppuccin Mocha (Mauve accent)** across all applications. UI aesthetic: **flat/sharp** — all border-radius is explicitly 0 everywhere.
+
+Package manager is `xbps` (`xbps-install`, `xbps-query`, `xbps-remove`). `pacman`/`paru`/AUR do not apply. Nix + home-manager is used alongside xbps for a curated set of packages (security tools, theming, Python libs — see [Nix / home-manager](#nix--home-manager) section). Clean nix garbage with `nix-collect-garbage -d`.
 
 ---
 
@@ -36,10 +38,10 @@ stow de
 
 ### install.sh functions
 - `install_groups()` — adds user to: power, video, storage, kvm, disk, audio, nordvpn, mpd
-- `install_system()` — enables pacman colors + multilib
+- `install_system()` — enables pacman colors + multilib (Arch-era; Void equivalent: xbps config)
 - `install_packages()` — base, dev, terminal, wayland, audio, media, fonts, libraries
-- `install_paru()` — AUR helper
-- `install_aur()` — AUR: zen-browser-bin, brave-bin, xremap, legcord, catppuccin themes, eww
+- `install_paru()` — AUR helper (Arch-era; not applicable on Void)
+- `install_aur()` — AUR packages (Arch-era; not applicable on Void)
 - `install_dwl()` — builds and installs dwl, dwlb, someblocks (binaries symlinked to /bin/)
 - `install_grub()` — GRUB with Catppuccin Mocha theme
 - `install_greetd()` — tuigreet display manager
@@ -48,7 +50,10 @@ stow de
 - `install_zen()` — symlinks Zen browser configs
 - `install_tpm()` — tmux plugin manager
 - `install_services()` — enables: mpd, mpdris, xdg-desktop-portal, ufw, udisks2, bluetooth, dbus, greetd
-- `install_nvidia()` — installs Nvidia packages from `~/dotfiles/nvidia-packages.txt` (opt-in, not in auto-run; available via install-tui.sh)
+- `install_nvidia()` — installs Nvidia packages (opt-in, available via install-tui.sh)
+
+### install-tui.sh
+Interactive fzf-based TUI that wraps `install.sh`. Presents a multi-select menu of all install modules using Catppuccin Mocha colors. Use tab to toggle modules, Enter to run selected ones. Includes `nvidia` as a selectable option (not run by default).
 
 ### Stow Commands
 ```bash
@@ -62,6 +67,83 @@ cd ~/.local/src/dwl && make clean install
 cd ~/.local/src/dwlb && make clean install
 cd ~/.local/src/someblocks && make
 ```
+
+---
+
+## Nix / home-manager
+
+**Configs:**
+- `de/.config/home-manager/home.nix` — main home-manager config
+- `de/.config/nixpkgs/config.nix` — `{ allowUnfree = true; }` (required for burpsuite, wpscan, binaryninja-free, etc.)
+
+Home-manager is used **alongside** xbps on Void Linux to manage a curated set of packages that aren't easily available or kept up-to-date via xbps. Run `home-manager switch` to apply.
+
+### Session Variables (injected by home-manager)
+- `XDG_DATA_DIRS=$HOME/.nix-profile/share:/usr/local/share:/usr/share`
+- `QT_PLUGIN_PATH=/usr/lib/qt6/plugins:/usr/lib/qt/plugins`
+- `QT_QPA_PLATFORMTHEME=qt6ct`
+- `GTK_THEME=catppuccin-mocha-mauve-standard:dark`
+
+### GTK / Theming (fully managed by home-manager)
+`gtk.enable = true` is set — home-manager generates `~/.config/gtk-3.0/settings.ini` and `~/.config/gtk-4.0/settings.ini` as nix store symlinks. **Do not manually edit these files; change them via home.nix instead.**
+
+- `pkgs.catppuccin-gtk.override { accents=["mauve"]; variant="mocha"; }` — installs theme as `catppuccin-mocha-mauve-standard` (no `+default` suffix — that's the xbps package naming, not the nix build)
+- `pkgs.bibata-cursors` — Bibata-Modern-Classic cursor
+- `pkgs.nerd-fonts.jetbrains-mono` — JetBrainsMono Nerd Font
+- `gtk.gtk3.extraConfig` / `gtk.gtk4.extraConfig` — sets `gtk-application-prefer-dark-theme = 1`
+- `fonts.fontconfig.enable = true`
+
+> **Important:** `gtk.css` (border-radius override) lives in `de/.config/gtk-3.0/gtk.css` in the repo but home-manager only writes `settings.ini` to `~/.config/gtk-3.0/` — the css file must be stowed separately or placed manually if needed.
+
+### Desktop Entry: Tidaler
+Home-manager creates a `.desktop` entry for the Tidal music client:
+- Exec: `env QT_SCALE_FACTOR=1.5 LD_LIBRARY_PATH=/usr/lib ~/.local/bin/tidaler`
+- Categories: Audio, Music
+- Binary must be placed manually at `~/.local/bin/tidaler` (not in the dotfiles repo)
+
+### Python Packages (installed via home-manager)
+```nix
+python3.withPackages (ps: with ps; [
+  scapy            # packet crafting
+  impacket         # Windows protocol libs
+  virtualenv
+  pip
+  icalendar                  # eww calendar widget
+  recurring-ical-events      # eww calendar widget
+  x-wr-timezone              # eww calendar widget
+])
+```
+Also: `pipx`
+
+### Qt Plugins
+- `libsForQt5.qtstyleplugin-kvantum` — Kvantum for Qt5 apps
+- `qt6Packages.qtstyleplugin-kvantum` — Kvantum for Qt6 apps
+
+> **Note:** Kvantum only themes **QtWidgets** apps. Qt6/QML apps (e.g. EasyEffects 8.x) use QtQuick Controls 2 and are not themed by Kvantum's style plugin. EasyEffects imports `kvantum` as a QML module — this QML module is **not** included in the xbps kvantum package (1.1.5). The nix `kdePackages.qtstyleplugin-kvantum` (1.1.6) may include it; pending resolution.
+
+### Security / Pentesting Toolkit (all via nix)
+
+Installed via `home.packages` in home.nix. Grouped by category:
+
+| Category              | Tools                                                                                    |
+|-----------------------|------------------------------------------------------------------------------------------|
+| RECON & OSINT         | amass, arping, arp-scan, dnsenum, dnsrecon, dnstracer, enum4linux, fierce, hping, masscan, netmask, p0f, theharvester, whois |
+| SCANNING & ENUM       | nmap, onesixtyone, sslscan, ssldump, swaks, nikto, lynis                                |
+| WEB APP TESTING       | burpsuite, sqlmap, gobuster, ffuf, feroxbuster, wfuzz, whatweb, wpscan                  |
+| EXPLOITATION          | metasploit                                                                               |
+| PASSWORD ATTACKS      | john, hashcat, thc-hydra, ncrack, medusa, crunch, chntpw, fcrackzip                    |
+| WIRELESS              | aircrack-ng, bully, cowpatty, kismet, macchanger, pixiewps, wifite2, iw, bluez          |
+| SNIFFING & MITM       | wireshark, tcpdump, tcpreplay, tcpflow, netsniff-ng, ettercap, bettercap, dsniff, mitmproxy, sslsplit |
+| POST-EXPLOIT/TUNNEL   | netcat-openbsd, socat, iodine, proxychains-ng, sshuttle, stunnel, sslh, openvpn         |
+| REVERSE ENGINEERING   | ghidra, binaryninja-free, radare2, rizin, gdb, nasm, apktool, jadx                      |
+| FUZZING               | aflplusplus, spike                                                                       |
+| FORENSICS & RECOVERY  | sleuthkit, binwalk, foremost, ddrescue, dcfldd, exiv2, yara, hashdeep, testdisk, extundelete, pdf-parser, recoverjpeg, safecopy |
+| CRYPTO & STEGO        | steghide, stegseek, ccrypt                                                               |
+| HARDWARE & EMBEDDED   | flashrom, openocd, minicom                                                               |
+| UTILITIES             | unrar, dos2unix, plocate, ethtool, inetutils, axel                                       |
+| LIBS                  | dejavu_fonts, fontconfig                                                                  |
+
+Also: `antigravity` (ai stuff)
 
 ---
 
@@ -112,18 +194,24 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 - `QT_STYLE_OVERRIDE=kvantum`
 - `WAYLAND_DISPLAY=wayland-0`
 - `JAVA_HOME=/usr/lib/jvm/java-21-openjdk`
+- `XDG_DATA_DIRS=/home/miles/.nix-profile/share:/usr/local/share:/usr/share` (propagates nix profile to all DWL children)
 
 ### Autostart (runs at DWL startup)
+- pipewire
+- pipewire-pulse
+- wireplumber
+- mpd (guarded: `pgrep mpd || mpd`)
+- mpDris2
+- kitty --class rmpc rmpc
+- easyeffects --gapplication-service
 - dunst
 - dwlb
-- swww-daemon
-- someblocks -p | dwlb -status-stdin
-- easyeffects --gapplication-service
+- syncthing
 - gammastep -O 4000:4000
-- nm-applet
-- kitty --class rmpc rmpc
 - wl-clip-persist --clipboard regular
 - ~/.local/bin/eww.sh open
+- swww-daemon
+- someblocks -p | dwlb -status-stdin all
 
 ### Window Rules (regex-based)
 | App ID      | Tag  | Float | Monitor | Notes                       |
@@ -408,7 +496,10 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 ## EWW Desktop Widgets
 
 **Config:** `de/.config/eww/`
-**Architecture:** Multi-config (dash/ and vpn/ are separate eww instances)
+**Architecture:** Multi-config. Root-level `eww.yuck`/`eww.scss` have been removed. Config lives entirely in subdirectories:
+- `dash/` — main dashboard (eww.yuck + eww.scss)
+- `scripts/` — data provider scripts
+- `calendar.url` — ICS/CalDAV URL for calendar widget
 
 ### Launch
 ```bash
@@ -419,6 +510,9 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 ```
 
 Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (laptop)
+
+### EWW Styling
+`dash/eww.scss` uses Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
 
 ### Dash Widgets (de/.config/eww/dash/eww.yuck)
 
@@ -435,7 +529,7 @@ Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (lapt
 | weather       | wttr.in                           | 600s     | Temp, condition, humidity, wind    |
 | notifications | dunstctl history + jq             | 2s       | Last 5 notifs, pause/clear buttons |
 | mpd           | mpc                               | 1s       | Cover art, controls, progress bar  |
-| updates       | checkupdates + yay                | 1800s    | Pacman + AUR update count          |
+| updates       | checkupdates + yay                | 1800s    | Pacman + AUR update count (Arch-era; adapt for Void) |
 | fetch         | whoami, hostname, pacman, uptime  | 24h/60s  | System info display                |
 | hwinfo        | /proc/cpuinfo, nvidia-smi, lsblk  | 24h      | CPU, GPU, disk, RAM, mobo          |
 | ports         | scripts/ports.sh (ss + jq)        | 5s       | Listening TCP ports                |
@@ -448,7 +542,7 @@ Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (lapt
 - `ports.sh` — ss + awk + jq → JSON array of {proto, port, process}
 - `procs.sh` — ps + awk + jq → JSON array of {pid, name, cpu, mem}
 - `services.sh` — systemctl (system + user) + jq → JSON array of {name, status, type}
-- `calendar.sh` — Python: requires `icalendar` + `recurring_ical_events` packages; reads ~/.config/eww/calendar.url; caches ICS to /tmp/eww-calendar.ics
+- `calendar.sh` — Python: requires `icalendar` + `recurring_ical_events` packages (installed via home-manager); reads ~/.config/eww/calendar.url; caches ICS to /tmp/eww-calendar.ics
 - `vpn-manager.sh` — OpenVPN management; state in /tmp/eww-openvpn.{pid,status,log}
 - `focused-output.sh` — wlr-randr monitor detection
 
@@ -458,7 +552,7 @@ Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (lapt
 - dunstctl — notifications widget
 - nvidia-smi — GPU stats
 - curl — weather (wttr.in)
-- python3 + `icalendar` + `recurring-ical-events` — calendar widget
+- python3 + `icalendar` + `recurring-ical-events` — calendar widget (managed by home-manager)
 - wlr-randr — monitor detection in eww.sh
 - Notes file must exist: `~/.local/share/eww/notes.txt`
 - Calendar URL config: `~/.config/eww/calendar.url` (ICS/CalDAV URL)
@@ -556,6 +650,16 @@ Opens: `kitty nvim ~/.local/share/eww/notes.txt`
 
 ---
 
+## Tidal: Tidaler
+
+**Config:** `de/.config/tidaler/token.json`
+- Custom Tidal music streaming client
+- Binary placed at `~/.local/bin/tidaler` (not tracked in repo)
+- Launched via desktop entry with `QT_SCALE_FACTOR=1.5 LD_LIBRARY_PATH=/usr/lib`
+- `token.json` stores OAuth2 Bearer + refresh tokens — **gitignored** (listed in .gitignore)
+
+---
+
 ## Screen Lock: swaylock
 
 **Config:** `de/.config/swaylock/config`
@@ -614,12 +718,32 @@ Modules: Title, CPU (P/E cores), GPU, Memory, Display, Disk, OS, Host/Mobo, Kern
 
 ## GTK / Qt Theming
 
-### GTK3 (`de/.config/gtk-3.0/settings.ini`)
-- Theme: catppuccin-mocha-mauve-standard+default
-- Icons: Adwaita
+**UI Aesthetic: flat/sharp** — all border-radius is 0 across GTK and eww. Enforced globally in `gtk-3.0/gtk.css` (sets `border-radius: 0px` on `*`, `window`, `button`, `entry`, `.titlebar`).
+
+### GTK3 (`~/.config/gtk-3.0/`)
+Generated by home-manager (`gtk.enable = true`) — `settings.ini` is a nix store symlink. **Edit via home.nix, not the file directly.**
+- Theme: `catppuccin-mocha-mauve-standard` (nix build — no `+default` suffix)
+- Icons: **Papirus-Dark**
 - Font: JetBrainsMono Nerd Font 14
-- Cursor: Adwaita, size 24
-- XFT: antialias on, hint slight, RGB subpixel
+- Cursor: Bibata-Modern-Classic, size 24
+- `gtk-application-prefer-dark-theme = 1`
+- `gtk.css` (border-radius override) lives at `de/.config/gtk-3.0/gtk.css` in the repo but is **not** written by home-manager — needs to be stowed or placed manually
+
+### GTK4 (`~/.config/gtk-4.0/`)
+Also generated by home-manager. No `gtk-theme-name` is written here (GTK4/libadwaita ignores it anyway).
+- Cursor: Bibata-Modern-Classic, size 24
+- Font: JetBrainsMono Nerd Font 14
+- `gtk-application-prefer-dark-theme = 1`
+
+### xsettingsd (`de/.config/xsettingsd/xsettingsd.conf`)
+XSETTINGS daemon for non-GTK/Qt apps (Firefox, Signal, Electron apps). Must be running for these apps to pick up dark theme and cursor settings.
+- `Net/ThemeName` — catppuccin-mocha-mauve-standard+default
+- `Net/IconThemeName` — Papirus-Dark
+- `Gtk/CursorThemeName` — Bibata-Modern-Classic
+- `Gtk/ApplicationPreferDarkTheme 1` — required for Firefox/Signal dark mode
+- `Xft/Antialias` — 1
+- `Xft/Hinting` — 1, hintslight
+- `Xft/RGBA` — rgb
 
 ### Qt6 (`de/.config/qt6ct/qt6ct.conf`)
 - Style: Kvantum
@@ -629,6 +753,18 @@ Modules: Title, CPU (P/E cores), GPU, Memory, Display, Disk, OS, Host/Mobo, Kern
 
 ### Kvantum (`de/.config/Kvantum/kvantum.kvconfig`)
 - Theme: catppuccin-mocha-mauve
+
+---
+
+## Audio: PipeWire + WirePlumber
+
+### PipeWire (`de/.config/pipewire/`)
+- `pipewire.conf` — custom config based on PipeWire 1.6.2 defaults; `link.max-buffers = 16` (compatibility with older clients)
+- `pipewire-pulse.conf` — PulseAudio compatibility layer config
+- `pipewire.conf.d/` — drop-in config fragments
+
+### WirePlumber (`de/.config/wireplumber/wireplumber.conf.d/`)
+- `softvol.conf` — ALSA rule: enables `api.alsa.soft-mixer = true` for all USB audio cards (`alsa_card.usb-.*`). Required for USB audio devices to have software volume control.
 
 ---
 
@@ -678,14 +814,27 @@ Toggles blue light filter: `gammastep -O 4000:4000`. Kill if running, start if n
 ### runbar.sh
 Kills dwlb, restarts it, pipes someblocks status.
 
-### lrc-extract.sh
-Extracts lyrics from FLAC metadata (UNSYNCED/LYRICS) and generates timed [MM:SS.MS] .lrc files. Uses: ffprobe, metaflac, bc.
+### install.sh
+Full system installation script. See [Installation & Setup](#installation--setup).
 
-### kill.sh
-Interactive process killer via rofi dmenu. Filters out root/kernel threads. Sends kill -9.
+### install-tui.sh
+Interactive fzf-based wrapper around install.sh. Multi-select menu for choosing which install modules to run. Catppuccin Mocha colored UI.
 
-### br0.sh
-Creates network bridge br0, adds wlp2s0, assigns 192.168.1.10/24.
+> **Note:** `lrc-extract.sh`, `kill.sh`, and `br0.sh` are documented in older versions of this file but are **not present** in `de/.local/bin/`. They may have been removed or never committed.
+
+---
+
+## Misc Config
+
+### btd6.sh (`de/.config/btd6.sh`)
+Helper script for setting up BloonsTD6 modding with MelonLoader under Wine/Steam:
+- Sets `WINEPREFIX=~/.steam/steam/steamapps/compatdata/960090/pfx`
+- Runs `winetricks dotnet6`
+- Instructions: copy MelonLoader files into the game dir, add a `Mods/` folder with `Btd6ModHelper.dll`
+- Steam launch option: `WINEDLLOVERRIDES="version=n,b" %command%`
+
+### qBittorrent (`de/.config/qBittorrent/`)
+- Torrent client config present
 
 ---
 
@@ -709,9 +858,22 @@ Creates network bridge br0, adds wlp2s0, assigns 192.168.1.10/24.
 
 ## Package Management
 
-- `pacman` / `paru` (AUR helper)
-- Alias `p` = paru
-- Alias `pf` = interactive AUR search with fzf
+**Primary: xbps** (Void Linux)
+```bash
+xbps-install -S <pkg>    # install
+xbps-remove <pkg>        # remove
+xbps-query -Rs <pkg>     # search
+xbps-install -Su         # update system
+```
+
+**Secondary: Nix / home-manager** — for security tools, theming packages, Python libs
+```bash
+home-manager switch          # apply home.nix changes
+nix-env -iA nixpkgs.<pkg>    # ad-hoc nix package
+nix-collect-garbage -d       # remove old generations + garbage collect
+```
+
+> The `p` alias (paru) is an Arch-era remnant — not applicable on Void Linux.
 
 ---
 
@@ -733,3 +895,4 @@ gp    # git push
 - MPD runtime files (log, state, db, pid)
 - `*.m3u` — playlist files
 - Neovim spell files
+- `de/.config/tidaler/token.json` — OAuth tokens (sensitive)

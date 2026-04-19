@@ -1,10 +1,4 @@
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-if [ ! -d "$XDG_RUNTIME_DIR" ]; then
-    sudo mkdir -p "$XDG_RUNTIME_DIR"
-    sudo chown $(whoami):$(id -gn) "$XDG_RUNTIME_DIR"
-    sudo chmod 700 "$XDG_RUNTIME_DIR"
-fi
-
 if [[ ! -f $HOME/.local/share/zplug/init.zsh ]]; then
     curl -sL --proto-redir -all,https \
         https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
@@ -25,8 +19,6 @@ alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias ff='fastfetch'
 alias doomsync='pkill emacs;systemctl --user stop emacs;doom sync;systemctl --user start emacs'
 alias ta='tmux attach-session -t'
-alias p='paru'
-alias pf="yay -Slq | fzf --multi --preview 'yay -Sii {1}' --preview-window=down:75% --layout=reverse | xargs -ro yay -S"
 alias xi='sudo xbps-install -S'
 alias xr='sudo xbps-remove -R'
 alias xu='sudo xbps-install -Su'
