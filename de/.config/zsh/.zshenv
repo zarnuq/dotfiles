@@ -1,5 +1,4 @@
 export PATH="/usr/bin:/usr/sbin:/bin:/sbin:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin"
-export LD_PRELOAD=/usr/lib/libstdc++.so.6
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_CONFIG_HOME=$HOME/.config
 export XDG_DATA_HOME=$HOME/.local/share
