@@ -1,41 +1,15 @@
-export PATH="/usr/bin:/usr/sbin:/bin:/sbin:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin"
+# XDG base dirs — needed here so zsh itself and ZDOTDIR resolve correctly
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_CONFIG_HOME=$HOME/.config
 export XDG_DATA_HOME=$HOME/.local/share
 export XDG_STATE_HOME=$HOME/.local/state
-export XDG_DATA_DIRS=/home/miles/.nix-profile/share:/usr/local/share:/usr/share
+# Must be in zshenv so zsh finds its config dir early
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh
+# PATH — shell specific
+export PATH="/usr/bin:/usr/sbin:/bin:/sbin:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin"
+# Shell editor
 export EDITOR=nvim
-export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
-export CUDA_CACHE_PATH="$XDG_CACHE_HOME"/nv
-export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie
-export GTK2_RC_FILES="$XDG_CONFIG_HOME"/gtk-2.0/gtkrc
+# zplug — shell plugin manager
 export ZPLUG_HOME=$XDG_DATA_HOME/zplug
-alias wget='wget --hsts-file="$XDG_DATA_HOME/wget-hsts"'
-export ZSH_CUSTOM=$XDG_DATA_HOME
-export M2_REPO=$XDG_DATA_HOME
-export WINEPREFIX=$XDG_DATA_HOME
-export SWT_HOME=$XDG_DATA_HOME
-export REDHAT_HOME=$XDG_DATA_HOME
-export VAR_HOME=$XDG_DATA_HOME
-export BUN_DIR=$XDG_DATA_HOME
-export CARGO_HOME=$XDG_DATA_HOME
-export RUSTUP_HOME=$XDG_DATA_HOME
-export MAGEFILE=$XDG_DATA_HOME
-export MONO_CONFIG=$XDG_DATA_HOME
-export NPM_CONFIG_PREFIX=$XDG_DATA_HOME
-export NPM_CONFIG_CACHE=$XDG_DATA_HOME
-export MINECRAFT_HOME=$XDG_DATA_HOME
-export MPUTILS_HOME=$XDG_DATA_HOME
-export VIMFILES=$XDG_DATA_HOME
-export GNUPGHOME=$XDG_DATA_HOME
-export PKI_DIR=$XDG_DATA_HOME
-export W3M_DIR=$XDG_DATA_HOME
-export YARN_CONFIG_DIR=$XDG_DATA_HOME
-export YARN_GLOBAL_FOLDER=$XDG_DATA_HOME
-export WG_CONFIG_DIR=$XDG_DATA_HOME
-export GOPATH=$XDG_DATA_HOME
-export CLAUDE_CONFIG_DIR=$XDG_CACHE_HOME/claude
-export LIBVA_DRIVER_NAME=nvidia
-export NVD_BACKEND=direct
-export MOZ_DISABLE_RDD_SANDBOX=1
+# pulse cookie — audio, may be needed before GUI but keep here as fallback
+export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie

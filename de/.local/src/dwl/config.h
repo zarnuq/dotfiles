@@ -30,19 +30,45 @@ static const char *const autostart[] = {
     "gammastep", "-O", "4000:4000",                       NULL,
     "wl-clip-persist", "-c", "regular",                   NULL,
     "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
-    "swww-daemon",                                        NULL,
+    "awww-daemon",                                        NULL,
     "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
     NULL
 };
 
 static const Env envs[] = {
+    /* Wayland/desktop */
     { "XDG_CURRENT_DESKTOP",  "sway" },
     { "XDG_SESSION_TYPE",     "wayland" },
+    { "WAYLAND_DISPLAY",      "wayland-0" },
+    /* Qt */
     { "QT_QPA_PLATFORMTHEME", "qt6ct" },
     { "QT_STYLE_OVERRIDE",    "kvantum" },
-    { "WAYLAND_DISPLAY",      "wayland-0" },
-    { "JAVA_HOME",            "/usr/lib/jvm/java-21-openjdk"},
-    { "XDG_DATA_DIRS",        "/home/miles/.nix-profile/share:/usr/local/share:/usr/share"},
+    /* Java */
+    { "JAVA_HOME",            "/usr/lib/jvm/java-21-openjdk" },
+    { "_JAVA_OPTIONS",        "-Djava.util.prefs.userRoot=/home/miles/.config/java" },
+    /* Nix */
+    { "XDG_DATA_DIRS",        "/home/miles/.nix-profile/share:/usr/local/share:/usr/share" },
+    /* CUDA/GPU */
+    { "CUDA_CACHE_PATH",      "/home/miles/.cache/nv" },
+    { "LIBVA_DRIVER_NAME",    "nvidia" },
+    { "NVD_BACKEND",          "direct" },
+    /* Firefox */
+    { "MOZ_DISABLE_RDD_SANDBOX", "1" },
+    /* GTK */
+    { "GTK2_RC_FILES",        "/home/miles/.config/gtk-2.0/gtkrc" },
+    /* Dev tools */
+    { "CARGO_HOME",           "/home/miles/.local/share/cargo" },
+    { "RUSTUP_HOME",          "/home/miles/.local/share/rustup" },
+    { "GOPATH",               "/home/miles/.local/share/go" },
+    { "GNUPGHOME",            "/home/miles/.local/share/gnupg" },
+    { "NPM_CONFIG_PREFIX",    "/home/miles/.local/share/npm" },
+    { "NPM_CONFIG_CACHE",     "/home/miles/.cache/npm" },
+    { "BUN_DIR",              "/home/miles/.local/share/bun" },
+    { "WINEPREFIX",           "/home/miles/.local/share/wine" },
+    { "MINECRAFT_HOME",       "/home/miles/.local/share/minecraft" },
+    { "SQLITE_HISTORY",       "/home/miles/.local/state/sqlite_history" },
+    { "CLAUDE_CONFIG_DIR",    "/home/miles/.cache/claude" },
+    { "W3M_DIR",              "/home/miles/.local/share/w3m" },
 };
 
 static const Rule rules[] = {
@@ -144,7 +170,7 @@ static const Keychord keychords[] = {
     SPAWN1(MOD|SHIFT,W,         "/bin/sh", "-c", "rmpc rescan"),
     SPAWN1(MOD,      t,         "zen"),
     SPAWN1(MOD|SHIFT,B,         "kitty", "-e", "yazi", "$HOME/Pictures/bgs"),
-    SPAWN1(MOD,      b,         "/bin/sh", "-c", "swww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
+    SPAWN1(MOD,      b,         "/bin/sh", "-c", "awww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
     SPAWN1(MOD,      e,         "/bin/sh", "-c", "$HOME/.local/bin/eww.sh open"),
     SPAWN1(MOD|SHIFT,E,         "/bin/sh", "-c", "pkill -9 eww"),
     /*     mod2  key   mod2   key2      cmd_args... */

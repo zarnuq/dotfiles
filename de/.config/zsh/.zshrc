@@ -6,6 +6,7 @@ fi
 source $ZPLUG_HOME/init.zsh
 
 #ALIASES
+alias wget='wget --hsts-file="$XDG_DATA_HOME/wget-hsts"'
 alias gs='git status -s'
 alias gac='git add .; git commit -m'
 alias gp='git push'

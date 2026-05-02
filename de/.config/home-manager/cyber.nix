@@ -43,7 +43,7 @@
 
     # PASSWORD ATTACKS
     john                     # password cracker (john the ripper)
-    hashcat                  # GPU password cracker
+    # hashcat — use system /usr/bin/hashcat to avoid OpenCL driver mismatch
     thc-hydra                # network login brute-forcer (kali: "hydra")
     ncrack                   # network auth cracker
     medusa                   # parallel login brute-forcer
