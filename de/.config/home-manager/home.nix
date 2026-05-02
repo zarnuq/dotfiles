@@ -42,6 +42,7 @@ in
     dejavu_fonts fontconfig
     libsForQt5.qtstyleplugin-kvantum
     qt6Packages.qtstyleplugin-kvantum
+    termius
 
     # PYTHON ECOSYSTEM
     (python3.withPackages (ps: with ps; [
