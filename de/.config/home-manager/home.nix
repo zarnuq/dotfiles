@@ -27,13 +27,6 @@ in
     name = "Bibata-Modern-Classic";
   };
 
-  xdg.desktopEntries.tidaler = {
-    name = "Tidaler";
-    exec = "env QT_SCALE_FACTOR=1.5 LD_LIBRARY_PATH=/usr/lib ${config.home.homeDirectory}/.local/bin/tidaler";
-    terminal = false;
-    type = "Application";
-    categories = [ "Audio" "Music" ];
-  };
 
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
