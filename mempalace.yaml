@@ -1,8 +1,0 @@
-wing: dotfiles
-rooms:
-- name: archive
-  description: Files from archive/
-- name: screenshots
-  description: Files from screenshots/
-- name: general
-  description: Files that don't fit other rooms
