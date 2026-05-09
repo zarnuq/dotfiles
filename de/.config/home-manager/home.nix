@@ -14,6 +14,9 @@
 
     antigravity
     termius
+    legcord
+    steam
+    nwg-look
 
     # PYTHON ECOSYSTEM
     (python3.withPackages (ps: with ps; [
