@@ -178,6 +178,7 @@ Used consistently across ALL applications:
 autostart, warpcursor, cursortheme, customfloat, monitorconfig, ipc, centerfloating, tmuxborder, moveresizekb, switchtotag, regexrules, keepontag, keychords, setupenv
 
 ### Monitor Layout
+
 | Name  | Resolution | Position     | Rotation | Notes              |
 |-------|-----------|--------------|----------|--------------------|
 | eDP-1 | 1920x1200 | —            | normal   | Laptop screen      |
@@ -214,6 +215,7 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 - someblocks -p | dwlb -status-stdin all
 
 ### Window Rules (regex-based)
+
 | App ID      | Tag  | Float | Monitor | Notes                       |
 |-------------|------|-------|---------|----------------------------|
 | rmpc        | —    | No    | DP-3    | Music player on primary     |
@@ -650,16 +652,6 @@ Opens: `kitty nvim ~/.local/share/eww/notes.txt`
 
 ---
 
-## Tidal: Tidaler
-
-**Config:** `de/.config/tidaler/token.json`
-- Custom Tidal music streaming client
-- Binary placed at `~/.local/bin/tidaler` (not tracked in repo)
-- Launched via desktop entry with `QT_SCALE_FACTOR=1.5 LD_LIBRARY_PATH=/usr/lib`
-- `token.json` stores OAuth2 Bearer + refresh tokens — **gitignored** (listed in .gitignore)
-
----
-
 ## Screen Lock: swaylock
 
 **Config:** `de/.config/swaylock/config`
@@ -824,20 +816,6 @@ Interactive fzf-based wrapper around install.sh. Multi-select menu for choosing 
 
 ---
 
-## Misc Config
-
-### btd6.sh (`de/.config/btd6.sh`)
-Helper script for setting up BloonsTD6 modding with MelonLoader under Wine/Steam:
-- Sets `WINEPREFIX=~/.steam/steam/steamapps/compatdata/960090/pfx`
-- Runs `winetricks dotnet6`
-- Instructions: copy MelonLoader files into the game dir, add a `Mods/` folder with `Btd6ModHelper.dll`
-- Steam launch option: `WINEDLLOVERRIDES="version=n,b" %command%`
-
-### qBittorrent (`de/.config/qBittorrent/`)
-- Torrent client config present
-
----
-
 ## Systemd Services
 
 ### User Services
@@ -873,8 +851,6 @@ nix-env -iA nixpkgs.<pkg>    # ad-hoc nix package
 nix-collect-garbage -d       # remove old generations + garbage collect
 ```
 
-> The `p` alias (paru) is an Arch-era remnant — not applicable on Void Linux.
-
 ---
 
 ## Git Workflow
@@ -895,4 +871,3 @@ gp    # git push
 - MPD runtime files (log, state, db, pid)
 - `*.m3u` — playlist files
 - Neovim spell files
-- `de/.config/tidaler/token.json` — OAuth tokens (sensitive)

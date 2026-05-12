@@ -17,7 +17,6 @@
 - eww
 - fastfetch
 - gtk themes
-- hypr(land,paper,idle,lock)
 - kitty
 - kvantum
 - mpd
@@ -29,7 +28,6 @@
 - rofi
 - swaylock
 - swww
-- tidaler
 - tmux
 - xremap
 - yazi
