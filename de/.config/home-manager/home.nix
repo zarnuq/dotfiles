@@ -12,6 +12,7 @@
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
 
+    obsidian
     antigravity
     termius
     legcord
@@ -20,7 +21,6 @@
 
     # PYTHON ECOSYSTEM
     (python3.withPackages (ps: with ps; [
-      scapy
       impacket
       virtualenv
       pip

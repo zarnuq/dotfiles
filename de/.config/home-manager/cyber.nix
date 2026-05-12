@@ -4,128 +4,78 @@
   home.packages = with pkgs; [
 
     # RECON & OSINT
-    amass                    # subdomain enumeration
-    arping                   # ARP-level ping
-    arp-scan                 # ARP network scanner
-    dnsenum                  # DNS enumeration
-    dnsrecon                 # DNS recon
-    dnstracer                # trace DNS delegations
-    enum4linux               # SMB/Samba enumeration
-    fierce                   # DNS recon
-    hping                    # TCP/IP packet assembler
-    masscan                  # fast port scanner
-    netmask                  # network mask calculator
-    p0f                      # passive OS fingerprinting
-    theharvester             # email/subdomain harvester
-    whois                    # domain info lookup
+    enum4linux                # SMB/Samba enumeration
+    theharvester              # email/subdomain harvester
+    whois                     # domain info lookup
+    dnsrecon                  # Advanced DNS enumeration
 
     # SCANNING & ENUMERATION
-    nmap                     # network scanner
-    onesixtyone              # fast SNMP scanner
-    sslscan                  # SSL/TLS scanner
-    ssldump                  # SSL/TLS traffic analyzer
-    swaks                    # SMTP test tool
-    nikto                    # web server scanner
-    lynis                    # security auditing
+    nmap                      # network scanner
+    onesixtyone               # fast SNMP scanner
+    nikto                     # web server scanner
+    snmpcheck                 # Detailed SNMP enumeration
 
     # WEB APPLICATION TESTING
-    burpsuite
-    sqlmap                   # automatic SQL injection
-    gobuster                 # directory/DNS brute-forcer
-    ffuf                     # fast web fuzzer
-    feroxbuster              # recursive content discovery
-    wfuzz                    # web fuzzer
-    whatweb                  # web technology identifier
-    wpscan                   # WordPress vulnerability scanner (unfree — needs allowUnfree)
+    burpsuite                 # Intercepting proxy
+    sqlmap                    # automatic SQL injection
+    gobuster                  # directory/DNS brute-forcer
+    ffuf                      # fast web fuzzer
+    feroxbuster               # recursive content discovery
+    wfuzz                     # web fuzzer
+    whatweb                   # web technology identifier
+    wpscan                    # WordPress scanner (unfree — needs allowUnfree)
 
     # EXPLOITATION
-    metasploit               # exploitation framework
+    metasploit                # exploitation framework
+    exploitdb                 # searchsploit local exploit database
 
     # PASSWORD ATTACKS
-    john                     # password cracker (john the ripper)
-    # hashcat — use system /usr/bin/hashcat to avoid OpenCL driver mismatch
-    thc-hydra                # network login brute-forcer (kali: "hydra")
-    ncrack                   # network auth cracker
-    medusa                   # parallel login brute-forcer
-    crunch                   # wordlist generator
-    chntpw                   # Windows password/registry editor
-    fcrackzip                # zip password cracker
+    john                      # password cracker (john the ripper)
+    hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
+    thc-hydra                 # network login brute-forcer
+    ncrack                    # network auth cracker
+    medusa                    # parallel login brute-forcer
+    crunch                    # wordlist generator
+    chntpw                    # Windows password/registry editor
+    fcrackzip                 # zip password cracker
 
     # WIRELESS
-    aircrack-ng              # wireless WEP/WPA cracking suite
-    bully                    # WPS brute-force
-    cowpatty                 # WPA-PSK offline cracker
-    kismet                   # wireless network detector/sniffer
-    macchanger               # MAC address spoofer
-    pixiewps                 # offline WPS brute-force (pixie dust)
-    wifite2                  # automated wireless auditing
-    iw                       # wireless configuration tool
-    bluez                    # bluetooth stack and tools
+    aircrack-ng               # wireless WEP/WPA cracking suite
+    kismet                    # wireless network detector/sniffer
+    macchanger                # MAC address spoofer
+    iw                        # wireless configuration tool
+    bluez                     # bluetooth stack and tools
 
     # SNIFFING & MITM
-    wireshark                # packet analyzer
-    tcpdump                  # packet capture
-    tcpreplay                # replay pcap files
-    tcpflow                  # TCP flow recorder
-    netsniff-ng              # high-performance packet toolkit
-    dsniff                   # network auditing/sniffing
-    mitmproxy                # interactive HTTPS proxy
-    sslsplit                 # transparent SSL/TLS interceptor
+    wireshark                 # packet analyzer
+    tcpdump                   # packet capture
+    bettercap                 # Advanced MITM and network attack tool
 
     # POST-EXPLOITATION & TUNNELING
-    netcat-openbsd
-    socat                    # multipurpose relay
-    iodine                   # DNS tunnel
-    proxychains-ng           # proxy chaining (kali: proxychains4)
-    sshuttle                 # transparent proxy over SSH
-    stunnel                  # SSL/TLS tunneling
-    sslh                     # protocol multiplexer
-    openvpn                  # VPN client/server
+    netcat-openbsd            # The Swiss Army Knife of networking
+    openvpn                   # VPN client/server for HTB/THM
+    evil-winrm                # Interactive WinRM shell
 
     # REVERSE ENGINEERING
-    binaryninja-free
-    radare2                  # command-line RE framework
-    rizin                    # radare2 fork
-    gdb                      # GNU debugger
-    nasm                     # x86 assembler
-    apktool                  # Android APK decompiler
-
-    # FUZZING
-    aflplusplus              # coverage-guided fuzzer
-    spike                    # protocol fuzzer
+    binaryninja-free          # Modern RE platform
+    gdb                       # GNU debugger
 
     # FORENSICS & RECOVERY
-    sleuthkit                # filesystem forensics
-    binwalk                  # firmware analysis
-    foremost                 # file carving
-    ddrescue                 # data recovery from failing drives
-    dcfldd                   # forensic dd
-    exiv2                    # EXIF metadata tool
-    yara                     # malware pattern matching
-    hashdeep                 # recursive hashing
-    testdisk                 # partition recovery
-    extundelete              # ext3/ext4 file recovery
-    pdf-parser               # PDF analysis
-    recoverjpeg              # JPEG recovery
-    safecopy                 # damaged media recovery
+    binwalk                   # firmware analysis
 
     # CRYPTO & STEGANOGRAPHY
-    steghide                 # steganography tool
-    stegseek                 # fast steghide cracker
-    ccrypt                   # secure encryption
-
-    # HARDWARE & EMBEDDED
-    flashrom                 # flash chip programmer
-    openocd                  # JTAG debugger
-    minicom                  # serial terminal
+    steghide                  # steganography tool
+    stegseek                  # fast steghide cracker
 
     # UTILITIES
-    unrar
-    dos2unix
-    plocate                  # fast file finder
-    ethtool
-    inetutils                # provides telnet, ftp, etc.
-    axel                     # download accelerator
-    exiftool
+    unrar                     # RAR archive extractor
+    dos2unix                  # Fix line endings between OS transfers
+    ethtool                   # Network interface configuration
+    inetutils                 # provides telnet, ftp, etc.
+    exiftool                  # Metadata analysis
+    responder                 # LLMNR/NBT-NS/mDNS poisoner
+    netexec                   # Modern network exploitation (Successor to CME)
+    smbclient-ng              # Enhanced SMB client
+
   ];
 }

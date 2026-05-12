@@ -17,21 +17,7 @@ static int log_level = WLR_ERROR;
 #define TAGCOUNT (9)
 
 static const char *const autostart[] = {
-    "sh", "-c", "pkill -x pipewire && sleep 0.2; exec pipewire", NULL,
-    "sh", "-c", "pkill -x pipewire-pulse && sleep 0.1; exec pipewire-pulse", NULL,
-    "sh", "-c", "pkill -x wireplumber && sleep 0.1; exec wireplumber", NULL,
-    "sh", "-c", "pgrep mpd || mpd",                       NULL,
-    "mpDris2",                                            NULL,
-    "kitty", "--class", "rmpc", "rmpc",                   NULL,
-    "sh", "-c", "pkill -x easyeffects && sleep 0.1; exec easyeffects --gapplication-service", NULL,
-    "dunst",                                              NULL,
-    "dwlb",                                               NULL,
-    "syncthing",                                          NULL,
-    "gammastep", "-O", "4000:4000",                       NULL,
-    "sh", "-c", "pkill -x wl-clip-persist; exec wl-clip-persist -c regular", NULL,
-    "sh", "-c", "$HOME/.local/bin/eww.sh open",           NULL,
-    "awww-daemon",                                        NULL,
-    "sh", "-c", "someblocks -p | dwlb -status-stdin all", NULL,
+    "sh", "-c", "$HOME/.local/src/dwl/autostart.sh", NULL,
     NULL
 };
 
