@@ -30,7 +30,7 @@
     exploitdb                 # searchsploit local exploit database
 
     # PASSWORD ATTACKS
-    john                      # password cracker (john the ripper)
+    #john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
     thc-hydra                 # network login brute-forcer
     ncrack                    # network auth cracker
