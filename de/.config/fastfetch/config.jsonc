@@ -73,7 +73,8 @@
     {
       "type": "bootmgr",
       "key": "Bootloader ",
-      "keyColor": "blue"
+      "keyColor": "blue",
+      "format":"{firmware-name}"
     },
     {
       "type": "initsystem",
@@ -84,7 +85,7 @@
       "type": "command",
       "key": "Driver ",
       "keyColor": "blue",
-      "text": "drv=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1); gl=$(glxinfo -B 2>/dev/null | awk -F': ' '/^OpenGL version string/{print $2; exit}' | awk '{print $1}'); cl=$(clinfo 2>/dev/null | awk -F: '/Platform Version/{gsub(/^[ \\t]+/,\"\",$2); print $2; exit}' | awk '{print $2}'); vk=$(vulkaninfo --summary 2>/dev/null | awk -F'=' '/apiVersion/{gsub(/^[ \\t]+/,\"\",$2); print $2; exit}'); printf 'nvidia %s' \"${drv:-?}\"; [ -n \"$gl\" ] && printf ' | OpenGL %s' \"$gl\"; [ -n \"$cl\" ] && printf ' | OpenCL %s' \"$cl\"; [ -n \"$vk\" ] && printf ' | Vulkan %s' \"$vk\"; printf '\\n'"
+      "text": "drv=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -n1); gl=$(glxinfo -B 2>/dev/null | awk -F': ' '/^OpenGL version string/{print $2; exit}' | awk '{print $1}'); cl=$(clinfo 2>/dev/null | awk -F: '/Platform Version/{gsub(/^[ \\t]+/,\"\",$2); print $2; exit}' | awk '{print $2}'); vk=$(vulkaninfo --summary 2>/dev/null | awk -F'=' '/apiVersion/{gsub(/^[ \\t]+/,\"\",$2); print $2; exit}'); first=1; if [ -n \"$drv\" ]; then printf 'nvidia %s' \"$drv\"; first=0; fi; if [ -n \"$gl\" ]; then [ $first -eq 0 ] && printf ' | '; printf 'OpenGL %s' \"$gl\"; first=0; fi; if [ -n \"$cl\" ]; then [ $first -eq 0 ] && printf ' | '; printf 'OpenCL %s' \"$cl\"; first=0; fi; if [ -n \"$vk\" ]; then [ $first -eq 0 ] && printf ' | '; printf 'Vulkan %s' \"$vk\"; first=0; fi; printf '\\n'"
     },
     {
       "type": "command",
