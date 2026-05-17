@@ -163,7 +163,7 @@ static const Keychord keychords[] = {
     SPAWN2(MOD,  r,    0,     d,        "legcord"),
     SPAWN2(MOD,  r,    0,     b,        "brave"),
     SPAWN2(MOD,  r,    0,     a,        "pavucontrol"),
-    SPAWN2(MOD,  r,    0,     s,        "steam"),
+    SPAWN2(MOD,  r,    0,     s,        "/bin/sh", "-c", "exec steam </dev/null >/dev/null 2>&1"),
     SPAWN2(MOD,  r,    0,     w,        "/bin/sh", "-c", "$HOME/.local/bin/runbar.sh"),
     SPAWN2(MOD,  s,    0,     s,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh ss && notify-send 'Screenshot' 'Quick capture saved!'"),
     SPAWN2(MOD,  s,    0,     d,        "/bin/sh", "-c", "$HOME/.local/bin/screenshot.sh section && notify-send 'Screenshot' 'Section saved!'"),

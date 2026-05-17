@@ -18,6 +18,11 @@
     legcord
     steam
     nwg-look
+    vscodium
+
+    (texlive.combine {
+      inherit (texlive) scheme-medium latexmk;
+    })
 
     # PYTHON ECOSYSTEM
     (python3.withPackages (ps: with ps; [
