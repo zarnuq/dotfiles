@@ -23,7 +23,7 @@ alias ta='tmux attach-session -t'
 alias xi='sudo xbps-install -S'
 alias xr='sudo xbps-remove -R'
 alias xu='sudo xbps-install -Su'
-alias xq='xbps-query'
+alias xq='xbps-query -Rs'
 alias pyserver='python -m http.server'
 
 function y() {
