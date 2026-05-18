@@ -3,7 +3,7 @@
   "logo": {
     "source": "auto",
     "padding": {
-      "right": 4
+      "top": 5,
     },
     "chafa": {
       "symbols": "block+border+space-wide-inverted"
@@ -94,6 +94,12 @@
       "text": "birth=$(stat -c %W /); now=$(date +%s); d=$(( (now - birth) / 86400 )); if [ $d -ge 365 ]; then y=$((d/365)); r=$((d%365)); echo \"$y years, $r days\"; elif [ $d -ge 30 ]; then m=$((d/30)); r=$((d%30)); echo \"$m months, $r days\"; else echo \"$d days\"; fi"
     },
     {
+      "type": "command",
+      "key": "Seat Manager ",
+      "keyColor": "blue",
+      "text": "for p in seatd elogind systemd-logind; do if pgrep -x \"$p\" >/dev/null 2>&1; then ver=$(xbps-query -p pkgver \"$p\" 2>/dev/null | sed \"s/^$p-//\"); printf '%s' \"$p\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0; fi; done"
+    },
+    {
       "type": "packages",
       "key": "Packages ",
       "keyColor": "blue",
@@ -106,9 +112,10 @@
       "keyColor": "magenta"
     },
     {
-      "type": "wmtheme",
-      "key": "WM Theme ",
-      "keyColor": "magenta"
+      "type": "command",
+      "key": "Login Manager ",
+      "keyColor": "magenta",
+      "text": "for s in /var/service/*/; do name=$(basename \"$s\"); case \"$name\" in greetd|gdm|sddm|lightdm|lxdm|ly|emptty) ver=$(xbps-query -p pkgver \"$name\" 2>/dev/null | sed \"s/^$name-//\"); printf '%s' \"$name\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0;; esac; done"
     },
     {
       "type": "theme",
@@ -138,11 +145,6 @@
     {
       "type": "shell",
       "key": "Shell ",
-      "keyColor": "magenta"
-    },
-    {
-      "type": "lm",
-      "key": "Login Manager ",
       "keyColor": "magenta"
     }
   ]
