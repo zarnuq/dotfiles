@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal dotfiles for a **Void Linux** system. Wayland compositor stack centered on DWL (custom-patched dwm port). GNU Stow manages all symlinks from `de/` to `$HOME`. Terminal emulator is **kitty** (not ghostty, not wezterm). Theme is **Catppuccin Mocha (Mauve accent)** across all applications. UI aesthetic: **flat/sharp** — all border-radius is explicitly 0 everywhere.
 
-Package manager is `xbps` (`xbps-install`, `xbps-query`, `xbps-remove`). `pacman`/`paru`/AUR do not apply. Nix + home-manager is used alongside xbps for a curated set of packages (security tools, theming, Python libs — see [Nix / home-manager](#nix--home-manager) section). Clean nix garbage with `nix-collect-garbage -d`.
+Package manager is `xbps` (`xbps-install`, `xbps-query`, `xbps-remove`). `pacman`/`paru`/AUR do not apply. Nix + home-manager is used alongside xbps for a curated set of packages (security tools in `cyber.nix`, GUI apps, Python libs — see [Nix / home-manager](#nix--home-manager) section). Clean nix garbage with `nix-collect-garbage -d`.
 
 ---
 
@@ -73,77 +73,46 @@ cd ~/.local/src/someblocks && make
 ## Nix / home-manager
 
 **Configs:**
-- `de/.config/home-manager/home.nix` — main home-manager config
+- `de/.config/home-manager/home.nix` — main config (GUI apps, Python ecosystem); imports `cyber.nix`
+- `de/.config/home-manager/cyber.nix` — security / pentesting toolkit (`home.packages`)
+- `de/.config/home-manager/flake.nix` / `flake.lock` — flake pinning inputs
 - `de/.config/nixpkgs/config.nix` — `{ allowUnfree = true; }` (required for burpsuite, wpscan, binaryninja-free, etc.)
 
 Home-manager is used **alongside** xbps on Void Linux to manage a curated set of packages that aren't easily available or kept up-to-date via xbps. Run `home-manager switch` to apply.
 
+> **Note:** `home.nix` is now intentionally minimal — it no longer manages GTK theming (`gtk.enable`), cursors, fonts, the Tidaler `.desktop` entry, or Qt/Kvantum plugins. GTK theming is now stowed directly (see [GTK / Qt Theming](#gtk--qt-theming)). EasyEffects was dropped in favor of a PipeWire filter-chain EQ (see [Audio](#audio-pipewire--wireplumber)).
+
 ### Session Variables (injected by home-manager)
-- `XDG_DATA_DIRS=$HOME/.nix-profile/share:/usr/local/share:/usr/share`
-- `QT_PLUGIN_PATH=/usr/lib/qt6/plugins:/usr/lib/qt/plugins`
-- `QT_QPA_PLATFORMTHEME=qt6ct`
-- `GTK_THEME=catppuccin-mocha-mauve-standard:dark`
+- `XDG_DATA_DIRS=/usr/local/share:/usr/share:$HOME/.nix-profile/share`
 
-### GTK / Theming (fully managed by home-manager)
-`gtk.enable = true` is set — home-manager generates `~/.config/gtk-3.0/settings.ini` and `~/.config/gtk-4.0/settings.ini` as nix store symlinks. **Do not manually edit these files; change them via home.nix instead.**
+(This is the only session variable home.nix sets now. Qt/theme env vars are set by DWL's setupenv patch — see [DWL Environment Variables](#environment-variables-set-by-dwl-via-setupenv-patch).)
 
-- `pkgs.catppuccin-gtk.override { accents=["mauve"]; variant="mocha"; }` — installs theme as `catppuccin-mocha-mauve-standard` (no `+default` suffix — that's the xbps package naming, not the nix build)
-- `pkgs.bibata-cursors` — Bibata-Modern-Classic cursor
-- `pkgs.nerd-fonts.jetbrains-mono` — JetBrainsMono Nerd Font
-- `gtk.gtk3.extraConfig` / `gtk.gtk4.extraConfig` — sets `gtk-application-prefer-dark-theme = 1`
-- `fonts.fontconfig.enable = true`
+### home.nix Packages (GUI + Python)
+- GUI apps: `obsidian`, `antigravity`, `termius`, `legcord`, `steam`, `nwg-look`, `vscodium`
+- LaTeX: `texlive.combine { scheme-medium + latexmk }`
+- Python: `python3.withPackages` → `impacket`, `virtualenv`, `pip`, `icalendar`, `recurring-ical-events`, `x-wr-timezone` (last three power the eww calendar widget)
+- `pipx`
 
-> **Important:** `gtk.css` (border-radius override) lives in `de/.config/gtk-3.0/gtk.css` in the repo but home-manager only writes `settings.ini` to `~/.config/gtk-3.0/` — the css file must be stowed separately or placed manually if needed.
+### Security / Pentesting Toolkit (`cyber.nix`)
 
-### Desktop Entry: Tidaler
-Home-manager creates a `.desktop` entry for the Tidal music client:
-- Exec: `env QT_SCALE_FACTOR=1.5 LD_LIBRARY_PATH=/usr/lib ~/.local/bin/tidaler`
-- Categories: Audio, Music
-- Binary must be placed manually at `~/.local/bin/tidaler` (not in the dotfiles repo)
-
-### Python Packages (installed via home-manager)
-```nix
-python3.withPackages (ps: with ps; [
-  scapy            # packet crafting
-  impacket         # Windows protocol libs
-  virtualenv
-  pip
-  icalendar                  # eww calendar widget
-  recurring-ical-events      # eww calendar widget
-  x-wr-timezone              # eww calendar widget
-])
-```
-Also: `pipx`
-
-### Qt Plugins
-- `libsForQt5.qtstyleplugin-kvantum` — Kvantum for Qt5 apps
-- `qt6Packages.qtstyleplugin-kvantum` — Kvantum for Qt6 apps
-
-> **Note:** Kvantum only themes **QtWidgets** apps. Qt6/QML apps (e.g. EasyEffects 8.x) use QtQuick Controls 2 and are not themed by Kvantum's style plugin. EasyEffects imports `kvantum` as a QML module — this QML module is **not** included in the xbps kvantum package (1.1.5). The nix `kdePackages.qtstyleplugin-kvantum` (1.1.6) may include it; pending resolution.
-
-### Security / Pentesting Toolkit (all via nix)
-
-Installed via `home.packages` in home.nix. Grouped by category:
+A separate file imported by `home.nix`, providing `home.packages`. Current list (trimmed from the larger former set — many tools commented out or removed):
 
 | Category              | Tools                                                                                    |
 |-----------------------|------------------------------------------------------------------------------------------|
-| RECON & OSINT         | amass, arping, arp-scan, dnsenum, dnsrecon, dnstracer, enum4linux, fierce, hping, masscan, netmask, p0f, theharvester, whois |
-| SCANNING & ENUM       | nmap, onesixtyone, sslscan, ssldump, swaks, nikto, lynis                                |
+| RECON & OSINT         | enum4linux, theharvester, whois, dnsrecon                                                |
+| SCANNING & ENUM       | nmap, onesixtyone, nikto, snmpcheck                                                      |
 | WEB APP TESTING       | burpsuite, sqlmap, gobuster, ffuf, feroxbuster, wfuzz, whatweb, wpscan                  |
-| EXPLOITATION          | metasploit                                                                               |
-| PASSWORD ATTACKS      | john, hashcat, thc-hydra, ncrack, medusa, crunch, chntpw, fcrackzip                    |
-| WIRELESS              | aircrack-ng, bully, cowpatty, kismet, macchanger, pixiewps, wifite2, iw, bluez          |
-| SNIFFING & MITM       | wireshark, tcpdump, tcpreplay, tcpflow, netsniff-ng, ettercap, bettercap, dsniff, mitmproxy, sslsplit |
-| POST-EXPLOIT/TUNNEL   | netcat-openbsd, socat, iodine, proxychains-ng, sshuttle, stunnel, sslh, openvpn         |
-| REVERSE ENGINEERING   | ghidra, binaryninja-free, radare2, rizin, gdb, nasm, apktool, jadx                      |
-| FUZZING               | aflplusplus, spike                                                                       |
-| FORENSICS & RECOVERY  | sleuthkit, binwalk, foremost, ddrescue, dcfldd, exiv2, yara, hashdeep, testdisk, extundelete, pdf-parser, recoverjpeg, safecopy |
-| CRYPTO & STEGO        | steghide, stegseek, ccrypt                                                               |
-| HARDWARE & EMBEDDED   | flashrom, openocd, minicom                                                               |
-| UTILITIES             | unrar, dos2unix, plocate, ethtool, inetutils, axel                                       |
-| LIBS                  | dejavu_fonts, fontconfig                                                                  |
+| EXPLOITATION          | metasploit, exploitdb (searchsploit)                                                     |
+| PASSWORD ATTACKS      | hashcat, thc-hydra, ncrack, medusa, crunch, chntpw, fcrackzip (john commented out — use system john) |
+| WIRELESS              | aircrack-ng, kismet, macchanger, iw, bluez                                               |
+| SNIFFING & MITM       | wireshark, tcpdump, bettercap                                                            |
+| POST-EXPLOIT/TUNNEL   | netcat-openbsd, openvpn, evil-winrm                                                      |
+| REVERSE ENGINEERING   | binaryninja-free, gdb                                                                    |
+| FORENSICS & RECOVERY  | binwalk                                                                                  |
+| CRYPTO & STEGO        | steghide, stegseek                                                                       |
+| UTILITIES             | unrar, dos2unix, ethtool, inetutils, exiftool, responder, netexec, smbclient-ng         |
 
-Also: `antigravity` (ai stuff)
+> **Note:** `hashcat` is installed via nix but the comment recommends the system `/usr/bin/hashcat` for OpenCL/GPU driver compatibility.
 
 ---
 
@@ -197,22 +166,22 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 - `JAVA_HOME=/usr/lib/jvm/java-21-openjdk`
 - `XDG_DATA_DIRS=/home/miles/.nix-profile/share:/usr/local/share:/usr/share` (propagates nix profile to all DWL children)
 
-### Autostart (runs at DWL startup)
-- pipewire
-- pipewire-pulse
-- wireplumber
-- mpd (guarded: `pgrep mpd || mpd`)
+### Autostart (`de/.local/src/dwl/autostart.sh`)
+The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autostart.sh`. The script first `pkill`s each daemon (clean restart on session reload), then launches them backgrounded under a `trap 'kill 0'`:
+- pipewire, pipewire-pulse, wireplumber
+- eww daemon (`--config $HOME/.config/eww/dash`) + `~/.local/bin/eww.sh open`
+- mpd (`mpd --no-daemon`)
 - mpDris2
-- kitty --class rmpc rmpc
-- easyeffects --gapplication-service
+- wl-clip-persist (`-c regular`)
 - dunst
-- dwlb
-- syncthing
+- syncthing (`--no-browser`)
 - gammastep -O 4000:4000
-- wl-clip-persist --clipboard regular
-- ~/.local/bin/eww.sh open
-- swww-daemon
-- someblocks -p | dwlb -status-stdin all
+- awww-daemon (wallpaper daemon)
+- dwlb + `someblocks -p | dwlb -status-stdin all`
+- kitty --class rmpc rmpc
+- emacs --fg-daemon (Emacs daemon; replaces relying solely on the systemd user service)
+
+> **Note:** No more `easyeffects` (EQ moved to PipeWire conf). The wallpaper daemon is `awww`/`awww-daemon` here and in the Mod+B keybind, though `install.sh` still installs `swww` — likely an `awww` fork/rename or a consistent naming choice.
 
 ### Window Rules (regex-based)
 
@@ -249,7 +218,8 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 | Mod+Shift+W    | Rescan MPD music library                  |
 | Mod+T          | Open Zen browser                          |
 | Mod+Shift+B    | Browse ~/Pictures/bgs with yazi           |
-| Mod+B          | Random wallpaper (swww fade top)          |
+| Mod+B          | Random wallpaper (awww img, top transition) |
+| Mod+D          | Open emacsclient (`emacsclient -c`)       |
 | Mod+E          | Toggle eww desktop widgets                |
 | Mod+Shift+E    | Kill eww                                  |
 | Mod+Shift+P    | Quit DWL                                  |
@@ -279,8 +249,10 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 **Audio Effects (Mod+q then...):**
 | Chord     | Action              |
 |-----------|---------------------|
-| Mod+q, 1  | Load EQ preset      |
-| Mod+q, 2  | Disable EQ (none)   |
+| Mod+q, 1  | `easyeffects -l EQ`   (stale — see note) |
+| Mod+q, 2  | `easyeffects -l None` (stale — see note) |
+
+> **Note:** These chords still call `easyeffects` in `config.h`, but EasyEffects has been removed. EQ is now a static PipeWire filter-chain (`sink-eq.conf`); switch the EQ'd output with `Alt+[` (flip.sh). The Mod+q chords are effectively no-ops until rebound.
 
 **Media & Volume:**
 | Binding        | Action                              |
@@ -470,14 +442,16 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 ## Doom Emacs
 
 **Config:** `de/.config/doom/`
-- Font: JetBrainsMono Nerd Font 16
+- Font: JetBrainsMono Nerd Font 20
 - Theme: catppuccin
 - Line numbers: enabled
 - Org directory: ~/org/
+- `select-enable-primary` + `select-enable-clipboard` both `t` (sync PRIMARY and clipboard)
+- `markdown-max-image-size = (1600 . 1200)` (max inline image w×h in px)
 
 ### Enabled Modules
 - Completion: corfu (+orderless), vertico
-- UI: doom, doom-dashboard, hl-todo, modeline, ophints, popup, vc-gutter, workspaces
+- UI: doom, doom-dashboard, hl-todo, modeline, ophints, popup, treemacs, vc-gutter, workspaces
 - Editor: evil (vim bindings), file-templates, fold, snippets
 - Emacs: dired, electric, undo, vc
 - Terminal: vterm
@@ -486,11 +460,15 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 - Languages: emacs-lisp, latex, lua, markdown, org, sh
 - Default: +bindings, +smartparens
 
+### Custom keybinds (config.el)
+- treemacs (evil): `H` → `treemacs-root-up`, `L` → `treemacs-root-down`
+
 ### Packages (packages.el)
 - catppuccin-theme
 
-### Systemd service
-- `systemctl --user start emacs` — runs Emacs as daemon
+### Daemon
+- Launched at session start by `autostart.sh` (`emacs --fg-daemon`); also available as a systemd user service (`systemctl --user start emacs`)
+- `Mod+D` in DWL opens a client frame (`emacsclient -c`)
 - `doomsync` alias handles sync: kill → doom sync → restart
 
 ---
@@ -704,7 +682,9 @@ Opens: `kitty nvim ~/.local/share/eww/notes.txt`
 
 **Config:** `de/.config/fastfetch/config.jsonc`
 
-Modules: Title, CPU (P/E cores), GPU, Memory, Display, Disk, OS, Host/Mobo, Kernel, GPU detailed, Uptime, Packages, Shell, WM, Theme, Font, LM
+Logo: `source: auto`. Module order: Title, Separator, Host, CPU, GPU, Memory, Swap, Disk, Display, OS, Kernel, Bootloader, Init, Driver (custom command — nvidia/OpenGL/OpenCL/Vulkan versions), OS Age (custom — from `/` birth time), Seat Manager (custom — seatd/elogind/logind via xbps), Packages, WM, Login Manager (custom — scans `/var/service/` for greetd/gdm/etc.), Theme, Icons, Font, Cursor, Terminal, Shell.
+
+The Driver, OS Age, Seat Manager, and Login Manager entries are `command`-type modules with inline shell that's Void-specific (uses `xbps-query` and runit's `/var/service/`).
 
 ---
 
@@ -712,20 +692,17 @@ Modules: Title, CPU (P/E cores), GPU, Memory, Display, Disk, OS, Host/Mobo, Kern
 
 **UI Aesthetic: flat/sharp** — all border-radius is 0 across GTK and eww. Enforced globally in `gtk-3.0/gtk.css` (sets `border-radius: 0px` on `*`, `window`, `button`, `entry`, `.titlebar`).
 
-### GTK3 (`~/.config/gtk-3.0/`)
-Generated by home-manager (`gtk.enable = true`) — `settings.ini` is a nix store symlink. **Edit via home.nix, not the file directly.**
-- Theme: `catppuccin-mocha-mauve-standard` (nix build — no `+default` suffix)
+### GTK3 (`de/.config/gtk-3.0/`)
+Now **stowed directly** as plain files (no longer home-manager–generated — `gtk.enable` was removed from home.nix). Edit the repo files and re-stow.
+- Theme: `catppuccin-mocha-mauve-standard+default` (xbps package naming — note the `+default` suffix)
 - Icons: **Papirus-Dark**
 - Font: JetBrainsMono Nerd Font 14
 - Cursor: Bibata-Modern-Classic, size 24
-- `gtk-application-prefer-dark-theme = 1`
-- `gtk.css` (border-radius override) lives at `de/.config/gtk-3.0/gtk.css` in the repo but is **not** written by home-manager — needs to be stowed or placed manually
+- `gtk-application-prefer-dark-theme = 0`
+- `gtk.css` (border-radius override) also lives at `de/.config/gtk-3.0/gtk.css`
 
-### GTK4 (`~/.config/gtk-4.0/`)
-Also generated by home-manager. No `gtk-theme-name` is written here (GTK4/libadwaita ignores it anyway).
-- Cursor: Bibata-Modern-Classic, size 24
-- Font: JetBrainsMono Nerd Font 14
-- `gtk-application-prefer-dark-theme = 1`
+### GTK4 (`de/.config/gtk-4.0/`)
+Also stowed directly. Contains `settings.ini`, `gtk.css`, `gtk-dark.css`, and `assets/`.
 
 ### xsettingsd (`de/.config/xsettingsd/xsettingsd.conf`)
 XSETTINGS daemon for non-GTK/Qt apps (Firefox, Signal, Electron apps). Must be running for these apps to pick up dark theme and cursor settings.
@@ -751,9 +728,17 @@ XSETTINGS daemon for non-GTK/Qt apps (Firefox, Signal, Electron apps). Must be r
 ## Audio: PipeWire + WirePlumber
 
 ### PipeWire (`de/.config/pipewire/`)
-- `pipewire.conf` — custom config based on PipeWire 1.6.2 defaults; `link.max-buffers = 16` (compatibility with older clients)
-- `pipewire-pulse.conf` — PulseAudio compatibility layer config
-- `pipewire.conf.d/` — drop-in config fragments
+- `pipewire.conf` — custom config based on PipeWire defaults
+- `pipewire.conf.d/` — drop-in config fragments:
+  - `custom.conf` — `default.clock.rate = 192000`, `allowed-rates = [ 192000 ]`, `link.max-buffers = 16`
+  - `sink-eq.conf` — 16-band parametric EQ via PipeWire's builtin `filter-chain` module (replaces EasyEffects). Creates two EQ sinks, each pinned via `target.object` to a specific hardware output:
+    - `effect_input.eq_fiio` → FiiO K11 USB DAC
+    - `effect_input.eq_optical` → USB2.0 optical device
+    - All bands: type `bq_peaking` (Bell), Q=2.3521, mode APO(DR); coefficients mirror the old `easyeffects/output/EQ.json`. L/R share identical controls. **Keep both instances' coefficients in sync if regenerating the curve.**
+    - Verify after restart: `wpctl status | grep -E "effect_input\.eq_(fiio|optical)"`
+
+### EQ output switching
+Apps connect to the default sink; `~/.local/bin/flip.sh` (bound to `Alt+[`) cycles the default between the two `effect_input.eq_*` sinks so the stream passes through the EQ pinned to that hardware output. Raw `alsa_output.*` sinks are excluded (pick those via wpctl/pavucontrol to bypass EQ).
 
 ### WirePlumber (`de/.config/wireplumber/wireplumber.conf.d/`)
 - `softvol.conf` — ALSA rule: enables `api.alsa.soft-mixer = true` for all USB audio cards (`alsa_card.usb-.*`). Required for USB audio devices to have software volume control.
@@ -798,7 +783,7 @@ Launches eww dashboard. Detects monitor via wlr-randr (DP-2 = desktop monitor 1,
 - Output: ~/Pictures/screenshot-YYYY-MM-DD_HH-MM-SS.png
 
 ### flip.sh
-Cycles PipeWire audio output sinks (skips EasyEffects sink). Uses pactl.
+Cycles the default sink between the two EQ filter-chain sinks (`effect_input.eq_fiio` / `effect_input.eq_optical`) and migrates already-playing app streams to the new default. When switching to the optical EQ, first sets the USB2.0 card to its `iec958-stereo` profile so the chain's `target.object` resolves. Raw `alsa_output.*` sinks are intentionally excluded. Uses pactl.
 
 ### gammastep.sh
 Toggles blue light filter: `gammastep -O 4000:4000`. Kill if running, start if not.

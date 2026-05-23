@@ -1,0 +1,4 @@
+#!/bin/sh
+# Clipboard-history picker: cliphist + fzf, re-copies the selection via wl-copy.
+# Bound to MOD+v in dwl (opens in a floating kitty via the ^float rule).
+cliphist list | fzf --no-sort --reverse --prompt 'clip> ' | cliphist decode | wl-copy

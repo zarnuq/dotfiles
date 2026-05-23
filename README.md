@@ -6,14 +6,12 @@
 ![Alt text](./screenshots/rice2.png)
 ![Alt text](./screenshots/rice3.png)
 
-### configured applications
+# configured applications
 
 - btop
 - dunst
 - doom emacs
-- dwl
-- dwlb
-- easyeffects(eq)
+- dwl (dwlb,someblocks)
 - eww
 - fastfetch
 - gtk themes

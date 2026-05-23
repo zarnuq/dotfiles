@@ -14,6 +14,7 @@
     onesixtyone               # fast SNMP scanner
     nikto                     # web server scanner
     snmpcheck                 # Detailed SNMP enumeration
+    nuclei
 
     # WEB APPLICATION TESTING
     burpsuite                 # Intercepting proxy

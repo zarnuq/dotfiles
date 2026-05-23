@@ -2,7 +2,7 @@
 pkill -x pipewire-pulse
 pkill -x wireplumber
 pkill -x pipewire
-pkill -x wl-clip-persist
+pkill -f 'wl-paste --watch cliphist'
 pkill -x dunst
 pkill -x dwlb
 pkill -x someblocks
@@ -12,6 +12,7 @@ pkill -x mpDris2
 pkill -x mpd
 pkill -x syncthing
 pkill -x eww
+pkill -x emacs
 sleep 0.1
 
 trap 'kill 0' EXIT TERM INT
@@ -21,7 +22,8 @@ pipewire-pulse &
 wireplumber &
 eww --config "$HOME/.config/eww/dash" daemon --no-daemonize &
 mpd --no-daemon &
-wl-clip-persist -c regular &
+wl-paste --type text  --watch cliphist store &
+wl-paste --type image --watch cliphist store &
 dunst &
 syncthing --no-browser &
 gammastep -O 4000:4000 &
@@ -31,5 +33,6 @@ $HOME/.local/bin/eww.sh open &
 dwlb &
 someblocks -p | dwlb -status-stdin all &
 kitty --class rmpc rmpc &
+emacs --fg-daemon &
 
 wait

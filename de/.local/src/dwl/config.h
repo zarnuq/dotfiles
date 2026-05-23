@@ -150,8 +150,10 @@ static const Keychord keychords[] = {
     /*     mod       key        cmd_args... */
     SPAWN1(MOD,      p,         "swaylock"),
     SPAWN1(MOD,      Tab,       "kitty"),
+    SPAWN1(MOD,      d,         "emacsclient", "-c"),
     SPAWN1(MOD,      space,     "rofi", "-show", "drun", "-show-icons"),
     SPAWN1(MOD,      BackSpace, "kitty", "--class", "float"),
+    SPAWN1(MOD,      v,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/clipfzf"),
     SPAWN1(MOD,      w,         "kitty", "--class", "rmpc", "rmpc"),
     SPAWN1(MOD|SHIFT,W,         "/bin/sh", "-c", "rmpc rescan"),
     SPAWN1(MOD,      t,         "zen"),

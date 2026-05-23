@@ -8,7 +8,14 @@
 ;; clients, file templates and snippets. It is optional.
 ;; (setq user-full-name "John Doe"
 ;;       user-mail-address "john@doe.com")
+ 
+(after! treemacs
+  (define-key evil-treemacs-state-map (kbd "H") #'treemacs-root-up)
+  (define-key evil-treemacs-state-map (kbd "L") #'treemacs-root-down))
 
+
+(setq select-enable-primary nil
+      select-enable-clipboard t)
 
 ;; Doom exposes five (optional) variables for controlling fonts in Doom:
 ;;
@@ -35,7 +42,37 @@
 ;; `load-theme' function. This is the default:
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
-(setq doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 16))
+(setq doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 20))
+
+(after! markdown-mode
+  ;; Variable-height headers: each level (h1..h6) gets a distinct :height
+  ;; multiplier relative to body text, so all six are visually distinguishable.
+  ;; NOTE: use `setq!' (not `setq') — these are defcustoms whose :set handler
+  ;; re-renders the header faces. Plain `setq' changes the value but never
+  ;; updates the faces, so the sizes appear unchanged.
+  (setq! markdown-header-scaling t
+         markdown-header-scaling-values '(2.0 1.7 1.5 1.3 1.15 1.0))
+  (setq markdown-hide-markup t
+        markdown-max-image-size '(1600 . 1200)))   ; max (width . height) in px
+
+(after! tex
+  ;; Render to PDF and view it with pdf-tools (Emacs-native; auto-reverts after
+  ;; each recompile). latexmk handles reruns/bibtex automatically.
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t)        ; SyncTeX: C-click PDF -> source
+  ;; Recompile on every save so the side-window PDF stays live as you type.
+  ;; `TeX-command-run-all' takes a mandatory prefix ARG; after-save-hook calls
+  ;; functions with no args, so wrap it to pass nil (avoids "wrong number of
+  ;; arguments").
+  (add-hook! 'LaTeX-mode-hook
+    (add-hook 'after-save-hook
+              (lambda () (TeX-command-run-all nil))
+              nil 'local)))
+
+;; Dock the rendered PDF in a persistent right-hand side window instead of
+;; stealing the editing window.
+(set-popup-rule! "\\.pdf\\'" :side 'right :size 0.5 :select nil :quit nil :ttl nil :modeline t)
+
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type t)
 
