@@ -208,16 +208,16 @@
 ;; ════════════════════════════════════════════════════
 
 (defpoll notif-json :interval "2s" :initial "[]"
-  `~/.config/eww/scripts/notifs.sh 2>/dev/null || echo "[]"`)
-(defpoll notif-paused :interval "2s" `dunstctl is-paused`)
+  `makoctl history -j | jq -c '[.data[0][] | {app: (."app-name".data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}] | .[:5]' 2>/dev/null || echo "[]"`)
+(defpoll notif-paused :interval "2s" `makoctl mode 2>/dev/null | grep -q '^do-not-disturb$' && echo true || echo false`)
 
 (defwidget notifications []
   (box :class "notif-widget" :orientation "v" :space-evenly false
     (box :orientation "h" :space-evenly false :class "notif-header"
       (label :text "notifications" :class "notif-label" :hexpand true :halign "start")
-      (button :class "notif-btn" :onclick "dunstctl set-paused toggle"
+      (button :class "notif-btn" :onclick "makoctl mode -t do-not-disturb"
         (label :text {notif-paused == "true" ? "󰂛" : "󰂚"}))
-      (button :class "notif-btn" :onclick "dunstctl history-clear"
+      (button :class "notif-btn" :onclick "makoctl dismiss -a"
         (label :text "󰆴")))
     (scroll :vscroll true :hscroll false :vexpand true :class "notif-scroll"
       (box :orientation "v" :space-evenly false

@@ -47,7 +47,7 @@ install_packages() {
     wlroots0.18 wayland-utils wlr-protocols xdg-desktop-portal xdg-desktop-portal-wlr
 
     # Wayland desktop tools
-    rofi-wayland dunst swaylock swww wlr-randr grim slurp hyprland
+    rofi-wayland mako libnotify swaylock swww wlr-randr grim slurp hyprland
     brightnessctl gammastep wtype wl-clip-persist satty
 
     # Display manager

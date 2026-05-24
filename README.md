@@ -8,6 +8,7 @@
 
 # configured applications
 
+- awww
 - btop
 - doom emacs
 - dwl (dwlb,someblocks)
@@ -24,7 +25,6 @@
 - rmpc
 - rofi
 - swaylock
-- awww
 - tmux
 - yazi
 - zen-browser theme

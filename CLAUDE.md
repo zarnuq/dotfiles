@@ -173,7 +173,7 @@ The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autos
 - mpd (`mpd --no-daemon`)
 - mpDris2
 - wl-clip-persist (`-c regular`)
-- dunst
+- mako
 - syncthing (`--no-browser`)
 - gammastep -O 4000:4000
 - awww-daemon (wallpaper daemon)
@@ -507,7 +507,7 @@ Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (lapt
 | network       | /proc/net/dev (enp/wlan)          | 1s       | Upload/download MB/s               |
 | temps         | /sys/class/thermal + nvidia-smi   | 2s       | CPU + GPU temp                     |
 | weather       | wttr.in                           | 600s     | Temp, condition, humidity, wind    |
-| notifications | dunstctl history + jq             | 2s       | Last 5 notifs, pause/clear buttons |
+| notifications | makoctl history -j + jq           | 2s       | Last 5 notifs, DND toggle + dismiss-all buttons |
 | mpd           | mpc                               | 1s       | Cover art, controls, progress bar  |
 | updates       | checkupdates + yay                | 1800s    | Pacman + AUR update count (Arch-era; adapt for Void) |
 | fetch         | whoami, hostname, pacman, uptime  | 24h/60s  | System info display                |
@@ -529,7 +529,7 @@ Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (lapt
 ### EWW Dependencies
 - jq — required by ports, procs, services, notifications
 - mpc — required by mpd widget
-- dunstctl — notifications widget
+- makoctl — notifications widget (history -j, mode toggle, dismiss)
 - nvidia-smi — GPU stats
 - curl — weather (wttr.in)
 - python3 + `icalendar` + `recurring-ical-events` — calendar widget (managed by home-manager)
@@ -542,15 +542,19 @@ Opens: `kitty nvim ~/.local/share/eww/notes.txt`
 
 ---
 
-## Notification Daemon: dunst
+## Notification Daemon: mako
 
-**Config:** `de/.config/dunst/dunstrc`
-- Monitor: 0
-- Font: JetBrainsMono Nerd Font Regular 16
-- Frame/separator color: #cba6f7 (mauve)
-- Highlight: #cba6f7
-- Urgency Low/Normal: bg #1e1e2e, fg #cdd6f4
-- Urgency Critical: bg #1e1e2e, fg #cdd6f4, frame #fab387 (orange)
+**Config:** `de/.config/mako/config`
+
+Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via basu), so it needs no `busctl`/systemd — unlike `dunstctl history`, which is gated behind `busctl` and is therefore broken on Void. mako just needs the D-Bus **session bus** that `dbus-run-session dwl` already provides; it's launched from `autostart.sh` and inherits `DBUS_SESSION_BUS_ADDRESS` like any other DWL child. (Running `mako`/`makoctl`/`notify-send` from a terminal that lacks that env — e.g. one that survived a session restart — fails with "Could not connect" / "Failed to connect to user bus"; open a fresh DWL terminal.)
+
+- Font: JetBrains Mono Nerd Font 18
+- Anchor: top-right, border-size 2, **border-radius 0** (flat), width 350
+- Background #1e1e2e, text #cdd6f4, border #cba6f7 (mauve)
+- Urgency low: border #45475a; normal: border #cba6f7; critical: border #fab387 (peach), no timeout
+- `max-history=20` (ring buffer — mako has **no "clear history"** command; the eww clear button maps to `makoctl dismiss -a`, which only clears on-screen popups)
+- DND is a **mode**: `[mode=do-not-disturb]` with `invisible=1`, toggled by the eww bell button via `makoctl mode -t do-not-disturb`
+- `notify-send` requires the `libnotify` package
 
 ---
 
