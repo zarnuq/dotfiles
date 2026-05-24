@@ -13,7 +13,7 @@ fi
 DASH="eww --config $EWW_DIR/dash"
 
 open_dash() {
-    widgets="clock cpu tray network ipaddrs weather notifications mpd-volume updates fetch hwinfo outlook ports procs services notes vpn"
+    widgets="clock cpu net-graph tray weather notifications mpd-volume outlook ports vpn"
     
     # Run them sequentially. The client process hands the instruction 
     # to the daemon socket and exits immediately, leaving a clean process tree.

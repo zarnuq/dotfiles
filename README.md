@@ -20,14 +20,12 @@
 - mpd
 - nvim
 - pipewire settings
-- qBittorrent
 - qt themes
 - rmpc
 - rofi
 - swaylock
-- swww
+- awww
 - tmux
-- xremap
 - yazi
 - zen-browser theme
 - zsh (spaceship, zplug)

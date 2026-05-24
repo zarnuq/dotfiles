@@ -20,7 +20,6 @@
 (defvar GRAPH-RANGE "60s")      ; graph rolling time window
 (defvar RANGE-MIN   0)          ; scale/graph minimum
 (defvar RANGE-MAX   100)        ; scale/graph maximum
-(defvar NET-MAX     25)         ; network graph ceiling in MB/s (tune to your link)
 
 ;; Text truncation limits
 (defvar LIM-MPD     25)         ; mpd title / artist
@@ -93,7 +92,7 @@
 
 (defwindow cpu
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "10px" :y "10px" :width "310px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (cpu-gpu-graph))
 
@@ -112,11 +111,11 @@
 
 
 ;; ════════════════════════════════════════════════════
-;;  NETWORK POLLS  (feed the network graph below)
+;;  NETWORK
 ;; ════════════════════════════════════════════════════
 
 (defpoll net-down :interval "1s"
-  `awk 'NR>2 { sub(/:/," "); if ($1 ~ /^(eth|en|wl)/) rx+=$2 } END {
+  `awk '/enp|wlan/ {rx+=$2} END {
     file="/tmp/eww-rx-prev"
     if ((getline prev < file) > 0) { speed=(rx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
     else { printf "0.0" }
@@ -124,57 +123,49 @@
   }' /proc/net/dev`)
 
 (defpoll net-up :interval "1s"
-  `awk 'NR>2 { sub(/:/," "); if ($1 ~ /^(eth|en|wl)/) tx+=$10 } END {
+  `awk '/enp|wlan/ {tx+=$10} END {
     file="/tmp/eww-tx-prev"
     if ((getline prev < file) > 0) { speed=(tx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
     else { printf "0.0" }
     close(file); print tx > file
   }' /proc/net/dev`)
 
+(defwidget network []
+  (box :class "network-widget" :orientation "v" :space-evenly false
+    (label :text "network" :class "network-label" :halign "start")
+    (box :orientation "h" :space-evenly false
+      (label :text "↑" :class "net-arrow-up")
+      (label :text "${net-up} MB/s" :class "net-speed"))
+    (box :orientation "h" :space-evenly false
+      (label :text "↓" :class "net-arrow-down")
+      (label :text "${net-down} MB/s" :class "net-speed"))))
 
-;; ════════════════════════════════════════════════════
-;;  NETWORK GRAPH
-;; ════════════════════════════════════════════════════
-;; Reuses the net-up / net-down polls above — no extra polling cost.
-
-(defwidget net-graph []
-  (box :class "net-graph-widget" :orientation "v" :space-evenly false
-    (box :orientation "h" :space-evenly false :spacing {SP-LG}
-      (box :orientation "h" :space-evenly false :spacing {SP-XS}
-        (label :text "↓"           :class "net-down-label")
-        (label :text "${net-down}" :class "net-value"))
-      (box :orientation "h" :space-evenly false :spacing {SP-XS}
-        (label :text "↑"           :class "net-up-label")
-        (label :text "${net-up}"   :class "net-value"))
-      (label :text "MB/s" :class "net-unit-label" :hexpand true :halign "end" :valign "start"))
-    (overlay :vexpand true :hexpand true
-      (graph :value {net-down} :thickness {GRAPH-T} :time-range {GRAPH-RANGE}
-             :min {RANGE-MIN} :max {NET-MAX} :line-style "round" :class "net-down-line")
-      (graph :value {net-up}   :thickness {GRAPH-T} :time-range {GRAPH-RANGE}
-             :min {RANGE-MIN} :max {NET-MAX} :line-style "round" :class "net-up-line"))
-    (box :class "net-ip-list" :orientation "v" :space-evenly false
-      (for entry in ip-addrs
-        (box :class "net-ip-row" :orientation "h" :space-evenly false
-          (label :text {entry.iface}
-                 :class {entry.iface =~ "^(tun|tap|wg)" ? "net-ip-iface tunnel" : "net-ip-iface real"})
-          (label :text {entry.ip} :class "net-ip-addr" :hexpand true :halign "end"))))))
-
-(defwindow net-graph
+(defwindow network
   :monitor 1
-  :geometry (geometry :x "0px" :y "150px" :width "420px" :height "160px" :anchor "bottom left")
+  :geometry (geometry :x "330px" :y "60px" :width "100px" :height "100px" :anchor "bottom left")
   :stacking "bottom"
-  (net-graph))
+  (network))
 
 
 ;; ════════════════════════════════════════════════════
-;;  IP ADDRESSES  (feeds the network graph footer)
+;;  IP ADDRESSES
 ;; ════════════════════════════════════════════════════
-;; Real NICs (eth/en/wl) + tunnels (tun/tap/wg); skips lo, docker, veth, bridges.
-;; LOWER_UP flag = carrier present, so down links are excluded (operstate is
-;; unreliable here — tunnels report UNKNOWN even when up).
 
 (defpoll ip-addrs :interval "10s" :initial "[]"
-  `ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname | test("^(eth|en|wl|tun|tap|wg)")) | select(.flags | index("LOWER_UP")) | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'`)
+  `ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname != "lo") | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'`)
+
+(defwidget ipaddrs []
+  (box :class "ipaddrs-widget" :orientation "v" :space-evenly false
+    (for entry in ip-addrs
+      (label :text "${entry.iface}: ${entry.ip}" :class "ip-entry" :halign "start"))))
+
+(defwindow ipaddrs
+  :monitor 1
+  :geometry (geometry :x "640px" :y "10px" :width "170px" :height "80px" :anchor "bottom left")
+  :stacking "bottom"
+  (ipaddrs))
+
+
 
 
 ;; ════════════════════════════════════════════════════
@@ -270,9 +261,28 @@
 
 (defwindow mpd-volume
   :monitor 1
-  :geometry (geometry :x "0" :y "510" :width "420px" :height "120px" :anchor "bottom left")
+  :geometry (geometry :x "10" :y "380" :width "420px" :height "120px" :anchor "bottom left")
   :stacking "bottom"
   (mpd-volume))
+
+
+;; ════════════════════════════════════════════════════
+;;  UPDATES
+;; ════════════════════════════════════════════════════
+
+(defpoll updates     :interval "1800s" `checkupdates 2>/dev/null | wc -l`)
+(defpoll aur-updates :interval "1800s" `yay -Qua 2>/dev/null | wc -l`)
+
+(defwidget updates []
+  (box :class "updates-widget" :orientation "h" :space-evenly false
+    (label :text "󰏔" :class "updates-icon")
+    (label :text "${updates} + ${aur-updates}" :class "updates-label")))
+
+(defwindow updates
+  :monitor 1
+  :geometry (geometry :x "330px" :y "10px" :width "100" :height "40" :anchor "bottom left")
+  :stacking "bottom"
+  (updates))
 
 
 ;; ════════════════════════════════════════════════════
@@ -299,7 +309,7 @@
 
 (defwindow ports
   :monitor 1
-  :geometry (geometry :x "0px" :y "310px" :width "210px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "10px" :y "170px" :width "200px" :height "200px" :anchor "bottom left")
   :stacking "bottom"
   (ports))
 
@@ -369,7 +379,7 @@
 
 (defwindow vpn
   :monitor 1
-  :geometry (geometry :x "210px" :y "310px" :width "210px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "220px" :y "170px" :width "210px" :height "200px" :anchor "bottom left")
   :stacking "bottom"
   :exclusive false
   (vpn))
