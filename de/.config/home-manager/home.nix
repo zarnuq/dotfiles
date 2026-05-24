@@ -14,8 +14,6 @@
 
     antigravity
     termius
-    legcord
-    steam
     nwg-look
     vscodium
 

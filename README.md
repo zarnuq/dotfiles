@@ -9,7 +9,6 @@
 # configured applications
 
 - btop
-- dunst
 - doom emacs
 - dwl (dwlb,someblocks)
 - eww
@@ -18,6 +17,7 @@
 - kitty
 - kvantum
 - mpd
+- mako
 - nvim
 - pipewire settings
 - qt themes

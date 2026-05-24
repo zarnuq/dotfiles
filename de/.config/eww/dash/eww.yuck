@@ -14,7 +14,7 @@
 
 ;; Widget sizing
 (defvar CIRCLE-T    30)         ; circular-progress thickness
-(defvar COVER-SZ    80)         ; album art / circle min-size
+(defvar COVER-SZ    120)        ; album art / circle min-size
 (defvar GRAPH-T     2)          ; cpu graph line thickness
 (defvar GRAPH-T-GPU 3)          ; gpu graph line thickness
 (defvar GRAPH-RANGE "60s")      ; graph rolling time window
@@ -44,13 +44,13 @@
 
 (defwindow clock
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "520px" :height "130px" :anchor "center")
+  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "top left")
   :stacking "bottom"
   (clock))
 
 
 ;; ════════════════════════════════════════════════════
-;;  VOLUME (polls + state; widget merged into mpd-volume)
+;;  VOLUME (polls + state; widget defined alongside mpd below)
 ;; ════════════════════════════════════════════════════
 
 (defpoll vol-out       :interval "0.5s" `wpctl get-volume @DEFAULT_AUDIO_SINK@   | awk '{printf "%.0f", $2 * 100}'`)
@@ -161,7 +161,7 @@
 
 (defwindow net-graph
   :monitor 1
-  :geometry (geometry :x "0px" :y "150px" :width "420px" :height "160px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "150px" :width "420px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (net-graph))
 
@@ -190,13 +190,15 @@
   (box :class "weather-widget" :orientation "v" :space-evenly false
     (label :text weather-temp      :class "weather-temp"   :halign "start")
     (label :text weather-condition :class "weather-detail" :halign "start")
-    (box :orientation "h" :space-evenly false
-      (label :text "💧${weather-humidity} " :class "weather-detail")
-      (label :text "  💨${weather-wind}"   :class "weather-detail"))))
+
+    (box :orientation "vertical" :class "weather-details" :halign "start"
+      (label :text "💧${weather-humidity}" :class "weather-detail" :halign "start")
+      (label :text "  💨${weather-wind}"   :class "weather-detail" :halign "start"))))
+
 
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "610" :y "10" :width "170" :height "110" :anchor "top right")
+  :geometry (geometry :x "0" :y "600" :width "170" :height "150" :anchor "bottom left")
   :stacking "bottom"
   (weather))
 
@@ -206,7 +208,7 @@
 ;; ════════════════════════════════════════════════════
 
 (defpoll notif-json :interval "2s" :initial "[]"
-  `dunstctl history | jq -c '[.data[0][:5] // [] | .[] | {app: (.appname.data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}]' 2>/dev/null || echo "[]"`)
+  `~/.config/eww/scripts/notifs.sh 2>/dev/null || echo "[]"`)
 (defpoll notif-paused :interval "2s" `dunstctl is-paused`)
 
 (defwidget notifications []
@@ -226,7 +228,7 @@
 
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "300px" :y "10px" :width "300px" :height "200px" :anchor "top right")
+  :geometry (geometry :x "170px" :y "600px" :width "250px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (notifications))
 
@@ -242,7 +244,7 @@
 (defpoll mpd-cover    :interval "1s"
   `file=$(mpc current -f "%file%" 2>/dev/null) && [ -n "$file" ] && mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null && echo "/tmp/eww-mpd-cover.jpg" || echo ""`)
 
-(defwidget mpd-volume []
+(defwidget mpd []
   (box :class "mpd-widget" :orientation "h" :space-evenly false
     (box :class "mpd-cover-box" :visible {mpd-cover != ""}
       (image :path mpd-cover :image-width {COVER-SZ} :image-height {COVER-SZ}))
@@ -255,24 +257,28 @@
         (button :class "mpd-btn" :onclick "mpc prev"   "󰒮")
         (button :class "mpd-btn" :onclick "mpc toggle" {mpd-status == "playing" ? "󰏤" : "󰐊"})
         (button :class "mpd-btn" :onclick "mpc next"   "󰒭"))
-      (progress :class "mpd-progress" :value mpd-progress :orientation "h"))
-    (box :orientation "v" :spacing {SP-XS} :class "vol-side mpd-vol-sep"
-      (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        (box :orientation "h" :spacing {SP-SM}
-          (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
-                 :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-out}%" :class "vol-value")))
-      (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        (box :orientation "h" :spacing {SP-SM}
-          (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
-                 :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-mic}%" :class "vol-value"))))))
+      (progress :class "mpd-progress" :value mpd-progress :orientation "h")
+      (volume))))
 
-(defwindow mpd-volume
+(defwidget volume []
+  (box :class "volume-widget" :orientation "h" :space-evenly true
+       :halign "fill" :hexpand true
+    (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+      (box :orientation "h" :spacing {SP-SM}
+        (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
+               :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
+        (label :text "${vol-out}%" :class "vol-value")))
+    (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+      (box :orientation "h" :spacing {SP-SM}
+        (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
+               :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
+        (label :text "${vol-mic}%" :class "vol-value")))))
+
+(defwindow mpd
   :monitor 1
-  :geometry (geometry :x "0" :y "510" :width "420px" :height "120px" :anchor "bottom left")
+  :geometry (geometry :x "0" :y "450" :width "420px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
-  (mpd-volume))
+  (mpd))
 
 
 ;; ════════════════════════════════════════════════════
@@ -299,7 +305,7 @@
 
 (defwindow ports
   :monitor 1
-  :geometry (geometry :x "0px" :y "310px" :width "210px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (ports))
 
@@ -334,7 +340,7 @@
 
 (defwindow outlook
   :monitor 1
-  :geometry (geometry :x "10px" :y "10px" :width "280px" :height "800px" :anchor "top right")
+  :geometry (geometry :x "0px" :y "0px" :width "280px" :height "800px" :anchor "top right")
   :stacking "bottom"
   (outlook))
 
@@ -354,22 +360,16 @@
       (label :class "vpn-label" :text {vpn-status != "" ? vpn-status : "VPN Disconnected"}))
     (scroll :vscroll true :hscroll false :vexpand true :class "vpn-scroll"
       (box :class "vpn-list" :orientation "v" :space-evenly false
-        (box :visible {vpn-status != ""}
-          (button :class "vpn-item disconnect"
-                  :onclick "~/.config/eww/scripts/vpn-manager.sh disconnect &"
-            (box :space-evenly false :spacing {SP-MD}
-              (label :text "󰈂")
-              (label :text "Disconnect"))))
         (for vpn in vpn-list
           (button :class "vpn-item ${vpn.name == vpn-status ? 'active' : ''}"
-                  :onclick "~/.config/eww/scripts/vpn-manager.sh connect '${vpn.file}' &"
+                  :onclick "~/.config/eww/scripts/vpn-manager.sh toggle '${vpn.file}' &"
             (box :space-evenly false :spacing {SP-MD}
               (label :text {vpn.name == vpn-status ? "󰌆" : "󰌊"})
               (label :text {vpn.name}))))))))
 
 (defwindow vpn
   :monitor 1
-  :geometry (geometry :x "210px" :y "310px" :width "210px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "210px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   :exclusive false
   (vpn))

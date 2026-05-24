@@ -3,7 +3,7 @@ pkill -x pipewire-pulse
 pkill -x wireplumber
 pkill -x pipewire
 pkill -f 'wl-paste --watch cliphist'
-pkill -x dunst
+pkill -x mako
 pkill -x dwlb
 pkill -x someblocks
 pkill -x gammastep
@@ -24,8 +24,8 @@ eww --config "$HOME/.config/eww/dash" daemon --no-daemonize &
 mpd --no-daemon &
 wl-paste --type text  --watch cliphist store &
 wl-paste --type image --watch cliphist store &
-dunst &
 syncthing --no-browser &
+mako &
 gammastep -O 4000:4000 &
 awww-daemon &
 mpDris2 &
