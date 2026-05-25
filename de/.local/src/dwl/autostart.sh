@@ -20,7 +20,7 @@ trap 'kill 0' EXIT TERM INT
 pipewire &
 pipewire-pulse &
 wireplumber &
-eww --config "$HOME/.config/eww/dash" daemon --no-daemonize &
+eww --config "$HOME/.config/eww" daemon --no-daemonize &
 mpd --no-daemon &
 wl-paste --type text  --watch cliphist store &
 wl-paste --type image --watch cliphist store &

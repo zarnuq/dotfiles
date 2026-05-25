@@ -169,7 +169,7 @@ All: mfact=0.55, nmaster=1, tile layout, scale=1.0
 ### Autostart (`de/.local/src/dwl/autostart.sh`)
 The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autostart.sh`. The script first `pkill`s each daemon (clean restart on session reload), then launches them backgrounded under a `trap 'kill 0'`:
 - pipewire, pipewire-pulse, wireplumber
-- eww daemon (`--config $HOME/.config/eww/dash`) + `~/.local/bin/eww.sh open`
+- eww daemon (`--config $HOME/.config/eww`) + `~/.local/bin/eww.sh open`
 - mpd (`mpd --no-daemon`)
 - mpDris2
 - wl-clip-persist (`-c regular`)
@@ -476,69 +476,60 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 ## EWW Desktop Widgets
 
 **Config:** `de/.config/eww/`
-**Architecture:** Multi-config. Root-level `eww.yuck`/`eww.scss` have been removed. Config lives entirely in subdirectories:
-- `dash/` — main dashboard (eww.yuck + eww.scss)
+**Architecture:** Single config dir. The old `dash/` subdir was removed — `eww.yuck`/`eww.scss` now live at the eww root:
+- `eww.yuck` — all widget + window definitions
+- `eww.scss` — styling; does `@import "scale"` → reads the generated `_scale.scss`
+- `_scale.scss` — generated at runtime by `eww.sh` (holds `$scale`); sits next to `eww.scss`
 - `scripts/` — data provider scripts
 - `calendar.url` — ICS/CalDAV URL for calendar widget
 
 ### Launch
 ```bash
-~/.local/bin/eww.sh open     # all widgets
+~/.local/bin/eww.sh open     # all widgets (writes _scale.scss, reload, open each)
 ~/.local/bin/eww.sh close    # close all
-~/.local/bin/eww.sh dash     # dashboard only
-~/.local/bin/eww.sh vpn      # toggle VPN widget
 ```
+`eww.sh` exposes only `open`/`close`. The daemon itself is started from DWL `autostart.sh` (`eww --config "$HOME/.config/eww" daemon`).
 
-Monitor detection: if DP-2 present → monitor 1 (desktop), else monitor 0 (laptop)
+Monitor/scale detection: if DP-2 present → monitor 1 (desktop), scale `1.0`; else monitor 0 (laptop), scale `0.85`. `scale` drives **both** CSS sizes (`eww.scss` `s(n)` helper → `n*$scale*1px`, fed by `_scale.scss`) and window geometry (a per-window `scale` arg, since `defwindow :geometry` can't read globals).
 
 ### EWW Styling
-`dash/eww.scss` uses Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
+`eww.scss` uses Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
 
-### Dash Widgets (de/.config/eww/dash/eww.yuck)
+### Widgets (de/.config/eww/eww.yuck)
+Ten windows are launched: `clock cpu net-graph tray weather notifications mpd outlook ports vpn`.
 
-| Widget        | Data Source                       | Interval | Notes                              |
-|---------------|-----------------------------------|----------|------------------------------------|
-| clock         | date command                      | 1s/60s   | Time + date                        |
-| volume        | wpctl                             | 0.5s     | Speaker + mic, expandable sliders  |
-| cpu-gpu-graph | EWW_CPU.avg + nvidia-smi          | 2s       | Overlaid line graphs               |
-| tray          | systray (built-in)                | —        | System tray icons                  |
-| ram           | EWW_RAM.used_mem_perc             | built-in | Circular progress                  |
-| disk          | EWW_DISK["/"] + /proc/diskstats   | 1s       | Circular + R/W speed (nvme0n1)     |
-| network       | /proc/net/dev (enp/wlan)          | 1s       | Upload/download MB/s               |
-| temps         | /sys/class/thermal + nvidia-smi   | 2s       | CPU + GPU temp                     |
-| weather       | wttr.in                           | 600s     | Temp, condition, humidity, wind    |
-| notifications | makoctl history -j + jq           | 2s       | Last 5 notifs, DND toggle + dismiss-all buttons |
-| mpd           | mpc                               | 1s       | Cover art, controls, progress bar  |
-| updates       | checkupdates + yay                | 1800s    | Pacman + AUR update count (Arch-era; adapt for Void) |
-| fetch         | whoami, hostname, pacman, uptime  | 24h/60s  | System info display                |
-| hwinfo        | /proc/cpuinfo, nvidia-smi, lsblk  | 24h      | CPU, GPU, disk, RAM, mobo          |
-| ports         | scripts/ports.sh (ss + jq)        | 5s       | Listening TCP ports                |
-| procs         | scripts/procs.sh (ps + jq)        | 2s       | Top 6 processes by CPU             |
-| services      | scripts/services.sh (systemctl + jq) | 5s    | System + user services             |
-| outlook       | scripts/calendar.sh (icalendar)   | 60s      | ICS calendar, next 7 days          |
-| notes         | ~/.local/share/eww/notes.txt      | 5s       | Quick notes, edit with kitty+nvim  |
+| Window        | Data Source                              | Interval    | Notes                                                    |
+|---------------|------------------------------------------|-------------|---------------------------------------------------------|
+| clock         | `date`                                   | 1s/60s      | Time + date                                             |
+| cpu           | EWW_CPU/EWW_RAM/EWW_DISK + nvidia-smi + /sys/class/thermal | built-in/2s | Overlaid CPU/RAM/disk graphs + GPU usage + CPU/GPU temps |
+| net-graph     | /proc/net/dev (eth/en/wl) + `ip -j addr` + jq | 1s/10s | Up/down MB/s + IP list (incl. tun/tap/wg)               |
+| tray          | systray (built-in)                       | —           | System tray icons                                       |
+| weather       | wttr.in (curl)                           | 600s        | Temp, condition, humidity, wind                         |
+| notifications | makoctl history -j + jq                  | 2s          | Recent notifs, DND mode toggle + dismiss-all            |
+| mpd           | mpc + wpctl                              | 1s / 0.5s   | Cover, controls, progress + **volume sliders** (speaker/mic) |
+| ports         | scripts/ports.sh (ss + jq)               | 5s          | Listening TCP ports                                     |
+| outlook       | scripts/calendar.sh events (icalendar)   | 60s         | ICS calendar, next 7 days, refresh button               |
+| vpn           | scripts/vpn-manager.sh list/status       | 5s / 2s     | OpenVPN connect/toggle                                  |
+
+> **Note:** The volume sliders are not a standalone window — the `(volume)` widget is embedded inside the `mpd` widget. Older docs listed standalone `ram`/`disk`/`temps`/`hwinfo`/`procs`/`services`/`notes`/`updates`/`fetch` widgets; these were removed or folded into the windows above.
 
 ### EWW Scripts (de/.config/eww/scripts/)
 - `ports.sh` — ss + awk + jq → JSON array of {proto, port, process}
-- `procs.sh` — ps + awk + jq → JSON array of {pid, name, cpu, mem}
-- `services.sh` — systemctl (system + user) + jq → JSON array of {name, status, type}
-- `calendar.sh` — Python: requires `icalendar` + `recurring_ical_events` packages (installed via home-manager); reads ~/.config/eww/calendar.url; caches ICS to /tmp/eww-calendar.ics
-- `vpn-manager.sh` — OpenVPN management; state in /tmp/eww-openvpn.{pid,status,log}
+- `calendar.sh` — Python (`events`, `refresh` subcommands): requires `icalendar` + `recurring_ical_events` (installed via home-manager); reads ~/.config/eww/calendar.url; caches ICS to /tmp/eww-calendar.ics
+- `vpn-manager.sh` — OpenVPN management (`list`, `status`, `toggle`); state in /tmp/eww-openvpn.{pid,status,log}
 - `focused-output.sh` — wlr-randr monitor detection
 
+> **Note:** `procs.sh` and `services.sh` (in older versions of this file) are no longer present.
+
 ### EWW Dependencies
-- jq — required by ports, procs, services, notifications
-- mpc — required by mpd widget
+- jq — ports, notifications, net-graph (IP list)
+- mpc — mpd widget; wpctl — volume sliders (in mpd window)
 - makoctl — notifications widget (history -j, mode toggle, dismiss)
-- nvidia-smi — GPU stats
+- nvidia-smi — GPU usage + temp in the cpu widget
 - curl — weather (wttr.in)
 - python3 + `icalendar` + `recurring-ical-events` — calendar widget (managed by home-manager)
 - wlr-randr — monitor detection in eww.sh
-- Notes file must exist: `~/.local/share/eww/notes.txt`
 - Calendar URL config: `~/.config/eww/calendar.url` (ICS/CalDAV URL)
-
-### Notes Widget Edit Button
-Opens: `kitty nvim ~/.local/share/eww/notes.txt`
 
 ---
 

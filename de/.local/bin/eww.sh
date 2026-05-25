@@ -14,13 +14,13 @@ else
     scale="0.85"   # <-- tune this: <1.0 smaller, >1.0 bigger
 fi
 
-DASH="eww --config $EWW_DIR/dash"
+DASH="eww --config $EWW_DIR"
 
 open_dash() {
     widgets="clock cpu net-graph tray weather notifications mpd outlook ports vpn"
 
     # CSS side: eww.scss does `@import "scale"` and multiplies px by $scale.
-    printf '$scale: %s;\n' "$scale" > "$EWW_DIR/dash/_scale.scss"
+    printf '$scale: %s;\n' "$scale" > "$EWW_DIR/_scale.scss"
     # Close first so `reload` doesn't try to re-render windows without their
     # `scale` arg, then reload to recompile the SCSS with the new $scale.
     $DASH close-all >/dev/null 2>&1 || true
