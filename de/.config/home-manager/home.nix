@@ -16,6 +16,7 @@
     termius
     nwg-look
     vscodium
+    wl-gammarelay-rs
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;
