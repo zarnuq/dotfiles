@@ -10,8 +10,8 @@ if wlr-randr | grep -q "DP-2"; then
     monitor="1"    # Desktop ultrawide (3440x1440)
     scale="1.0"
 else
-    monitor="0"    # Laptop (1920x1200, higher DPI) — bump everything up
-    scale="1.2"
+    monitor="0"    # Laptop (1920x1200) — shrink the dashboard to fit
+    scale="0.85"   # <-- tune this: <1.0 smaller, >1.0 bigger
 fi
 
 DASH="eww --config $EWW_DIR/dash"
