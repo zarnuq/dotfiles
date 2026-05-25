@@ -244,7 +244,7 @@
 (defpoll bright-level :interval "2s" :initial "100" `~/.local/bin/brightness.sh get`)
 
 (defwidget brightness []
-  (box :class "brightness-widget" :orientation "v" :space-evenly false :valign "center"
+  (box :class "brightness-widget" :orientation "v" :space-evenly false :valign "fill" :vexpand true
     (box :orientation "h" :space-evenly false :class "bright-header"
       (label :class "bright-icon"  :text "󰃟")
       (label :class "bright-title" :text "brightness" :hexpand true :halign "start")
@@ -255,7 +255,7 @@
 
 (defwindow brightness [scale]
   :monitor 1
-  :geometry (geometry :x "0" :y "${round(900 * scale, 0)}" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
+  :geometry (geometry :x "0" :y "${round(900 * scale, 0)}" :width "${round(420 * scale, 0)}px" :height "${round(75 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   (brightness))
 

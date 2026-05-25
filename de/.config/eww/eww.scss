@@ -264,14 +264,14 @@ menuitem:hover {
   background: $base;
   border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: s(15);
+  padding: s(10);
 
-  .bright-icon  { font-size: s(20); color: $yellow; margin-right: s(10); }
+  .bright-icon  { font-size: s(18); color: $yellow; margin-right: s(10); }
   .bright-title { font-size: s(14); color: $subtext0; }
   .bright-value { font-size: s(14); color: $text; }
 
   .bright-scale {
-    margin-top: s(12);
+    margin-top: s(8);
 
     trough {
       background-color: $surface0;
@@ -464,7 +464,7 @@ menuitem:hover {
   }
 
   .cal-scroll {
-    min-height: s(120);
+    min-height: s(92);   // header(~38) + scroll(92) + padding(20) ≈ 150 window height
   }
 
   .cal-empty {
