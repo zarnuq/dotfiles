@@ -89,6 +89,17 @@ disconnect() {
     fi
 }
 
+toggle() {
+    local config_file="$1"
+    local vpn_name=$(basename "$config_file" .ovpn)
+
+    if [ "$(get_status)" = "$vpn_name" ]; then
+        disconnect
+    else
+        connect "$config_file"
+    fi
+}
+
 case "$1" in
     list)
         list_vpns
@@ -101,6 +112,9 @@ case "$1" in
         ;;
     disconnect)
         disconnect
+        ;;
+    toggle)
+        toggle "$2"
         ;;
     *)
         echo "Usage: $0 {list|status|connect <file>|disconnect}"

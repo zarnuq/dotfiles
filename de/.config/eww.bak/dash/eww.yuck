@@ -14,12 +14,13 @@
 
 ;; Widget sizing
 (defvar CIRCLE-T    30)         ; circular-progress thickness
-(defvar COVER-SZ    80)         ; album art / circle min-size
+(defvar COVER-SZ    120)        ; album art / circle min-size
 (defvar GRAPH-T     2)          ; cpu graph line thickness
 (defvar GRAPH-T-GPU 3)          ; gpu graph line thickness
 (defvar GRAPH-RANGE "60s")      ; graph rolling time window
 (defvar RANGE-MIN   0)          ; scale/graph minimum
 (defvar RANGE-MAX   100)        ; scale/graph maximum
+(defvar NET-MAX     25)         ; network graph ceiling in MB/s (tune to your link)
 
 ;; Text truncation limits
 (defvar LIM-MPD     25)         ; mpd title / artist
@@ -43,13 +44,13 @@
 
 (defwindow clock
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "520px" :height "130px" :anchor "center")
+  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "top left")
   :stacking "bottom"
   (clock))
 
 
 ;; ════════════════════════════════════════════════════
-;;  VOLUME (polls + state; widget merged into mpd-volume)
+;;  VOLUME (polls + state; widget defined alongside mpd below)
 ;; ════════════════════════════════════════════════════
 
 (defpoll vol-out       :interval "0.5s" `wpctl get-volume @DEFAULT_AUDIO_SINK@   | awk '{printf "%.0f", $2 * 100}'`)
@@ -92,7 +93,7 @@
 
 (defwindow cpu
   :monitor 1
-  :geometry (geometry :x "10px" :y "10px" :width "310px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (cpu-gpu-graph))
 
@@ -111,11 +112,11 @@
 
 
 ;; ════════════════════════════════════════════════════
-;;  NETWORK
+;;  NETWORK POLLS  (feed the network graph below)
 ;; ════════════════════════════════════════════════════
 
 (defpoll net-down :interval "1s"
-  `awk '/enp|wlan/ {rx+=$2} END {
+  `awk 'NR>2 { sub(/:/," "); if ($1 ~ /^(eth|en|wl)/) rx+=$2 } END {
     file="/tmp/eww-rx-prev"
     if ((getline prev < file) > 0) { speed=(rx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
     else { printf "0.0" }
@@ -123,49 +124,57 @@
   }' /proc/net/dev`)
 
 (defpoll net-up :interval "1s"
-  `awk '/enp|wlan/ {tx+=$10} END {
+  `awk 'NR>2 { sub(/:/," "); if ($1 ~ /^(eth|en|wl)/) tx+=$10 } END {
     file="/tmp/eww-tx-prev"
     if ((getline prev < file) > 0) { speed=(tx-prev)/1000000; if(speed<0)speed=0; printf "%.1f", speed }
     else { printf "0.0" }
     close(file); print tx > file
   }' /proc/net/dev`)
 
-(defwidget network []
-  (box :class "network-widget" :orientation "v" :space-evenly false
-    (label :text "network" :class "network-label" :halign "start")
-    (box :orientation "h" :space-evenly false
-      (label :text "↑" :class "net-arrow-up")
-      (label :text "${net-up} MB/s" :class "net-speed"))
-    (box :orientation "h" :space-evenly false
-      (label :text "↓" :class "net-arrow-down")
-      (label :text "${net-down} MB/s" :class "net-speed"))))
 
-(defwindow network
+;; ════════════════════════════════════════════════════
+;;  NETWORK GRAPH
+;; ════════════════════════════════════════════════════
+;; Reuses the net-up / net-down polls above — no extra polling cost.
+
+(defwidget net-graph []
+  (box :class "net-graph-widget" :orientation "v" :space-evenly false
+    (box :orientation "h" :space-evenly false :spacing {SP-LG}
+      (box :orientation "h" :space-evenly false :spacing {SP-XS}
+        (label :text "↓"           :class "net-down-label")
+        (label :text "${net-down}" :class "net-value"))
+      (box :orientation "h" :space-evenly false :spacing {SP-XS}
+        (label :text "↑"           :class "net-up-label")
+        (label :text "${net-up}"   :class "net-value"))
+      (label :text "MB/s" :class "net-unit-label" :hexpand true :halign "end" :valign "start"))
+    (overlay :vexpand true :hexpand true
+      (graph :value {net-down} :thickness {GRAPH-T} :time-range {GRAPH-RANGE}
+             :min {RANGE-MIN} :max {NET-MAX} :line-style "round" :class "net-down-line")
+      (graph :value {net-up}   :thickness {GRAPH-T} :time-range {GRAPH-RANGE}
+             :min {RANGE-MIN} :max {NET-MAX} :line-style "round" :class "net-up-line"))
+    (box :class "net-ip-list" :orientation "v" :space-evenly false
+      (for entry in ip-addrs
+        (box :class "net-ip-row" :orientation "h" :space-evenly false
+          (label :text {entry.iface}
+                 :class {entry.iface =~ "^(tun|tap|wg)" ? "net-ip-iface tunnel" : "net-ip-iface real"})
+          (label :text {entry.ip} :class "net-ip-addr" :hexpand true :halign "end"))))))
+
+(defwindow net-graph
   :monitor 1
-  :geometry (geometry :x "330px" :y "60px" :width "100px" :height "100px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "150px" :width "420px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
-  (network))
+  (net-graph))
 
 
 ;; ════════════════════════════════════════════════════
-;;  IP ADDRESSES
+;;  IP ADDRESSES  (feeds the network graph footer)
 ;; ════════════════════════════════════════════════════
+;; Real NICs (eth/en/wl) + tunnels (tun/tap/wg); skips lo, docker, veth, bridges.
+;; LOWER_UP flag = carrier present, so down links are excluded (operstate is
+;; unreliable here — tunnels report UNKNOWN even when up).
 
 (defpoll ip-addrs :interval "10s" :initial "[]"
-  `ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname != "lo") | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'`)
-
-(defwidget ipaddrs []
-  (box :class "ipaddrs-widget" :orientation "v" :space-evenly false
-    (for entry in ip-addrs
-      (label :text "${entry.iface}: ${entry.ip}" :class "ip-entry" :halign "start"))))
-
-(defwindow ipaddrs
-  :monitor 1
-  :geometry (geometry :x "640px" :y "10px" :width "170px" :height "80px" :anchor "bottom left")
-  :stacking "bottom"
-  (ipaddrs))
-
-
+  `ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname | test("^(eth|en|wl|tun|tap|wg)")) | select(.flags | index("LOWER_UP")) | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'`)
 
 
 ;; ════════════════════════════════════════════════════
@@ -181,13 +190,15 @@
   (box :class "weather-widget" :orientation "v" :space-evenly false
     (label :text weather-temp      :class "weather-temp"   :halign "start")
     (label :text weather-condition :class "weather-detail" :halign "start")
-    (box :orientation "h" :space-evenly false
-      (label :text "💧${weather-humidity} " :class "weather-detail")
-      (label :text "  💨${weather-wind}"   :class "weather-detail"))))
+
+    (box :orientation "vertical" :class "weather-details" :halign "start"
+      (label :text "💧${weather-humidity}" :class "weather-detail" :halign "start")
+      (label :text "  💨${weather-wind}"   :class "weather-detail" :halign "start"))))
+
 
 (defwindow weather
   :monitor 1
-  :geometry (geometry :x "610" :y "10" :width "170" :height "110" :anchor "top right")
+  :geometry (geometry :x "0" :y "600" :width "140" :height "150" :anchor "bottom left")
   :stacking "bottom"
   (weather))
 
@@ -197,16 +208,16 @@
 ;; ════════════════════════════════════════════════════
 
 (defpoll notif-json :interval "2s" :initial "[]"
-  `dunstctl history | jq -c '[.data[0][:5] // [] | .[] | {app: (.appname.data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}]' 2>/dev/null || echo "[]"`)
-(defpoll notif-paused :interval "2s" `dunstctl is-paused`)
+  `makoctl history -j | jq -c '[.[] | {app: (.app_name // "Unknown"), summary: (.summary // "No summary"), body: (.body // "")}] | .[:5]' 2>/dev/null || echo "[]"`)
+(defpoll notif-paused :interval "2s" `makoctl mode 2>/dev/null | grep -q '^do-not-disturb$' && echo true || echo false`)
 
 (defwidget notifications []
   (box :class "notif-widget" :orientation "v" :space-evenly false
     (box :orientation "h" :space-evenly false :class "notif-header"
       (label :text "notifications" :class "notif-label" :hexpand true :halign "start")
-      (button :class "notif-btn" :onclick "dunstctl set-paused toggle"
+      (button :class "notif-btn" :onclick "makoctl mode -t do-not-disturb"
         (label :text {notif-paused == "true" ? "󰂛" : "󰂚"}))
-      (button :class "notif-btn" :onclick "dunstctl history-clear"
+      (button :class "notif-btn" :onclick "makoctl dismiss -a"
         (label :text "󰆴")))
     (scroll :vscroll true :hscroll false :vexpand true :class "notif-scroll"
       (box :orientation "v" :space-evenly false
@@ -217,7 +228,7 @@
 
 (defwindow notifications
   :monitor 1
-  :geometry (geometry :x "300px" :y "10px" :width "300px" :height "200px" :anchor "top right")
+  :geometry (geometry :x "140px" :y "600px" :width "280px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (notifications))
 
@@ -231,9 +242,15 @@
 (defpoll mpd-status   :interval "1s"            `mpc status 2>/dev/null | grep -q playing && echo "playing" || echo "paused"`)
 (defpoll mpd-progress :interval "1s" :initial "0" `mpc 2>/dev/null | sed -n 's/.*( *\\([0-9]*\\)%).*/\\1/p'`)
 (defpoll mpd-cover    :interval "1s"
-  `file=$(mpc current -f "%file%" 2>/dev/null) && [ -n "$file" ] && mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null && echo "/tmp/eww-mpd-cover.jpg" || echo ""`)
+  `file=$(mpc current -f "%file%" 2>/dev/null)
+[ -z "$file" ] && { echo ""; exit 0; }
+mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null
+case "$(file -b --mime-type /tmp/eww-mpd-cover.jpg)" in
+  image/*) echo "/tmp/eww-mpd-cover.jpg" ;;
+  *)       echo "" ;;
+esac`)
 
-(defwidget mpd-volume []
+(defwidget mpd []
   (box :class "mpd-widget" :orientation "h" :space-evenly false
     (box :class "mpd-cover-box" :visible {mpd-cover != ""}
       (image :path mpd-cover :image-width {COVER-SZ} :image-height {COVER-SZ}))
@@ -246,43 +263,28 @@
         (button :class "mpd-btn" :onclick "mpc prev"   "󰒮")
         (button :class "mpd-btn" :onclick "mpc toggle" {mpd-status == "playing" ? "󰏤" : "󰐊"})
         (button :class "mpd-btn" :onclick "mpc next"   "󰒭"))
-      (progress :class "mpd-progress" :value mpd-progress :orientation "h"))
-    (box :orientation "v" :spacing {SP-XS} :class "vol-side mpd-vol-sep"
-      (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
-        (box :orientation "h" :spacing {SP-SM}
-          (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
-                 :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-out}%" :class "vol-value")))
-      (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
-        (box :orientation "h" :spacing {SP-SM}
-          (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
-                 :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
-          (label :text "${vol-mic}%" :class "vol-value"))))))
+      (progress :class "mpd-progress" :value mpd-progress :orientation "h")
+      (volume))))
 
-(defwindow mpd-volume
+(defwidget volume []
+  (box :class "volume-widget" :orientation "h" :space-evenly true
+       :halign "fill" :hexpand true
+    (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+      (box :orientation "h" :spacing {SP-SM}
+        (label :text {vol-out-muted == "true" ? "󰖁" : "󰕾"}
+               :class {vol-out-muted == "true" ? "vol-icon muted" : "vol-icon"})
+        (label :text "${vol-out}%" :class "vol-value")))
+    (eventbox :onclick "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+      (box :orientation "h" :spacing {SP-SM}
+        (label :text {vol-mic-muted == "true" ? "󰍭" : "󰍬"}
+               :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
+        (label :text "${vol-mic}%" :class "vol-value")))))
+
+(defwindow mpd
   :monitor 1
-  :geometry (geometry :x "10" :y "380" :width "420px" :height "120px" :anchor "bottom left")
+  :geometry (geometry :x "0" :y "450" :width "420px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
-  (mpd-volume))
-
-
-;; ════════════════════════════════════════════════════
-;;  UPDATES
-;; ════════════════════════════════════════════════════
-
-(defpoll updates     :interval "1800s" `checkupdates 2>/dev/null | wc -l`)
-(defpoll aur-updates :interval "1800s" `yay -Qua 2>/dev/null | wc -l`)
-
-(defwidget updates []
-  (box :class "updates-widget" :orientation "h" :space-evenly false
-    (label :text "󰏔" :class "updates-icon")
-    (label :text "${updates} + ${aur-updates}" :class "updates-label")))
-
-(defwindow updates
-  :monitor 1
-  :geometry (geometry :x "330px" :y "10px" :width "100" :height "40" :anchor "bottom left")
-  :stacking "bottom"
-  (updates))
+  (mpd))
 
 
 ;; ════════════════════════════════════════════════════
@@ -309,7 +311,7 @@
 
 (defwindow ports
   :monitor 1
-  :geometry (geometry :x "10px" :y "170px" :width "200px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   (ports))
 
@@ -344,7 +346,7 @@
 
 (defwindow outlook
   :monitor 1
-  :geometry (geometry :x "10px" :y "10px" :width "280px" :height "800px" :anchor "top right")
+  :geometry (geometry :x "0px" :y "750px" :width "420" :height "150" :anchor "bottom left")
   :stacking "bottom"
   (outlook))
 
@@ -364,22 +366,16 @@
       (label :class "vpn-label" :text {vpn-status != "" ? vpn-status : "VPN Disconnected"}))
     (scroll :vscroll true :hscroll false :vexpand true :class "vpn-scroll"
       (box :class "vpn-list" :orientation "v" :space-evenly false
-        (box :visible {vpn-status != ""}
-          (button :class "vpn-item disconnect"
-                  :onclick "~/.config/eww/scripts/vpn-manager.sh disconnect &"
-            (box :space-evenly false :spacing {SP-MD}
-              (label :text "󰈂")
-              (label :text "Disconnect"))))
         (for vpn in vpn-list
           (button :class "vpn-item ${vpn.name == vpn-status ? 'active' : ''}"
-                  :onclick "~/.config/eww/scripts/vpn-manager.sh connect '${vpn.file}' &"
+                  :onclick "~/.config/eww/scripts/vpn-manager.sh toggle '${vpn.file}' &"
             (box :space-evenly false :spacing {SP-MD}
               (label :text {vpn.name == vpn-status ? "󰌆" : "󰌊"})
               (label :text {vpn.name}))))))))
 
 (defwindow vpn
   :monitor 1
-  :geometry (geometry :x "220px" :y "170px" :width "210px" :height "200px" :anchor "bottom left")
+  :geometry (geometry :x "210px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
   :stacking "bottom"
   :exclusive false
   (vpn))

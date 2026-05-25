@@ -5,6 +5,8 @@
 ;; Window defaults
 (defvar MON         1)          ; primary monitor index
 (defvar STACK       "bottom")   ; default window stacking
+;; NOTE: scale is a per-window ARGUMENT (passed by eww.sh via --arg scale=N),
+;; not a global var — defwindow :geometry can only see window args, not defvars.
 
 ;; Spacing scale
 (defvar SP-XS       4)
@@ -42,9 +44,9 @@
     (label :text time :class "time")
     (label :text date :class "date")))
 
-(defwindow clock
+(defwindow clock [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "top left")
+  :geometry (geometry :x "0px" :y "0px" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "top left")
   :stacking "bottom"
   (clock))
 
@@ -91,9 +93,9 @@
       (graph :value {EWW_DISK["/"].used_perc} :thickness {GRAPH-T}     :time-range {GRAPH-RANGE}
              :min {RANGE-MIN} :max {RANGE-MAX} :line-style "round" :class "disk-line"))))
 
-(defwindow cpu
+(defwindow cpu [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "420px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "0px" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   (cpu-gpu-graph))
 
@@ -102,11 +104,11 @@
 ;;  TRAY
 ;; ════════════════════════════════════════════════════
 
-(defwindow tray
+(defwindow tray [scale]
   :monitor 1
-  :geometry (geometry :x "500px" :y "-20px" :width "100" :height "20px" :anchor "top right")
+  :geometry (geometry :x "${round(500 * scale, 0)}px" :y "${round(-20 * scale, 0)}px" :width "${round(100 * scale, 0)}px" :height "${round(20 * scale, 0)}px" :anchor "top right")
   :stacking "overlay"
-  (systray :class "tray-widget" :orientation "h" :icon-size 18 :space-evenly false :spacing 0))
+  (systray :class "tray-widget" :orientation "h" :icon-size {round(18 * scale, 0)} :space-evenly false :spacing 0))
 
 
 
@@ -159,9 +161,9 @@
                  :class {entry.iface =~ "^(tun|tap|wg)" ? "net-ip-iface tunnel" : "net-ip-iface real"})
           (label :text {entry.ip} :class "net-ip-addr" :hexpand true :halign "end"))))))
 
-(defwindow net-graph
+(defwindow net-graph [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "150px" :width "420px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "${round(150 * scale, 0)}px" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   (net-graph))
 
@@ -196,9 +198,9 @@
       (label :text "  💨${weather-wind}"   :class "weather-detail" :halign "start"))))
 
 
-(defwindow weather
+(defwindow weather [scale]
   :monitor 1
-  :geometry (geometry :x "0" :y "600" :width "170" :height "150" :anchor "bottom left")
+  :geometry (geometry :x "0" :y "${round(600 * scale, 0)}" :width "${round(140 * scale, 0)}" :height "${round(150 * scale, 0)}" :anchor "bottom left")
   :stacking "bottom"
   (weather))
 
@@ -208,7 +210,7 @@
 ;; ════════════════════════════════════════════════════
 
 (defpoll notif-json :interval "2s" :initial "[]"
-  `makoctl history -j | jq -c '[.data[0][] | {app: (."app-name".data // "Unknown"), summary: (.summary.data // "No summary"), body: (.body.data // "")}] | .[:5]' 2>/dev/null || echo "[]"`)
+  `makoctl history -j | jq -c '[.[] | {app: (.app_name // "Unknown"), summary: (.summary // "No summary"), body: (.body // "")}] | .[:5]' 2>/dev/null || echo "[]"`)
 (defpoll notif-paused :interval "2s" `makoctl mode 2>/dev/null | grep -q '^do-not-disturb$' && echo true || echo false`)
 
 (defwidget notifications []
@@ -226,9 +228,9 @@
             (label :text {notif.app}     :class "notif-app"     :halign "start")
             (label :text {notif.summary} :class "notif-summary" :halign "start" :wrap true)))))))
 
-(defwindow notifications
+(defwindow notifications [scale]
   :monitor 1
-  :geometry (geometry :x "170px" :y "600px" :width "250px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "${round(140 * scale, 0)}px" :y "${round(600 * scale, 0)}px" :width "${round(280 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   (notifications))
 
@@ -242,12 +244,18 @@
 (defpoll mpd-status   :interval "1s"            `mpc status 2>/dev/null | grep -q playing && echo "playing" || echo "paused"`)
 (defpoll mpd-progress :interval "1s" :initial "0" `mpc 2>/dev/null | sed -n 's/.*( *\\([0-9]*\\)%).*/\\1/p'`)
 (defpoll mpd-cover    :interval "1s"
-  `file=$(mpc current -f "%file%" 2>/dev/null) && [ -n "$file" ] && mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null && echo "/tmp/eww-mpd-cover.jpg" || echo ""`)
+  `file=$(mpc current -f "%file%" 2>/dev/null)
+[ -z "$file" ] && { echo ""; exit 0; }
+mpc readpicture "$file" > /tmp/eww-mpd-cover.jpg 2>/dev/null
+case "$(file -b --mime-type /tmp/eww-mpd-cover.jpg)" in
+  image/*) echo "/tmp/eww-mpd-cover.jpg" ;;
+  *)       echo "" ;;
+esac`)
 
-(defwidget mpd []
+(defwidget mpd [scale]
   (box :class "mpd-widget" :orientation "h" :space-evenly false
     (box :class "mpd-cover-box" :visible {mpd-cover != ""}
-      (image :path mpd-cover :image-width {COVER-SZ} :image-height {COVER-SZ}))
+      (image :path mpd-cover :image-width {round(COVER-SZ * scale, 0)} :image-height {round(COVER-SZ * scale, 0)}))
     (box :orientation "v" :space-evenly false :hexpand true
       (label :text {mpd-title != "" ? mpd-title : "Not playing"}
              :class "mpd-title" :halign "start" :limit-width {LIM-MPD})
@@ -274,11 +282,11 @@
                :class {vol-mic-muted == "true" ? "vol-icon muted" : "vol-icon"})
         (label :text "${vol-mic}%" :class "vol-value")))))
 
-(defwindow mpd
+(defwindow mpd [scale]
   :monitor 1
-  :geometry (geometry :x "0" :y "450" :width "420px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "0" :y "${round(450 * scale, 0)}" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
-  (mpd))
+  (mpd :scale scale))
 
 
 ;; ════════════════════════════════════════════════════
@@ -303,9 +311,9 @@
             (label :text {port.port}    :class "port-number")
             (label :text {port.process} :class "port-process" :hexpand true :halign "end" :limit-width 12)))))))
 
-(defwindow ports
+(defwindow ports [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "0px" :y "${round(300 * scale, 0)}px" :width "${round(210 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   (ports))
 
@@ -338,9 +346,9 @@
                    :text "󰍎 ${event.location}"
                    :class "cal-location" :halign "start" :limit-width {LIM-CAL})))))))
 
-(defwindow outlook
+(defwindow outlook [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "280px" :height "800px" :anchor "top right")
+  :geometry (geometry :x "0px" :y "${round(750 * scale, 0)}px" :width "${round(420 * scale, 0)}" :height "${round(150 * scale, 0)}" :anchor "bottom left")
   :stacking "bottom"
   (outlook))
 
@@ -367,9 +375,9 @@
               (label :text {vpn.name == vpn-status ? "󰌆" : "󰌊"})
               (label :text {vpn.name}))))))))
 
-(defwindow vpn
+(defwindow vpn [scale]
   :monitor 1
-  :geometry (geometry :x "210px" :y "300px" :width "210px" :height "150px" :anchor "bottom left")
+  :geometry (geometry :x "${round(210 * scale, 0)}px" :y "${round(300 * scale, 0)}px" :width "${round(210 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
   :stacking "bottom"
   :exclusive false
   (vpn))

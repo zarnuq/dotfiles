@@ -58,13 +58,13 @@ static const Env envs[] = {
 };
 
 static const Rule rules[] = {
-    /* app_id        title   tags mask   switchtotag   isfloating   monitor   x     y     width   height */
-    { "rmpc",        NULL,   0,          0,            0,           2,        0,    0,    0,      0   },
-    { "zen",         NULL,   1 << 2,     1,            0,          -1,        0,    0,    0,      0   },
-    { "mpv",         NULL,   1 << 0,     1,            0,          -1,        0,    0,    0,      0   },
-    { "^steam",      NULL,   1 << 4,     0,            0,          -1,        0,    0,    0,      0   },
-    { "^float",      NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5 },
-    { "pavucontrol", NULL,   0,          0,            1,          -1,        0.25, 0.25, 0.5,    0.5 },
+    /* app_id        title tags mask switchtotag isfloating  monitor x     y     width height */
+    { "rmpc",        NULL, 0,        0,          0,          2,      0,    0,    0,    0   },
+    { "zen",         NULL, 1 << 2,   1,          0,         -1,      0,    0,    0,    0   },
+    { "mpv",         NULL, 1 << 0,   1,          0,         -1,      0,    0,    0,    0   },
+    { "^steam",      NULL, 1 << 4,   0,          0,         -1,      0,    0,    0,    0   },
+    { "^float",      NULL, 0,        0,          1,         -1,      0.25, 0.25, 0.5,  0.5 },
+    { "pavucontrol", NULL, 0,        0,          1,         -1,      0.25, 0.25, 0.5,  0.5 },
 };
 
 static const Layout layouts[] = {
@@ -75,12 +75,12 @@ static const Layout layouts[] = {
 };
 
 static const MonitorRule monrules[] = {
-    /* name     mfact  nmaster scale layout       rotate/reflect              x     y  resx   resy   rate  mode   adaptive*/
-    { "eDP-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 1920,  1200,  0.0f, 0,     0},
-    { "DP-2",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0, 1440, 3440,  1440,  0.0f, 1,     0},
-    { "DP-3",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_180,    0,    0, 3440,  1440,  0.0f, 1,     0},
+    /* name     mfact  nmaster scale layout       rotate/reflect              x     y     resx   resy   rate  mode   adaptive*/
+    { "eDP-1",  0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,   -1,   1920,  1200,  0.0f, 0,     0},
+    { "DP-2",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, 0,    1440, 3440,  1440,  0.0f, 1,     0},
+    { "DP-3",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_180,    0,    0,    3440,  1440,  0.0f, 1,     0},
     { "DP-1",   0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_270,    3440, 1440, 1920,  1080,  0.0f, 2,     0},
-    { NULL,     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,  -1, 0,     0,     0.0f, 0,     0},
+    { NULL,     0.55f, 1,      1,    &layouts[0], WL_OUTPUT_TRANSFORM_NORMAL, -1,   -1,   0,     0,     0.0f, 0,     0},
 };
 
 static const struct xkb_rule_names xkb_rules = {

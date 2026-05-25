@@ -1,5 +1,9 @@
 // Dashboard Widget Styles - Catppuccin Mocha Theme
 
+// Per-monitor scale factor (set by eww.sh) + helper. s(58) -> 58px * $scale.
+@import "scale";
+@function s($n) { @return $n * $scale * 1px; }
+
 // Catppuccin Mocha palette
 $base: #1e1e2e;
 $surface0: #313244;
@@ -16,7 +20,7 @@ $mauve: #cba6f7;
 $teal: #94e2d5;
 $lavender: #b4befe;
 
-$border-radius: 0px;
+$border-radius: s(0);
 
 * {
   all: unset;
@@ -31,9 +35,9 @@ window {
 menu, .menu, menuitem, .menuitem {
   background: $base;
   color: $text;
-  padding: 5px 5px;
-  border: 1px solid $surface0;
-  border-radius: 8px;
+  padding: s(5) s(5);
+  border: s(1) solid $surface0;
+  border-radius: s(8);
 }
 
 menuitem:hover {
@@ -43,19 +47,19 @@ menuitem:hover {
 // Clock widget
 .clock-widget {
   background-color: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
   color: $text;
-  padding: 15px;
+  padding: s(15);
 
   .time {
-    font-size: 58px;
+    font-size: s(58);
     font-weight: bold;
     color: $text;
   }
 
   .date {
-    font-size: 32px;
+    font-size: s(32);
     color: $subtext0;
   }
 }
@@ -63,32 +67,32 @@ menuitem:hover {
 // Volume widget
 .volume-widget {
   background-color: transparent;
-  margin-top: 8px;
+  margin-top: s(8);
 
   .vol-value {
-    font-size: 14px;
+    font-size: s(14);
     color: $text;
-    margin-left: 0px;
+    margin-left: s(0);
   }
 
   .vol-side {
-    min-width: 70px;
+    min-width: s(70);
   }
 
   .vol-bar {
-    padding: 0px 0px;
+    padding: s(0) s(0);
   }
 
   .vol-btn {
     background: none;
-    padding: 0px;
-    border-radius: 8px;
+    padding: s(0);
+    border-radius: s(8);
   }
 
 }
 
 .vol-icon {
-  font-size: 20px;
+  font-size: s(20);
   color: $text;
 
   &.muted {
@@ -97,42 +101,42 @@ menuitem:hover {
 }
 
 .vol-text {
-  font-size: 10px;
+  font-size: s(10);
   color: $subtext0;
 }
 
 // CPU/GPU graph widget
 .cpu-graph-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .cpu-label {
-    font-size: 18px;
+    font-size: s(18);
     color: $text;
-    margin-right: 10px;
+    margin-right: s(10);
   }
 
   .gpu-label {
-    font-size: 18px;
+    font-size: s(18);
     color: $blue;
-    margin-right: 10px;
+    margin-right: s(10);
   }
 
   .ram-graph-label {
-    font-size: 18px;
+    font-size: s(18);
     color: $green;
-    margin-right: 10px;
+    margin-right: s(10);
   }
 
   .disk-graph-label {
-    font-size: 18px;
+    font-size: s(18);
     color: $peach;
   }
 
   .graph-temp {
-    font-size: 11px;
+    font-size: s(11);
     color: $subtext0;
   }
 
@@ -156,31 +160,31 @@ menuitem:hover {
 // Network graph widget
 .net-graph-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
-  .net-down-label { font-size: 18px; color: $blue; }
-  .net-up-label   { font-size: 18px; color: $green; }
-  .net-value      { font-size: 11px; color: $subtext0; }
-  .net-unit-label { font-size: 11px; color: $subtext0; }
+  .net-down-label { font-size: s(18); color: $blue; }
+  .net-up-label   { font-size: s(18); color: $green; }
+  .net-value      { font-size: s(11); color: $subtext0; }
+  .net-unit-label { font-size: s(11); color: $subtext0; }
 
   .net-down-line  { color: $blue; }
   .net-up-line    { color: $green; }
 
-  .net-ip-list { margin-top: 6px; }
+  .net-ip-list { margin-top: s(6); }
 
-  .net-ip-row { padding: 1px 0; }
+  .net-ip-row { padding: s(1) 0; }
 
   .net-ip-iface {
-    font-size: 11px;
+    font-size: s(11);
     font-weight: bold;
     &.real   { color: $green; }
     &.tunnel { color: $mauve; }
   }
 
   .net-ip-addr {
-    font-size: 11px;
+    font-size: s(11);
     color: $subtext0;
   }
 }
@@ -194,17 +198,17 @@ menuitem:hover {
 // Weather widget
 .weather-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .weather-temp {
-    font-size: 24px;
+    font-size: s(24);
     color: $text;
   }
 
   .weather-detail {
-    font-size: 20px;
+    font-size: s(20);
     color: $subtext0;
   }
 }
@@ -212,24 +216,24 @@ menuitem:hover {
 // Notifications widget
 .notif-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .notif-header {
-    margin-bottom: 8px;
+    margin-bottom: s(8);
   }
 
   .notif-label {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
   }
 
   .notif-btn {
     background: none;
     color: $subtext0;
-    font-size: 14px;
-    margin-left: 8px;
+    font-size: s(14);
+    margin-left: s(8);
     transition: color 200ms ease;
 
     &:hover {
@@ -239,18 +243,18 @@ menuitem:hover {
 
   .notif-card {
     background: $surface0;
-    padding: 8px;
-    margin-bottom: 5px;
-    border-radius: 8px;
+    padding: s(8);
+    margin-bottom: s(5);
+    border-radius: s(8);
   }
 
   .notif-app {
-    font-size: 10px;
+    font-size: s(10);
     color: $subtext0;
   }
 
   .notif-summary {
-    font-size: 12px;
+    font-size: s(12);
     color: $text;
   }
 }
@@ -258,39 +262,39 @@ menuitem:hover {
 // MPD widget
 .mpd-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .mpd-cover-box {
-    min-width: 120px;
-    min-height: 120px;
+    min-width: s(120);
+    min-height: s(120);
     background-size: cover;
     background-position: center;
-    border-radius: 8px;
-    margin-right: 10px;
+    border-radius: s(8);
+    margin-right: s(10);
   }
 
   .mpd-title {
-    font-size: 16px;
+    font-size: s(16);
     color: $text;
     font-weight: bold;
   }
 
   .mpd-artist {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
-    margin-bottom: 8px;
+    margin-bottom: s(8);
   }
 
   .mpd-controls {
-    margin-bottom: 8px;
+    margin-bottom: s(8);
   }
 
   .mpd-btn {
     background: none;
     color: $subtext0;
-    font-size: 18px;
+    font-size: s(18);
     transition: color 200ms ease;
 
     &:hover {
@@ -300,87 +304,87 @@ menuitem:hover {
 
   .mpd-progress {
     background-color: $surface0;
-    min-height: 4px;
-    border-radius: 3px;
+    min-height: s(4);
+    border-radius: s(3);
   }
 
   .mpd-progress progress {
     background-color: $mauve;
-    border-radius: 3px;
+    border-radius: s(3);
   }
 }
 
 // Ports widget
 .ports-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .ports-header {
     // clickable area
   }
 
   .ports-icon {
-    font-size: 16px;
+    font-size: s(16);
     color: $red;
-    margin-right: 8px;
+    margin-right: s(8);
   }
 
   .ports-title {
-    font-size: 14px;
+    font-size: s(14);
     color: $subtext0;
   }
 
   .ports-count {
-    font-size: 12px;
+    font-size: s(12);
     color: $text;
     background: $surface0;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-right: 8px;
+    padding: s(2) s(8);
+    border-radius: s(10);
+    margin-right: s(8);
   }
 
   .ports-expand-icon {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
   }
 
   .ports-scroll {
-    margin-top: 8px;
+    margin-top: s(8);
   }
 
   .ports-empty {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
-    padding: 10px;
+    padding: s(10);
   }
 
   .port-entry {
     background: $surface0;
-    padding: 6px 10px;
-    margin-bottom: 4px;
-    border-radius: 6px;
+    padding: s(6) s(10);
+    margin-bottom: s(4);
+    border-radius: s(6);
   }
 
   .port-proto {
-    font-size: 10px;
+    font-size: s(10);
     color: $subtext0;
     background: $surface1;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-right: 8px;
+    padding: s(2) s(6);
+    border-radius: s(4);
+    margin-right: s(8);
   }
 
   .port-number {
-    font-size: 14px;
+    font-size: s(14);
     color: $red;
     font-weight: bold;
-    min-width: 50px;
+    min-width: s(50);
   }
 
   .port-process {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
   }
 }
@@ -388,33 +392,33 @@ menuitem:hover {
 // Calendar widget
 .calendar-widget {
   background: $base;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
   border-radius: $border-radius;
-  padding: 10px;
+  padding: s(10);
 
   .cal-header {
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid $surface0;
+    margin-bottom: s(8);
+    padding-bottom: s(8);
+    border-bottom: s(1) solid $surface0;
   }
 
   .cal-icon {
-    font-size: 16px;
+    font-size: s(16);
     color: $blue;
-    margin-right: 8px;
+    margin-right: s(8);
   }
 
   .cal-title {
-    font-size: 14px;
+    font-size: s(14);
     color: $subtext0;
   }
 
   .cal-refresh-btn {
     background: none;
     color: $subtext0;
-    font-size: 14px;
-    padding: 2px 6px;
-    border-radius: 6px;
+    font-size: s(14);
+    padding: s(2) s(6);
+    border-radius: s(6);
     transition: all 200ms ease;
 
     &:hover {
@@ -424,44 +428,44 @@ menuitem:hover {
   }
 
   .cal-scroll {
-    min-height: 120px;
+    min-height: s(120);
   }
 
   .cal-empty {
-    font-size: 12px;
+    font-size: s(12);
     color: $subtext0;
-    padding: 20px;
+    padding: s(20);
   }
 
   .cal-event {
     background: $surface0;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    border-radius: 8px;
-    border-left: 3px solid $blue;
+    padding: s(8) s(10);
+    margin-bottom: s(6);
+    border-radius: s(8);
+    border-left: s(3) solid $blue;
   }
 
   .cal-day {
-    font-size: 11px;
+    font-size: s(11);
     color: $blue;
     font-weight: bold;
   }
 
   .cal-time {
-    font-size: 11px;
+    font-size: s(11);
     color: $subtext0;
   }
 
   .cal-summary {
-    font-size: 13px;
+    font-size: s(13);
     color: $text;
-    margin-top: 2px;
+    margin-top: s(2);
   }
 
   .cal-location {
-    font-size: 11px;
+    font-size: s(11);
     color: $subtext0;
-    margin-top: 4px;
+    margin-top: s(4);
   }
 }
 
@@ -469,11 +473,11 @@ menuitem:hover {
 .vpn-container {
   background-color: $base;
   border-radius: $border-radius;
-  border: 1px solid $surface0;
+  border: s(1) solid $surface0;
 }
 
 .vpn-header {
-  padding: 12px 16px;
+  padding: s(12) s(16);
   background-color: transparent;
 
   &.connected .vpn-icon,
@@ -487,19 +491,19 @@ menuitem:hover {
   }
 }
 
-.vpn-icon  { font-size: 18px; }
-.vpn-label { font-size: 14px; font-weight: 500; }
+.vpn-icon  { font-size: s(18); }
+.vpn-label { font-size: s(14); font-weight: 500; }
 
 .vpn-list {
-  padding: 8px;
-  border-top: 1px solid $surface0;
+  padding: s(8);
+  border-top: s(1) solid $surface0;
 }
 
 .vpn-item {
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: s(10) s(14);
+  border-radius: s(8);
   color: $text;
-  font-size: 13px;
+  font-size: s(13);
   transition: background-color 200ms ease;
 
   label { color: inherit; }

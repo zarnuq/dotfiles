@@ -59,3 +59,5 @@ cd dotfiles
 stow de
 install.sh
 ```
+
+

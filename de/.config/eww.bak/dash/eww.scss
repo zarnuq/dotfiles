@@ -49,23 +49,27 @@ menuitem:hover {
   padding: 15px;
 
   .time {
-    font-size: 64px;
+    font-size: 58px;
     font-weight: bold;
     color: $text;
   }
 
   .date {
-    font-size: 20px;
+    font-size: 32px;
     color: $subtext0;
   }
 }
 
 // Volume widget
 .volume-widget {
-  background-color: $base;
-  border: 1px solid $surface0;
-  border-radius: $border-radius;
-  padding: 6px;
+  background-color: transparent;
+  margin-top: 8px;
+
+  .vol-value {
+    font-size: 14px;
+    color: $text;
+    margin-left: 0px;
+  }
 
   .vol-side {
     min-width: 70px;
@@ -149,54 +153,43 @@ menuitem:hover {
   }
 }
 
-// System tray
-.tray-widget {
-  background: transparent;
-  padding: 0;
-}
-
-// Network widget
-.network-widget {
+// Network graph widget
+.net-graph-widget {
   background: $base;
   border: 1px solid $surface0;
   border-radius: $border-radius;
   padding: 10px;
 
-  .network-label {
-    font-size: 14px;
+  .net-down-label { font-size: 18px; color: $blue; }
+  .net-up-label   { font-size: 18px; color: $green; }
+  .net-value      { font-size: 11px; color: $subtext0; }
+  .net-unit-label { font-size: 11px; color: $subtext0; }
+
+  .net-down-line  { color: $blue; }
+  .net-up-line    { color: $green; }
+
+  .net-ip-list { margin-top: 6px; }
+
+  .net-ip-row { padding: 1px 0; }
+
+  .net-ip-iface {
+    font-size: 11px;
+    font-weight: bold;
+    &.real   { color: $green; }
+    &.tunnel { color: $mauve; }
+  }
+
+  .net-ip-addr {
+    font-size: 11px;
     color: $subtext0;
-    margin-bottom: 5px;
-  }
-
-  .net-arrow-up {
-    color: $green;
-    margin-right: 5px;
-  }
-
-  .net-arrow-down {
-    color: $blue;
-    margin-right: 5px;
-  }
-
-  .net-speed {
-    font-size: 14px;
-    color: $text;
   }
 }
 
-// IP addresses widget
-.ipaddrs-widget {
-  background: $base;
-  border: 1px solid $surface0;
-  border-radius: $border-radius;
-  padding: 8px 10px;
-
-  .ip-entry {
-    font-size: 12px;
-    color: $text;
-  }
+// System tray
+.tray-widget {
+  background: transparent;
+  padding: 0;
 }
-
 
 // Weather widget
 .weather-widget {
@@ -211,7 +204,7 @@ menuitem:hover {
   }
 
   .weather-detail {
-    font-size: 14px;
+    font-size: 20px;
     color: $subtext0;
   }
 }
@@ -244,10 +237,6 @@ menuitem:hover {
     }
   }
 
-  .notif-scroll {
-    min-height: 200px;
-  }
-
   .notif-card {
     background: $surface0;
     padding: 8px;
@@ -266,13 +255,6 @@ menuitem:hover {
   }
 }
 
-// Separator between MPD info and inline volume controls
-.mpd-widget .mpd-vol-sep {
-  padding-left: 10px;
-  margin-left: 10px;
-  border-left: 1px solid $surface0;
-}
-
 // MPD widget
 .mpd-widget {
   background: $base;
@@ -281,8 +263,8 @@ menuitem:hover {
   padding: 10px;
 
   .mpd-cover-box {
-    min-width: 80px;
-    min-height: 80px;
+    min-width: 120px;
+    min-height: 120px;
     background-size: cover;
     background-position: center;
     border-radius: 8px;
@@ -290,7 +272,7 @@ menuitem:hover {
   }
 
   .mpd-title {
-    font-size: 14px;
+    font-size: 16px;
     color: $text;
     font-weight: bold;
   }
@@ -319,34 +301,14 @@ menuitem:hover {
   .mpd-progress {
     background-color: $surface0;
     min-height: 4px;
-    border-radius: 2px;
+    border-radius: 3px;
   }
 
   .mpd-progress progress {
     background-color: $mauve;
-    border-radius: 2px;
+    border-radius: 3px;
   }
 }
-
-// Updates widget
-.updates-widget {
-  background: $base;
-  border: 1px solid $surface0;
-  border-radius: $border-radius;
-  padding: 8px 12px;
-
-  .updates-icon {
-    font-size: 16px;
-    color: $blue;
-    margin-right: 8px;
-  }
-
-  .updates-label {
-    font-size: 12px;
-    color: $text;
-  }
-}
-
 
 // Ports widget
 .ports-widget {
@@ -385,7 +347,6 @@ menuitem:hover {
   }
 
   .ports-scroll {
-    min-height: 150px;
     margin-top: 8px;
   }
 
@@ -529,8 +490,6 @@ menuitem:hover {
 .vpn-icon  { font-size: 18px; }
 .vpn-label { font-size: 14px; font-weight: 500; }
 
-.vpn-scroll { min-height: 150px; }
-
 .vpn-list {
   padding: 8px;
   border-top: 1px solid $surface0;
@@ -545,11 +504,7 @@ menuitem:hover {
 
   label { color: inherit; }
 
-  &:hover    { background-color: $surface0; }
-  &.active   { background-color: rgba(166, 227, 161, 0.15); color: $green; }
-  &.disconnect {
-    color: $red;
-    margin-bottom: 4px;
-    &:hover { background-color: rgba(243, 139, 168, 0.15); }
-  }
+  &:hover         { background-color: $surface0; }
+  &.active        { background-color: rgba(166, 227, 161, 0.15); color: $green; }
+  &.active:hover  { background-color: rgba(166, 227, 161, 0.3); }
 }
