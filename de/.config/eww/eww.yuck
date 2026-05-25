@@ -236,6 +236,31 @@
 
 
 ;; ════════════════════════════════════════════════════
+;;  BRIGHTNESS (software gamma — all monitors)
+;; ════════════════════════════════════════════════════
+;; brightness.sh drives wl-gammarelay-rs over the D-Bus session bus, so this
+;; dims every output (laptop + 3 externals), not just a backlight.
+
+(defpoll bright-level :interval "2s" :initial "100" `~/.local/bin/brightness.sh get`)
+
+(defwidget brightness []
+  (box :class "brightness-widget" :orientation "v" :space-evenly false :valign "center"
+    (box :orientation "h" :space-evenly false :class "bright-header"
+      (label :class "bright-icon"  :text "󰃟")
+      (label :class "bright-title" :text "brightness" :hexpand true :halign "start")
+      (label :class "bright-value" :text "${bright-level}%"))
+    (scale :class "bright-scale" :hexpand true :orientation "h"
+           :value bright-level :min 10 :max 100
+           :onchange "~/.local/bin/brightness.sh set {}")))
+
+(defwindow brightness [scale]
+  :monitor 1
+  :geometry (geometry :x "0" :y "${round(900 * scale, 0)}" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "bottom left")
+  :stacking "bottom"
+  (brightness))
+
+
+;; ════════════════════════════════════════════════════
 ;;  MPD + VOLUME (combined)
 ;; ════════════════════════════════════════════════════
 

@@ -17,7 +17,7 @@ fi
 DASH="eww --config $EWW_DIR"
 
 open_dash() {
-    widgets="clock cpu net-graph tray weather notifications mpd outlook ports vpn"
+    widgets="clock cpu net-graph tray weather notifications mpd outlook ports vpn brightness"
 
     # CSS side: eww.scss does `@import "scale"` and multiplies px by $scale.
     printf '$scale: %s;\n' "$scale" > "$EWW_DIR/_scale.scss"

@@ -48,7 +48,7 @@ install_packages() {
 
     # Wayland desktop tools
     rofi-wayland mako libnotify swaylock swww wlr-randr grim slurp hyprland
-    brightnessctl gammastep wtype wl-clip-persist satty
+    brightnessctl wl-gammarelay-rs wtype wl-clip-persist satty
 
     # Display manager
     greetd greetd-tuigreet

@@ -259,6 +259,42 @@ menuitem:hover {
   }
 }
 
+// Brightness slider widget (wl-gammarelay-rs, all monitors)
+.brightness-widget {
+  background: $base;
+  border: s(1) solid $surface0;
+  border-radius: $border-radius;
+  padding: s(15);
+
+  .bright-icon  { font-size: s(20); color: $yellow; margin-right: s(10); }
+  .bright-title { font-size: s(14); color: $subtext0; }
+  .bright-value { font-size: s(14); color: $text; }
+
+  .bright-scale {
+    margin-top: s(12);
+
+    trough {
+      background-color: $surface0;
+      border-radius: $border-radius;
+      min-height: s(8);
+
+      highlight {
+        background-color: $yellow;
+        border-radius: $border-radius;
+        min-height: s(8);
+      }
+    }
+
+    slider {
+      background-color: $text;
+      border-radius: $border-radius;
+      min-height: s(16);
+      min-width: s(16);
+      margin: s(-6);
+    }
+  }
+}
+
 // MPD widget
 .mpd-widget {
   background: $base;

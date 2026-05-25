@@ -190,9 +190,9 @@ static const Keychord keychords[] = {
 
 /* Brightness control */
     /*     mod      key    cmd_args... */
-    SPAWN1(MOD|ALT, Left,  "brightnessctl", "s", "5%-"),
-    SPAWN1(MOD|ALT, Right, "brightnessctl", "s", "5%+"),
-    SPAWN1(MOD|ALT, Up,    "/bin/sh", "-c", "$HOME/.local/bin/gammastep.sh"),
+    SPAWN1(MOD|ALT, Left,  "/bin/sh", "-c", "$HOME/.local/bin/brightness.sh down"),
+    SPAWN1(MOD|ALT, Right, "/bin/sh", "-c", "$HOME/.local/bin/brightness.sh up"),
+    SPAWN1(MOD|ALT, Up,    "/bin/sh", "-c", "$HOME/.local/bin/redshift.sh"),
     
 /* Window management */
     /*     mod         key          function */

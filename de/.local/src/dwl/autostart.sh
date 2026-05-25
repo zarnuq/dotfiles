@@ -6,7 +6,7 @@ pkill -f 'wl-paste --watch cliphist'
 pkill -x mako
 pkill -x dwlb
 pkill -x someblocks
-pkill -x gammastep
+pkill -f wl-gammarelay-rs
 pkill -x awww-daemon
 pkill -x mpDris2
 pkill -x mpd
@@ -26,7 +26,8 @@ wl-paste --type text  --watch cliphist store &
 wl-paste --type image --watch cliphist store &
 syncthing --no-browser &
 mako &
-gammastep -O 4000:4000 &
+wl-gammarelay-rs &
+( sleep 1; $HOME/.local/bin/redshift.sh 4000 ) &   # restore warm night-light
 awww-daemon &
 mpDris2 &
 $HOME/.local/bin/eww.sh open &
