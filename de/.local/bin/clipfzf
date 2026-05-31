@@ -1,4 +1,7 @@
 #!/bin/sh
 # Clipboard-history picker: cliphist + fzf, re-copies the selection via wl-copy.
 # Bound to MOD+v in dwl (opens in a floating kitty via the ^float rule).
-cliphist list | fzf --no-sort --reverse --prompt 'clip> ' | cliphist decode | wl-copy
+# wl-copy forks a daemon to serve the clipboard; it inherits the terminal's
+# fds and keeps kitty's pty open (window won't close). Redirect its
+# stdout/stderr to /dev/null so kitty exits once the selection is copied.
+cliphist list | fzf --no-sort --reverse --prompt 'clip> ' | cliphist decode | wl-copy >/dev/null 2>&1

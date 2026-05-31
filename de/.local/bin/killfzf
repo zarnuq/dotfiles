@@ -1,0 +1,29 @@
+#!/bin/sh
+# Process killer: ps process tree + fzf, sends a signal to the selection.
+# Bound to MOD+x in dwl (opens in a floating kitty via the ^float rule).
+#
+# Tab/Shift-Tab to multi-select. Enter = SIGTERM (graceful), Ctrl-K = SIGKILL.
+# Explicit `-o` format keeps PID in field 1; --forest draws the tree in the
+# COMMAND column so the leading fixed-width columns stay aligned.
+
+sig=TERM
+
+# Kernel threads (PID 2 = kthreadd and everything it parents — kworkers, etc.)
+# can't be killed and only clutter the list, so drop them.
+ktpids=$(ps -e -o pid=,ppid= | awk '$1==2 || $2==2 {print $1}')
+
+sel=$(ps -e -o pid,user,stat,pcpu,pmem,args --forest \
+        | awk -v kt="$ktpids" \
+              'BEGIN { n=split(kt, a, " "); for (i=1; i<=n; i++) k[a[i]]=1 }
+               NR==1 || !($1 in k)' \
+        | fzf --header-lines=1 --no-sort --reverse --multi \
+              --prompt 'kill> ' \
+              --header 'enter: SIGTERM   ctrl-k: SIGKILL   tab: multi-select' \
+              --expect=ctrl-k) || exit 0
+
+# First line of fzf output is the key pressed (empty for plain enter).
+key=$(printf '%s\n' "$sel" | head -n1)
+[ "$key" = ctrl-k ] && sig=KILL
+
+printf '%s\n' "$sel" | tail -n +2 | awk 'NF {print $1}' \
+  | xargs -r kill -"$sig" 2>/dev/null
