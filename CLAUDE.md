@@ -496,7 +496,7 @@ Monitor/scale detection: if DP-2 present → monitor 1 (desktop), scale `1.0`; e
 `eww.scss` uses Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
 
 ### Widgets (de/.config/eww/eww.yuck)
-Ten windows are launched: `clock cpu net-graph tray weather notifications mpd outlook ports vpn`.
+Eleven windows are launched: `clock cpu net-graph tray weather notifications mpd outlook ports vpn brightness`.
 
 | Window        | Data Source                              | Interval    | Notes                                                    |
 |---------------|------------------------------------------|-------------|---------------------------------------------------------|
@@ -510,6 +510,7 @@ Ten windows are launched: `clock cpu net-graph tray weather notifications mpd ou
 | ports         | scripts/ports.sh (ss + jq)               | 5s          | Listening TCP ports                                     |
 | outlook       | scripts/calendar.sh events (icalendar)   | 60s         | ICS calendar, next 7 days, refresh button               |
 | vpn           | scripts/vpn-manager.sh list/status       | 5s / 2s     | OpenVPN connect/toggle                                  |
+| brightness    | `~/.local/bin/brightness.sh get/set`     | 2s          | Software brightness slider (10–100%) for ALL outputs via wl-gammarelay-rs |
 
 > **Note:** The volume sliders are not a standalone window — the `(volume)` widget is embedded inside the `mpd` widget. Older docs listed standalone `ram`/`disk`/`temps`/`hwinfo`/`procs`/`services`/`notes`/`updates`/`fetch` widgets; these were removed or folded into the windows above.
 
@@ -523,6 +524,7 @@ Ten windows are launched: `clock cpu net-graph tray weather notifications mpd ou
 
 ### EWW Dependencies
 - jq — ports, notifications, net-graph (IP list)
+- wl-gammarelay-rs + gdbus — brightness widget (software gamma dimming over the D-Bus session bus)
 - mpc — mpd widget; wpctl — volume sliders (in mpd window)
 - makoctl — notifications widget (history -j, mode toggle, dismiss)
 - nvidia-smi — GPU usage + temp in the cpu widget
@@ -782,6 +784,9 @@ Cycles the default sink between the two EQ filter-chain sinks (`effect_input.eq_
 
 ### gammastep.sh
 Toggles blue light filter: `gammastep -O 4000:4000`. Kill if running, start if not.
+
+### brightness.sh
+Software brightness for **all** outputs (laptop panel + the 3 externals) via `wl-gammarelay-rs` — dims the gamma curve per output, so it works on DP/HDMI monitors that have no `/sys/class/backlight`. Uses the D-Bus **session** bus dwl already provides (via `gdbus`, since Void has no `busctl`); no root/i2c. Subcommands: `up`/`down` (step ±5%), `set <0-100>` (the eww slider calls this), `get` (the eww poll reads this). Floor 10% (never fully black). Bound to Mod+Alt+Left/Right in DWL and drives the eww `brightness` widget.
 
 ### runbar.sh
 Kills dwlb, restarts it, pipes someblocks status.

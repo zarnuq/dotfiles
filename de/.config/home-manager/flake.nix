@@ -16,21 +16,12 @@
         system = "x86_64-linux";
         config.allowUnfree = true;
         overlays = [
-          # Ruby 3.4 dropped several libs from stdlib (getoptlong, resolv-replace,
-          # csv, base64, ...). Two pentest tools on nixpkgs-unstable break on this:
-          #   - whatweb:    execs ruby_3_4 but its gems build under the default ruby
-          #                 and the wrapper hardcodes a gems/3.3.0 GEM_PATH.
-          #   - evil-winrm: bundlerEnv builds under default ruby 3.4, dies on `csv`.
-          # Each Nix package carries its own ruby, so pinning each to Ruby 3.3
-          # (which still ships those stdlib libs) fixes them independently.
           (final: prev: {
-            whatweb = prev.whatweb.override {
-              ruby_3_4 = final.ruby_3_3;
-              bundlerEnv = args: final.bundlerEnv (args // { ruby = final.ruby_3_3; });
-            };
-            evil-winrm = prev.evil-winrm.override {
-              bundlerEnv = args: final.bundlerEnv (args // { ruby = final.ruby_3_3; });
-            };
+            # pipx 1.8.0's test suite asserts the old PEP 508 "name@ url" form, but
+            # the newer `packaging` in nixpkgs 26.11 normalizes it to "name @ url",
+            # so 7 tests in test_package_specifier.py fail and the build aborts.
+            # The shipped binary is unaffected — skip the check phase.
+            pipx = prev.pipx.overridePythonAttrs (old: { doCheck = false; });
           })
         ];
       };
