@@ -53,6 +53,14 @@ SPACESHIP_PROMPT_ORDER=(
   git            # Git section (git_branch + git_status)
   char           # Prompt character
 )
+SPACESHIP_RPROMPT_ORDER=(
+  exec_time      # Execution time of the last command
+  time           # Clock on the right of every prompt
+)
+SPACESHIP_TIME_SHOW="true"
+SPACESHIP_TIME_FORMAT="%D{%H:%M:%S}"
+SPACESHIP_EXEC_TIME_SHOW="true"
+SPACESHIP_EXEC_TIME_ELAPSED="0"
 SPACESHIP_CHAR_SYMBOL="> "
 SPACESHIP_CHAR_SYMBOL_FAILURE="x "
 SPACESHIP_DIR_TRUNC_REPO="false"
