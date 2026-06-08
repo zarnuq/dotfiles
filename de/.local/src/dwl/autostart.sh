@@ -13,6 +13,7 @@ pkill -x mpd
 pkill -x syncthing
 pkill -x eww
 pkill -x emacs
+pkill -x swayidle 
 sleep 0.1
 
 trap 'kill 0' EXIT TERM INT
@@ -26,6 +27,7 @@ wl-paste --type text  --watch cliphist store &
 wl-paste --type image --watch cliphist store &
 syncthing --no-browser &
 mako &
+swayidle -w timeout 300 'swaylock -f' &
 wl-gammarelay-rs &
 ( sleep 1; $HOME/.local/bin/redshift.sh 4000 ) &   # restore warm night-light
 awww-daemon &

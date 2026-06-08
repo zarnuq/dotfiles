@@ -1,6 +1,7 @@
 /*
  * See LICENSE file for copyright and license details.
  */
+#include <execinfo.h>
 #include <getopt.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
@@ -344,6 +345,7 @@ static void focusstack(const Arg *arg);
 static Client *focustop(Monitor *m);
 static void fullscreennotify(struct wl_listener *listener, void *data);
 static void gpureset(struct wl_listener *listener, void *data);
+static void crashhandler(int signo);
 static void handlesig(int signo);
 static void incnmaster(const Arg *arg);
 static void inputdevice(struct wl_listener *listener, void *data);
@@ -1819,6 +1821,34 @@ gpureset(struct wl_listener *listener, void *data)
 	wlr_renderer_destroy(old_drw);
 }
 
+/* Fatal-signal handler: dump a backtrace to stderr (captured in the dwl log)
+ * before dying, so the next crash leaves a trace instead of just every
+ * Wayland client reporting "Broken pipe". Also catches glibc's abort() from
+ * heap corruption ("double free or corruption", "malloc(): ..."). Built with
+ * -rdynamic so the backtrace resolves function names. The handler is installed
+ * with SA_RESETHAND, and we additionally restore SIG_DFL + re-raise so the
+ * process still terminates with the normal status / core dump. */
+void
+crashhandler(int signo)
+{
+	void *bt[64];
+	int n;
+	const char *name = strsignal(signo);
+
+	/* dprintf/strsignal/backtrace_symbols_fd are not strictly
+	 * async-signal-safe, but we are already crashing; pragmatically this is
+	 * the standard way to grab a backtrace from a signal handler. */
+	dprintf(STDERR_FILENO,
+		"\n=== dwl CRASH: caught signal %d (%s), pid %d ===\n",
+		signo, name ? name : "?", (int)getpid());
+	n = backtrace(bt, (int)LENGTH(bt));
+	backtrace_symbols_fd(bt, n, STDERR_FILENO);
+	dprintf(STDERR_FILENO, "=== end dwl backtrace (%d frames) ===\n", n);
+
+	signal(signo, SIG_DFL);
+	raise(signo);
+}
+
 void
 handlesig(int signo)
 {
@@ -2511,10 +2541,16 @@ void
 setup(void)
 {
 	int i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
+	int fsig[] = {SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL};
 	struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
+	struct sigaction fsa = {.sa_flags = SA_RESETHAND, .sa_handler = crashhandler};
 	sigemptyset(&sa.sa_mask);
+	sigemptyset(&fsa.sa_mask);
 	for (i = 0; i < (int)LENGTH(sig); i++)
 		sigaction(sig[i], &sa, NULL);
+	/* dump a backtrace on fatal faults before dying (see crashhandler) */
+	for (i = 0; i < (int)LENGTH(fsig); i++)
+		sigaction(fsig[i], &fsa, NULL);
 	wlr_log_init(log_level, NULL);
 	dpy = wl_display_create();
 	event_loop = wl_display_get_event_loop(dpy);

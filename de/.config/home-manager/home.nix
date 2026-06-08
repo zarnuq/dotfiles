@@ -12,6 +12,7 @@
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
 
+    unhide
     antigravity
     termius
     nwg-look
@@ -31,7 +32,10 @@
       recurring-ical-events
       x-wr-timezone
     ]))
-    pipx
+    # pipx 1.8.0's test suite fails against newer `packaging` (it now puts
+    # spaces around `@` in PEP 508 specs), breaking the checkPhase. Skip the
+    # tests until the nixpkgs snapshot ships a fixed pipx.
+    (pipx.overridePythonAttrs (_: { doCheck = false; doInstallCheck = false; }))
 
   ];
 }
