@@ -18,6 +18,7 @@ sleep 0.1
 
 trap 'kill 0' EXIT TERM INT
 
+dconf load /org/gnome/desktop/interface/ < "$HOME/.config/dconf/interface.dconf"
 pipewire &
 pipewire-pulse &
 wireplumber &

@@ -3,6 +3,7 @@ de/.config/tmux/plugins/
 
 lazy-lock.json
 *.m3u
+de/.config/dconf/user
 de/.config/mpd/mpd.log
 de/.config/mpd/mpd.state
 de/.config/mpd/mpd.db
