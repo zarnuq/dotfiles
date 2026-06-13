@@ -53,7 +53,50 @@
   (setq! markdown-header-scaling t
          markdown-header-scaling-values '(2.0 1.7 1.5 1.3 1.15 1.0))
   (setq markdown-hide-markup t
-        markdown-max-image-size '(1600 . 1200)))   ; max (width . height) in px
+        markdown-max-image-size '(1600 . 1200))    ; max (width . height) in px
+  ;; Render inline images automatically on file open.
+  (add-hook 'markdown-mode-hook #'markdown-display-inline-images))
+
+(defun +markdown/paste-image ()
+  "Save the image in the Wayland clipboard next to the current Markdown file.
+
+Writes it into an `images/' subdir (created if needed) under the buffer's
+directory with a timestamped name, then inserts a relative `![](path)' link
+at point.  Uses `wl-paste' (Wayland)."
+  (interactive)
+  (unless (buffer-file-name)
+    (user-error "Save the buffer to a file first"))
+  (let* ((types (split-string (shell-command-to-string "wl-paste --list-types") "\n" t))
+         (mime  (cond ((member "image/png"  types) "image/png")
+                      ((member "image/jpeg" types) "image/jpeg")
+                      ((seq-find (lambda (s) (string-prefix-p "image/" s)) types)))))
+    (unless mime
+      (user-error "No image in clipboard (have: %s)" (string-join types ", ")))
+    (let* ((ext  (pcase mime
+                   ("image/png"  "png")
+                   ("image/jpeg" "jpg")
+                   (_ (string-remove-prefix "image/" mime))))
+           (base (file-name-directory (buffer-file-name)))
+           (dir  (expand-file-name "images" base))
+           (file (expand-file-name (concat (format-time-string "%Y%m%d-%H%M%S") "." ext) dir))
+           (rel  (file-relative-name file base)))
+      (make-directory dir t)
+      (if (zerop (call-process-shell-command
+                  (format "wl-paste --no-newline --type %s > %s"
+                          (shell-quote-argument mime)
+                          (shell-quote-argument file))))
+          (progn
+            (insert (format "![](%s)" rel))
+            (when (bound-and-true-p markdown-inline-image-overlays)
+              (markdown-display-inline-images))
+            (message "Saved %s" rel))
+        (delete-file file)
+        (user-error "wl-paste failed to write the image")))))
+
+(map! :after markdown-mode
+      :map markdown-mode-map
+      :localleader
+      "p" #'+markdown/paste-image)
 
 (after! tex
   ;; Render to PDF and view it with pdf-tools (Emacs-native; auto-reverts after

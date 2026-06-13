@@ -8,9 +8,15 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixgl.url = "github:nix-community/nixGL";
+    # Build nixGL against the same nixpkgs it pins. nixGL's nvidia builder passes
+    # a `kernel` arg that current nixos-unstable's nvidia-x11/generic.nix no
+    # longer accepts; `follows` keeps us on nixGL's compatible nixpkgs and in
+    # lockstep with it across updates.
+    nixgl-nixpkgs.follows = "nixgl/nixpkgs";
   };
 
-  outputs = { nixpkgs, home-manager, ... }: {
+  outputs = { nixpkgs, home-manager, nixgl, nixgl-nixpkgs, ... }: {
     homeConfigurations."miles" = home-manager.lib.homeManagerConfiguration {
       pkgs = import nixpkgs {
         system = "x86_64-linux";
@@ -25,6 +31,7 @@
           })
         ];
       };
+      extraSpecialArgs = { inherit nixgl nixgl-nixpkgs; };
       modules = [ ./home.nix ];
     };
   };

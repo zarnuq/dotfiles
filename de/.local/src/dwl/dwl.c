@@ -1,6 +1,7 @@
 /*
  * See LICENSE file for copyright and license details.
  */
+#define _GNU_SOURCE	/* for ucontext gregs/REG_RIP in crashhandler */
 #include <execinfo.h>
 #include <getopt.h>
 #include <libinput.h>
@@ -11,6 +12,7 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <time.h>
+#include <ucontext.h>
 #include <unistd.h>
 #include <regex.h>
 #include <wayland-server-core.h>
@@ -345,7 +347,7 @@ static void focusstack(const Arg *arg);
 static Client *focustop(Monitor *m);
 static void fullscreennotify(struct wl_listener *listener, void *data);
 static void gpureset(struct wl_listener *listener, void *data);
-static void crashhandler(int signo);
+static void crashhandler(int signo, siginfo_t *info, void *ucontext);
 static void handlesig(int signo);
 static void incnmaster(const Arg *arg);
 static void inputdevice(struct wl_listener *listener, void *data);
@@ -1826,22 +1828,30 @@ gpureset(struct wl_listener *listener, void *data)
  * Wayland client reporting "Broken pipe". Also catches glibc's abort() from
  * heap corruption ("double free or corruption", "malloc(): ..."). Built with
  * -rdynamic so the backtrace resolves function names. The handler is installed
- * with SA_RESETHAND, and we additionally restore SIG_DFL + re-raise so the
- * process still terminates with the normal status / core dump. */
+ * with SA_SIGINFO|SA_RESETHAND, and we additionally restore SIG_DFL + re-raise
+ * so the process still terminates with the normal status / core dump. */
 void
-crashhandler(int signo)
+crashhandler(int signo, siginfo_t *info, void *ucontext)
 {
 	void *bt[64];
 	int n;
 	const char *name = strsignal(signo);
+	ucontext_t *uc = ucontext;
 
 	/* dprintf/strsignal/backtrace_symbols_fd are not strictly
 	 * async-signal-safe, but we are already crashing; pragmatically this is
 	 * the standard way to grab a backtrace from a signal handler. */
 	dprintf(STDERR_FILENO,
-		"\n=== dwl CRASH: caught signal %d (%s), pid %d ===\n",
-		signo, name ? name : "?", (int)getpid());
+		"\n=== dwl CRASH: caught signal %d (%s), pid %d, fault addr %p ===\n",
+		signo, name ? name : "?", (int)getpid(),
+		info ? info->si_addr : NULL);
 	n = backtrace(bt, (int)LENGTH(bt));
+	/* backtrace() only captures this handler + the libc signal trampoline; the
+	 * frame that actually faulted lives in the interrupted context. Overwrite
+	 * the trampoline frame with the real fault PC so the trace points at the
+	 * crash site. Resolve with: addr2line -e $(command -v dwl) -fiC <offset> */
+	if (uc && n > 1)
+		bt[1] = (void *)uc->uc_mcontext.gregs[REG_RIP];
 	backtrace_symbols_fd(bt, n, STDERR_FILENO);
 	dprintf(STDERR_FILENO, "=== end dwl backtrace (%d frames) ===\n", n);
 
@@ -2543,7 +2553,7 @@ setup(void)
 	int i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
 	int fsig[] = {SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL};
 	struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
-	struct sigaction fsa = {.sa_flags = SA_RESETHAND, .sa_handler = crashhandler};
+	struct sigaction fsa = {.sa_flags = SA_RESETHAND | SA_SIGINFO, .sa_sigaction = crashhandler};
 	sigemptyset(&sa.sa_mask);
 	sigemptyset(&fsa.sa_mask);
 	for (i = 0; i < (int)LENGTH(sig); i++)

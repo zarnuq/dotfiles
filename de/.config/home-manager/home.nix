@@ -1,7 +1,46 @@
-{ config, pkgs, lib,... }:
+{ config, pkgs, lib, nixgl, nixgl-nixpkgs, ... }:
 
+let
+  # nixGL lets nix-built GL/Vulkan apps (Steam) find the host's GPU driver on a
+  # foreign distro (Void, Gentoo — anything non-NixOS). Portable: each host
+  # reads its own driver version at build time.
+  #
+  # We can't use nixGL's stock auto-detection: its regex (".*Module  VER  .*")
+  # only matches the proprietary banner. The NVIDIA *Open* kernel module reports
+  # "... Open Kernel Module for x86_64  VER ...", which fails to match -> version
+  # null -> "cannot coerce null to a string". So detect the version ourselves
+  # (handling both banners) and pass it to nixGL explicitly.
+  #
+  # /proc files report size 0, so builtins.readFile can't read them directly
+  # (nixGL hits the same wall); copy to a store path first, then read that.
+  # Impure: build with `home-manager switch --impure`.
+  nvidiaVersionFile = pkgs.runCommand "nvidia-version-file" {
+    preferLocalBuild = true;
+    allowSubstitutes = false;
+  } ''cp /proc/driver/nvidia/version "$out" 2>/dev/null || touch "$out"'';
+  nvidiaVersionMatch = builtins.match
+    ".*Kernel Module +(for [^ ]+ +)?([0-9.]+) +.*"
+    (builtins.readFile nvidiaVersionFile);
+  nvidiaVersion =
+    if nvidiaVersionMatch != null then builtins.elemAt nvidiaVersionMatch 1 else null;
+  # Build nixGL against its own pinned nixpkgs (see flake.nix), not ours, so the
+  # nvidia-x11 driver derivation still evaluates. allowUnfree is required for the
+  # nvidia driver.
+  nixGLPackages = import "${nixgl}/default.nix" {
+    pkgs = import "${nixgl-nixpkgs}" {
+      inherit (pkgs.stdenv.hostPlatform) system;
+      config.allowUnfree = true;
+    };
+    inherit nvidiaVersion;
+  };
+in
 {
   imports = [ ./cyber.nix ];
+
+  targets.genericLinux.nixGL.packages = nixGLPackages;
+  targets.genericLinux.nixGL.defaultWrapper = "nvidia";
+  targets.genericLinux.nixGL.installScripts = [ "nvidia" ];
+
   home.username = "miles";
   home.homeDirectory = "/home/miles";
   home.stateVersion = "26.05";
@@ -16,8 +55,8 @@
     antigravity
     termius
     nwg-look
-    vscodium
     wl-gammarelay-rs
+    (config.lib.nixGL.wrap steam)
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

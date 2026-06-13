@@ -82,6 +82,11 @@
       "keyColor": "blue"
     },
     {
+      "type": "TPM",
+      "key": "TPM",
+      "keyColor": "blue"
+    },
+    {
       "type": "command",
       "key": "Driver ",
       "keyColor": "blue",
