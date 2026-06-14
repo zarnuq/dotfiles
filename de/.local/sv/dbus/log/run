@@ -1,0 +1,4 @@
+#!/bin/sh
+d="$HOME/.local/state/sv/dbus"
+mkdir -p "$d"
+exec svlogd -tt "$d"

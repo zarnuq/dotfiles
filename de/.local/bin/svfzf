@@ -1,0 +1,99 @@
+#!/bin/sh
+# runit service manager: lists every service in /etc/sv with live status,
+# fzf to pick, act, and the list re-renders so you can toggle several in a row.
+# Bound to a floating kitty in dwl (like killfzf/clipfzf).
+#
+# Glyphs:  ● running   ○ enabled but stopped   · disabled
+# Keys:
+#   enter   toggle running (sv up / sv down)
+#   ctrl-e  enable  (symlink into /var/service + start)
+#   ctrl-d  disable (stop + remove the /var/service symlink)
+#   ctrl-r  restart (sv restart)
+#   tab     multi-select (action applies to every selection)
+#   esc     quit
+#
+# Everything except status reads touches root-owned /var/service and the
+# supervisor; reading status also needs root (supervise/ dirs are 0700), so
+# the script grabs a sudo timestamp up front and reuses it for the session.
+
+AVAIL=/etc/sv          # all installed services
+RUN=/var/service       # symlinks here = enabled (supervised by runit)
+# NB: deliberately NOT named SVDIR — runit's `sv` honors $SVDIR and would
+# look in the wrong place if we exported it.
+
+# Cache sudo credentials once so the rest of the loop runs without re-prompting.
+if ! sudo -v; then
+    printf 'sudo required to manage services.\n' >&2
+    exit 1
+fi
+
+# Build the fzf input: one colored "glyph<TAB>name" line per service.
+# A single `sudo sv status` over the enabled set tells us what's actually up.
+build_list() {
+    # Basenames of currently enabled (supervised) services, space-separated
+    # (so the " $x " membership tests below match on word boundaries).
+    enabled=$(ls "$RUN" 2>/dev/null | tr '\n' ' ')
+
+    # Names runit reports as running, from one batched status call.
+    running=$(
+        [ -n "$enabled" ] && (cd "$RUN" && sudo sv status $enabled 2>/dev/null) \
+            | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' '
+    )
+
+    for path in "$AVAIL"/*; do
+        [ -d "$path" ] || continue
+        name=${path##*/}
+        case " $running " in
+            *" $name "*)
+                glyph='\033[32m●\033[0m' ;;                 # green: running
+            *)
+                case " $enabled " in
+                    *" $name "*) glyph='\033[33m○\033[0m' ;; # peach: enabled, stopped
+                    *)           glyph='\033[90m·\033[0m' ;; # gray: disabled
+                esac ;;
+        esac
+        printf "$glyph\t%s\n" "$name"
+    done
+}
+
+while true; do
+    sel=$(build_list \
+            | sort -k2 \
+            | fzf --ansi --no-sort --reverse --multi \
+                  --delimiter='\t' --with-nth=1,2 \
+                  --prompt 'service> ' \
+                  --header $'enter: start/stop   ctrl-e: enable   ctrl-d: disable   ctrl-r: restart   tab: multi' \
+                  --expect=ctrl-e,ctrl-d,ctrl-r) || exit 0
+
+    key=$(printf '%s\n' "$sel" | head -n1)
+    names=$(printf '%s\n' "$sel" | tail -n +2 | awk -F'\t' 'NF>1 {print $2}')
+    [ -n "$names" ] || exit 0
+
+    printf '%s\n' "$names" | while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        case "$key" in
+            ctrl-e)
+                # Enable: symlink into /var/service; runit auto-starts it.
+                [ -e "$RUN/$name" ] || sudo ln -s "$AVAIL/$name" "$RUN/$name"
+                sudo sv up "$name" 2>/dev/null
+                ;;
+            ctrl-d)
+                # Disable: stop, then remove the supervised symlink.
+                sudo sv down "$name" 2>/dev/null
+                [ -L "$RUN/$name" ] && sudo rm "$RUN/$name"
+                ;;
+            ctrl-r)
+                sudo sv restart "$name" 2>/dev/null
+                ;;
+            *)  # plain enter: toggle running state
+                if sudo sv status "$name" 2>/dev/null | grep -q '^run:'; then
+                    sudo sv down "$name" 2>/dev/null
+                else
+                    # Not running. If disabled, enabling is what "start" means.
+                    [ -e "$RUN/$name" ] || sudo ln -s "$AVAIL/$name" "$RUN/$name"
+                    sudo sv up "$name" 2>/dev/null
+                fi
+                ;;
+        esac
+    done
+done

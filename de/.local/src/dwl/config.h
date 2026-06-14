@@ -24,8 +24,10 @@ static const char *const autostart[] = {
 static const Env envs[] = {
     /* Wayland/desktop */
     { "XDG_CURRENT_DESKTOP",  "sway" },
+    { "SVDIR",               "$HOME/.local/sv" },
     { "XDG_SESSION_TYPE",     "wayland" },
     { "WAYLAND_DISPLAY",      "wayland-0" },
+    { "DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus" },
     /* Qt */
     { "QT_QPA_PLATFORMTHEME", "qt6ct" },
     { "QT_STYLE_OVERRIDE",    "kvantum" },
@@ -155,6 +157,8 @@ static const Keychord keychords[] = {
     SPAWN1(MOD,      BackSpace, "kitty", "--class", "float"),
     SPAWN1(MOD,      v,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/clipfzf"),
     SPAWN1(MOD,      x,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/killfzf"),
+    SPAWN1(MOD,      x,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/killfzf"),
+    SPAWN1(MOD,      z,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/svfzf"),
     SPAWN1(MOD,      w,         "kitty", "--class", "rmpc", "rmpc"),
     SPAWN1(MOD|SHIFT,W,         "/bin/sh", "-c", "rmpc rescan"),
     SPAWN1(MOD,      t,         "zen"),

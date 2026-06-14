@@ -1,0 +1,5 @@
+#!/bin/sh
+d="$HOME/.local/state/sv/emacs"
+mkdir -p "$d"
+[ -e "$d/config" ] || printf 's1000000\nn5\n' > "$d/config"
+exec svlogd -tt "$d"

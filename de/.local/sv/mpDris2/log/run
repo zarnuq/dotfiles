@@ -1,0 +1,4 @@
+#!/bin/sh
+d="$HOME/.local/state/sv/mpDris2"
+mkdir -p "$d"
+exec svlogd -tt "$d"

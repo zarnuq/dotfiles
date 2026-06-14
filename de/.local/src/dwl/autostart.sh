@@ -1,7 +1,4 @@
 #!/bin/sh
-pkill -x pipewire-pulse
-pkill -x wireplumber
-pkill -x pipewire
 pkill -f 'wl-paste --watch cliphist'
 pkill -x mako
 pkill -x dwlb
@@ -9,34 +6,29 @@ pkill -x someblocks
 pkill -f wl-gammarelay-rs
 pkill -x awww-daemon
 pkill -x mpDris2
-pkill -x mpd
-pkill -x syncthing
 pkill -x eww
-pkill -x emacs
-pkill -x swayidle 
+pkill -x swayidle
 sleep 0.1
 
 trap 'kill 0' EXIT TERM INT
 
 dconf load /org/gnome/desktop/interface/ < "$HOME/.config/dconf/interface.dconf"
-pipewire &
-pipewire-pulse &
-wireplumber &
+
+pgrep -f "runsvdir $HOME/.local/sv" >/dev/null || \
+	setsid runsvdir "$HOME/.local/sv" >/dev/null 2>&1 &
+bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+while [ ! -S "$bus" ]; do sleep 0.05; done
+
 eww --config "$HOME/.config/eww" daemon --no-daemonize &
-mpd --no-daemon &
 wl-paste --type text  --watch cliphist store &
 wl-paste --type image --watch cliphist store &
-syncthing --no-browser &
 mako &
 swayidle -w timeout 300 'swaylock -f' &
-wl-gammarelay-rs &
-( sleep 1; $HOME/.local/bin/redshift.sh 4000 ) &   # restore warm night-light
+( sleep 2; $HOME/.local/bin/redshift.sh 4000 ) &
 awww-daemon &
-mpDris2 &
 $HOME/.local/bin/eww.sh open &
 dwlb &
 someblocks -p | dwlb -status-stdin all &
 kitty --class rmpc rmpc &
-emacs --fg-daemon &
 
 wait

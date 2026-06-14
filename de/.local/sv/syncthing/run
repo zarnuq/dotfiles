@@ -1,0 +1,3 @@
+#!/bin/sh
+# --no-restart: let runsv supervise; don't let syncthing fork its own monitor
+exec syncthing serve --no-browser --no-restart

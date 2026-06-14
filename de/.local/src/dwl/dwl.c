@@ -2398,8 +2398,20 @@ run(char *startup_cmd)
 	const char *socket = wl_display_add_socket_auto(dpy);
 	if (!socket) die("startup: display_add_socket_auto");
 	setenv("WAYLAND_DISPLAY", socket, 1);
-	for (size_t i = 0; i < LENGTH(envs); i++)
-		setenv(envs[i].variable, envs[i].value, 1);
+	for (size_t i = 0; i < LENGTH(envs); i++) {
+		/* Expand a leading "$HOME" in the value so config.h can stay
+		 * machine-agnostic; setenv() itself does no shell expansion. */
+		const char *val = envs[i].value;
+		char expanded[1024];
+		if (!strncmp(val, "$HOME", 5)) {
+			const char *home = getenv("HOME");
+			if (home) {
+				snprintf(expanded, sizeof expanded, "%s%s", home, val + 5);
+				val = expanded;
+			}
+		}
+		setenv(envs[i].variable, val, 1);
+	}
 	if (!wlr_backend_start(backend)) die("startup: backend_start");
 	autostartexec();
 	if (startup_cmd) {

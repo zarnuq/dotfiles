@@ -1,0 +1,5 @@
+#!/bin/sh
+# headless daemon; server socket lives in $XDG_RUNTIME_DIR/emacs (persistent).
+# pgtk build: a GUI frame open during a dwl crash may take the daemon down with
+# it (GTK aborts on wl_display loss) — runsv then restarts it fresh.
+exec emacs --fg-daemon

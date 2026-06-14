@@ -1,0 +1,6 @@
+#!/bin/sh
+# MPRIS bridge for mpd. Needs the session bus (and mpd — both supervised here);
+# runit retries until they're up, so no ordering required.
+bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+while [ ! -S "$bus" ]; do sleep 0.2; done
+exec mpDris2
