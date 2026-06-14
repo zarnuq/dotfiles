@@ -791,6 +791,13 @@ Software brightness for **all** outputs (laptop panel + the 3 externals) via `wl
 ### runbar.sh
 Kills dwlb, restarts it, pipes someblocks status.
 
+### svfzf
+runit service manager: merges **system** and **user** services into one fzf list (bound to a floating kitty, like killfzf/clipfzf). Glyphs: `●` running, `○` enabled but stopped, `·` disabled. Keys: `enter` toggle running, `ctrl-e` enable + start, `ctrl-d` disable + stop, `ctrl-r` restart, `tab` multi-select, `esc` quit. The list re-renders after each action so you can toggle several in a row.
+
+Two scopes, distinguished by a `[sys]`/`[usr]` column:
+- **`[sys]`** — system services in `/etc/sv`, supervised via `/var/service` symlinks (root-owned; all actions use `sudo`, cached once up front). Enable/disable = add/remove the `/var/service` symlink.
+- **`[usr]`** — user services in `~/.local/sv`, supervised directly by the per-user `runsvdir ~/.local/sv` from DWL autostart (no sudo). Because the dir **is** the supervised set (no symlink layer), enable/disable = `rm`/`touch` a `down` file inside the service dir; `down` present means runsv won't auto-start it. All user `sv` calls run with `SVDIR=~/.local/sv`.
+
 ### install.sh
 Full system installation script. See [Installation & Setup](#installation--setup).
 
@@ -801,15 +808,20 @@ Interactive fzf-based wrapper around install.sh. Multi-select menu for choosing 
 
 ---
 
-## Systemd Services
+## Services
 
-### User Services
+### User Services (runit, `~/.local/sv`)
+Supervised by a per-user `runsvdir ~/.local/sv` started from DWL `autostart.sh` (replaced the old autostart-launched daemons — see commit "use runit services instead of an autostart"). Disable a service by dropping a `down` file in its dir (not by removing it — there's no symlink layer). Manage them with `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`. Current set:
+- dbus — persistent user D-Bus **session** bus (pinned via `DBUS_SESSION_BUS_ADDRESS` in DWL setupenv; the whole stack inherits it)
+- pipewire, pipewire-pulse, wireplumber — audio
 - mpd — Music Player Daemon
-- mpdris — MPRIS interface for MPD
-- xdg-desktop-portal — Desktop portal
+- mpDris2 — MPRIS interface for MPD
 - emacs — Doom Emacs daemon
+- syncthing
+- wl-gammarelay-rs — gamma/brightness D-Bus service (drives brightness.sh + eww widget)
 
-### System Services
+### System Services (runit, `/etc/sv` → `/var/service`)
+Enable/disable via the `/var/service` symlink (managed by `svfzf` `[sys]` scope or `ln`/`rm` + `sv`).
 - greetd — Display manager (tuigreet)
 - ufw — Firewall
 - bluetooth
