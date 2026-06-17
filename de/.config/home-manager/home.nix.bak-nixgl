@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, nixgl, nixgl-nixpkgs, ... }:
 
 let
   # nixGL lets nix-built GL/Vulkan apps (Steam) find the host's GPU driver on a
