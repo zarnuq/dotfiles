@@ -161,11 +161,9 @@ static const Keychord keychords[] = {
     SPAWN1(MOD,      z,         "/bin/sh", "-c", "kitty --class float -e $HOME/.local/bin/svfzf"),
     SPAWN1(MOD,      w,         "kitty", "--class", "rmpc", "rmpc"),
     SPAWN1(MOD|SHIFT,W,         "/bin/sh", "-c", "rmpc rescan"),
-    SPAWN1(MOD,      t,         "zen"),
+    SPAWN1(MOD,      t,         "zen-browser"),
     SPAWN1(MOD|SHIFT,B,         "kitty", "-e", "yazi", "$HOME/Pictures/bgs"),
     SPAWN1(MOD,      b,         "/bin/sh", "-c", "awww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1"),
-    SPAWN1(MOD,      e,         "/bin/sh", "-c", "$HOME/.local/bin/eww.sh open"),
-    SPAWN1(MOD|SHIFT,E,         "/bin/sh", "-c", "$HOME/.local/bin/eww.sh close"),
     /*     mod2  key   mod2   key2      cmd_args... */
     SPAWN2(MOD,  r,    0,     d,        "legcord"),
     SPAWN2(MOD,  r,    0,     b,        "brave"),

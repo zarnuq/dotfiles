@@ -4,9 +4,9 @@
 # Bound to a floating kitty in dwl (like killfzf/clipfzf).
 #
 # Two scopes are merged into one list:
-#   [sys]  system services in /etc/sv, supervised via /var/service symlinks
+#   [sys]  system services in /etc/sv, supervised via /service symlinks
 #          (root-owned; managed with sudo). Enable/disable = add/remove the
-#          /var/service symlink.
+#          /service symlink.
 #   [usr]  user services in ~/.local/sv, supervised directly by the per-user
 #          `runsvdir ~/.local/sv` from dwl's autostart (no sudo, no symlinks —
 #          the dir *is* the supervised set). Enable/disable = remove/create a
@@ -15,50 +15,40 @@
 # Glyphs:  ● running   ○ enabled but stopped   · disabled
 # Keys:
 #   enter   toggle running (sv up / sv down)
-#   ctrl-e  enable  (sys: symlink into /var/service; usr: rm down file) + start
-#   ctrl-d  disable (sys: rm /var/service symlink; usr: touch down file) + stop
+#   ctrl-e  enable  (sys: symlink into /service; usr: rm down file) + start
+#   ctrl-d  disable (sys: rm /service symlink; usr: touch down file) + stop
 #   ctrl-r  restart (sv restart)
 #   tab     multi-select (action applies to every selection)
 #   esc     quit
 #
-# Reading/managing system services touches root-owned /var/service and the
-# supervisor (supervise/ dirs are 0700), so the script grabs a sudo timestamp
-# up front and reuses it for the session. User services need no privileges.
+# System service running state is computed BEFORE the fzf pipeline starts so
+# sudo can prompt without conflicting with fzf's terminal ownership.
 
-AVAIL=/etc/sv               # all installed system services
-RUN=/var/service            # symlinks here = enabled (supervised by runit)
-USERSV="$HOME/.local/sv"    # per-user services (supervised by user runsvdir)
-# NB: deliberately NOT exporting these as SVDIR globally — runit's `sv` honors
-# $SVDIR, so we set it per-command for user services and let sudo drop it
-# (defaulting to /var/service) for system ones.
+AVAIL=/etc/sv
+RUN=/service
+USERSV="$HOME/.local/sv"
 
-# Cache sudo credentials once so the rest of the loop runs without re-prompting.
-if ! sudo -v; then
-    printf 'sudo required to manage system services.\n' >&2
-    exit 1
-fi
-
-# Build the fzf input: one "glyph<TAB>scope<TAB>name" line per service.
-build_list() {
-    # --- system services ---------------------------------------------------
-    # Basenames of currently enabled (supervised) services, space-separated
-    # (so the " $x " membership tests below match on word boundaries).
-    enabled=$(ls "$RUN" 2>/dev/null | tr '\n' ' ')
-
-    # Names runit reports as running, from one batched status call.
-    running=$(
-        [ -n "$enabled" ] && (cd "$RUN" && sudo sv status $enabled 2>/dev/null) \
+# Refresh sys_enabled and sys_running. Called once per loop iteration,
+# before build_list | sort | fzf, so sudo never runs inside the pipeline.
+refresh_sys() {
+    sys_enabled=$(ls "$RUN" 2>/dev/null | tr '\n' ' ')
+    sys_running=''
+    [ -n "$sys_enabled" ] && sys_running=$(
+        sudo env SVDIR="$RUN" sv status $sys_enabled 2>/dev/null \
             | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' '
     )
+}
 
+build_list() {
+    # --- system services (uses $sys_enabled/$sys_running from outer scope) ---
     for path in "$AVAIL"/*; do
         [ -d "$path" ] || continue
         name=${path##*/}
-        case " $running " in
+        case " $sys_running " in
             *" $name "*)
                 glyph='\033[32m●\033[0m' ;;                 # green: running
             *)
-                case " $enabled " in
+                case " $sys_enabled " in
                     *" $name "*) glyph='\033[33m○\033[0m' ;; # peach: enabled, stopped
                     *)           glyph='\033[90m·\033[0m' ;; # gray: disabled
                 esac ;;
@@ -66,10 +56,7 @@ build_list() {
         printf "$glyph\t%s\t%s\n" 'sys' "$name"
     done
 
-    # --- user services -----------------------------------------------------
-    # runsvdir supervises every dir in ~/.local/sv directly, so there's no
-    # "available but not enabled" pool: a service is disabled only when it
-    # carries a `down` file (runsv reads it and won't auto-start).
+    # --- user services -------------------------------------------------------
     [ -d "$USERSV" ] || return
 
     unames=$(
@@ -89,11 +76,11 @@ build_list() {
         [ -f "$path/run" ] || continue
         name=${path##*/}
         if [ -f "$path/down" ]; then
-            glyph='\033[90m·\033[0m'                         # gray: disabled
+            glyph='\033[90m·\033[0m'
         else
             case " $urunning " in
-                *" $name "*) glyph='\033[32m●\033[0m' ;;     # green: running
-                *)           glyph='\033[33m○\033[0m' ;;     # peach: enabled, stopped
+                *" $name "*) glyph='\033[32m●\033[0m' ;;
+                *)           glyph='\033[33m○\033[0m' ;;
             esac
         fi
         printf "$glyph\t%s\t%s\n" 'usr' "$name"
@@ -101,6 +88,8 @@ build_list() {
 }
 
 while true; do
+    refresh_sys
+
     sel=$(build_list \
             | sort -k2 \
             | fzf --ansi --no-sort --reverse --multi \
@@ -110,7 +99,6 @@ while true; do
                   --expect=ctrl-e,ctrl-d,ctrl-r) || exit 0
 
     key=$(printf '%s\n' "$sel" | head -n1)
-    # Carry "scope<TAB>name" for each picked line.
     picks=$(printf '%s\n' "$sel" | tail -n +2 | awk -F'\t' 'NF>2 {print $2"\t"$3}')
     [ -n "$picks" ] || exit 0
 
@@ -120,50 +108,45 @@ while true; do
             dir="$USERSV/$name"
             case "$key" in
                 ctrl-e)
-                    # Enable: drop the down flag, then start.
                     rm -f "$dir/down"
                     SVDIR="$USERSV" sv up "$name" 2>/dev/null
                     ;;
                 ctrl-d)
-                    # Disable: stop, then flag down so it won't auto-start.
                     SVDIR="$USERSV" sv down "$name" 2>/dev/null
                     touch "$dir/down"
                     ;;
                 ctrl-r)
                     SVDIR="$USERSV" sv restart "$name" 2>/dev/null
                     ;;
-                *)  # plain enter: toggle running state
+                *)
                     if SVDIR="$USERSV" sv status "$name" 2>/dev/null | grep -q '^run:'; then
                         SVDIR="$USERSV" sv down "$name" 2>/dev/null
                     else
-                        # Not running. If disabled, starting it also clears down.
                         rm -f "$dir/down"
                         SVDIR="$USERSV" sv up "$name" 2>/dev/null
                     fi
                     ;;
             esac
         else
+            svcpath="$RUN/$name"
             case "$key" in
                 ctrl-e)
-                    # Enable: symlink into /var/service; runit auto-starts it.
-                    [ -e "$RUN/$name" ] || sudo ln -s "$AVAIL/$name" "$RUN/$name"
-                    sudo sv up "$name" 2>/dev/null
+                    [ -e "$svcpath" ] || sudo ln -s "$AVAIL/$name" "$svcpath"
+                    sudo sv up "$svcpath" 2>/dev/null
                     ;;
                 ctrl-d)
-                    # Disable: stop, then remove the supervised symlink.
-                    sudo sv down "$name" 2>/dev/null
-                    [ -L "$RUN/$name" ] && sudo rm "$RUN/$name"
+                    sudo sv down "$svcpath" 2>/dev/null
+                    [ -L "$svcpath" ] && sudo rm "$svcpath"
                     ;;
                 ctrl-r)
-                    sudo sv restart "$name" 2>/dev/null
+                    sudo sv restart "$svcpath" 2>/dev/null
                     ;;
-                *)  # plain enter: toggle running state
-                    if sudo sv status "$name" 2>/dev/null | grep -q '^run:'; then
-                        sudo sv down "$name" 2>/dev/null
+                *)
+                    if sudo sv status "$svcpath" 2>/dev/null | grep -q '^run:'; then
+                        sudo sv down "$svcpath" 2>/dev/null
                     else
-                        # Not running. If disabled, enabling is what "start" means.
-                        [ -e "$RUN/$name" ] || sudo ln -s "$AVAIL/$name" "$RUN/$name"
-                        sudo sv up "$name" 2>/dev/null
+                        [ -e "$svcpath" ] || sudo ln -s "$AVAIL/$name" "$svcpath"
+                        sudo sv up "$svcpath" 2>/dev/null
                     fi
                     ;;
             esac
