@@ -819,6 +819,8 @@ Supervised by a per-user `runsvdir ~/.local/sv` started from DWL `autostart.sh` 
 - emacs — Doom Emacs daemon
 - syncthing
 - wl-gammarelay-rs — gamma/brightness D-Bus service (drives brightness.sh + eww widget)
+- swayidle — idle locker (`swayidle -w timeout 300 'swaylock -f'`)
+- cliphist-text / cliphist-image — clipboard-history watchers (`wl-paste --type {text,image} --watch cliphist store`); two services, one per type
 
 ### System Services (runit, `/etc/sv` → `/var/service`)
 Enable/disable via the `/var/service` symlink (managed by `svfzf` `[sys]` scope or `ln`/`rm` + `sv`).
