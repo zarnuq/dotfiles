@@ -18,3 +18,4 @@ __pycache__
 de/.local/sv/*/supervise/
 de/.local/sv/*/log/supervise/
 de/.local/sv/*/log/main/
+de/.local/sv/*/log/current
