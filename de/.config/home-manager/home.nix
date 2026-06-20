@@ -1,7 +1,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  imports = [ ./cyber.nix ];
+  imports = [ ./default.nix ];
 
   home.username = "miles";
   home.homeDirectory = "/home/miles";
@@ -13,6 +13,7 @@
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
 
+    chromium
     claude-code
     kiro-cli
     unhide
