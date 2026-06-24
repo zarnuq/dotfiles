@@ -9,11 +9,9 @@
 EWW_DIR="$HOME/.config/eww"
 DASH="eww --config $EWW_DIR"
 
-# Needs the session bus + a live wayland socket. Both may be absent/stale if
-# runsvdir outlives a compositor restart, so wait for them like the other
-# wayland user services do instead of trusting the inherited env.
-bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"; bus="${bus%%,*}"
-while [ ! -S "$bus" ]; do sleep 0.2; done
+# Wait for dbus socket + live wayland socket before starting.
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
 wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1)
 while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1); done
 export WAYLAND_DISPLAY="${wl##*/}"

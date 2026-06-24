@@ -36,12 +36,11 @@
     .border_thickness = 2,
 
     // --- session environment (dwl setupenv) --------------------------------
-    // Applied with setenv() before autostart; NOT through a shell, so $VARS are
-    // NOT expanded here — use absolute paths. Never set WAYLAND_DISPLAY.
     .env = .{
         .{ "XDG_CURRENT_DESKTOP", "river" },
         .{ "XDG_SESSION_TYPE", "wayland" },
         .{ "QT_QPA_PLATFORM", "wayland" },
+        .{ "DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus" },
     },
 
     // --- startup programs (dwl autostart) ----------------------------------
@@ -99,8 +98,6 @@
 
     // --- keybindings -------------------------------------------------------
     // Providing `binds` REPLACES the entire default action/spawn/chord keymap
-    // (dwl-style: your config is the config). The tag binds — Super+1..9 view,
-    // Super+Shift+1..9 move, Super+Ctrl+1..9 toggleview, Super+0 view-all — are
     // always generated and are NOT listed here. A bind is either a leaf (`.action`)
     // or a chord leader (`.chord` = list of sub-keys; sub-keys carry no modifier
     // and nest to any depth). Actions: .view/.toggleview/.tag/.toggletag (u32
@@ -126,25 +123,19 @@
         .{ .key = "Super+e", .action = .{ .spawn = "$HOME/.local/bin/eww.sh open" } },
         .{ .key = "Super+Shift+e", .action = .{ .spawn = "$HOME/.local/bin/eww.sh close" } },
 
-        // chords (dwl SPAWN2): a leader arms a submap; release Super, then the
-        // sub-key runs and closes it.
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },
             .{ .key = "b", .action = .{ .spawn = "brave" } },
             .{ .key = "a", .action = .{ .spawn = "pavucontrol" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
-            .{ .key = "w", .action = .{ .spawn = "$HOME/.local/bin/runbar.sh" } },
         } },
+
         .{ .key = "Super+s", .chord = .{
             .{ .key = "s", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh ss && notify-send Screenshot 'Quick capture saved!'" } },
             .{ .key = "d", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh section && notify-send Screenshot 'Section saved!'" } },
             .{ .key = "1", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
             .{ .key = "2", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-2 && notify-send Screenshot 'Fullscreen saved!'" } },
             .{ .key = "3", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-3 && notify-send Screenshot 'Fullscreen saved!'" } },
-        } },
-        .{ .key = "Super+q", .chord = .{
-            .{ .key = "1", .action = .{ .spawn = "easyeffects -l EQ" } },
-            .{ .key = "2", .action = .{ .spawn = "easyeffects -l None" } },
         } },
 
         // media / volume / mic

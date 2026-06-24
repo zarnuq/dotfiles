@@ -1,9 +1,6 @@
 #!/bin/sh
-# Persistent user D-Bus *session* bus for the runsvdir-supervised stack.
-# WirePlumber needs a session bus to enumerate ALSA devices; dwl's
-# dbus-run-session bus is ephemeral and dies on every dwl restart, so the
-# supervised daemons get this stable one instead. The address comes from
-# DBUS_SESSION_BUS_ADDRESS, pinned in dwl's setupenv and inherited via runsvdir.
-addr="$DBUS_SESSION_BUS_ADDRESS"
-case "$addr" in unix:path=*) rm -f "${addr#unix:path=}" ;; esac   # clear stale socket
-exec dbus-daemon --session --address="$addr" --nofork --nopidfile
+# Persistent user D-Bus session bus. autostart.sh exports DBUS_SESSION_BUS_ADDRESS
+# before starting runsvdir, so this service and all siblings inherit the same address.
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+rm -f "$xrd/bus"
+exec dbus-daemon --session --address="unix:path=$xrd/bus" --nofork --nopidfile

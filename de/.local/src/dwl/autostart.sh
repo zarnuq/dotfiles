@@ -14,9 +14,11 @@ trap 'kill 0' EXIT TERM INT
 
 dconf load /org/gnome/desktop/interface/ < "$HOME/.config/dconf/interface.dconf"
 
+runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime/bus"
 pgrep -f "runsvdir $HOME/.local/sv" >/dev/null || \
 	setsid runsvdir "$HOME/.local/sv" >/dev/null 2>&1 &
-bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+bus="$runtime/bus"
 while [ ! -S "$bus" ]; do sleep 0.05; done
 
 eww --config "$HOME/.config/eww" daemon --no-daemonize &
