@@ -1,6 +1,0 @@
-dwlb
-*.o
-*-protocol.c
-*-protocol.h
-.ccls-cache
-
