@@ -6,7 +6,7 @@
 # wl-gammarelay-rs is a nix-only binary; exec it by absolute path so a stale
 # runsvdir with an unexpanded $HOME in PATH can't break the lookup.
 gammarelay="$HOME/.nix-profile/bin/wl-gammarelay-rs"
-bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"; bus="${bus%%,*}"
 # WAYLAND_DISPLAY may be stale if runsvdir outlives a compositor restart.
 # Scan for the live socket instead of trusting the inherited env.
 while [ ! -S "$bus" ]; do sleep 0.2; done

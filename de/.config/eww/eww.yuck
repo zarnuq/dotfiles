@@ -390,7 +390,8 @@ esac`)
     (box :class "vpn-header ${vpn-status != '' ? 'connected' : 'disconnected'}"
          :space-evenly false :spacing {SP-MD}
       (label :class "vpn-icon" :text {vpn-status != "" ? "󰌆" : "󰌊"})
-      (label :class "vpn-label" :text {vpn-status != "" ? vpn-status : "VPN Disconnected"}))
+      (label :class "vpn-label" :limit-width 18 :truncate true :hexpand true :halign "start"
+             :text {vpn-status != "" ? vpn-status : "VPN Disconnected"}))
     (scroll :vscroll true :hscroll false :vexpand true :class "vpn-scroll"
       (box :class "vpn-list" :orientation "v" :space-evenly false
         (for vpn in vpn-list
@@ -398,7 +399,7 @@ esac`)
                   :onclick "~/.config/eww/scripts/vpn-manager.sh toggle '${vpn.file}' &"
             (box :space-evenly false :spacing {SP-MD}
               (label :text {vpn.name == vpn-status ? "󰌆" : "󰌊"})
-              (label :text {vpn.name}))))))))
+              (label :limit-width 18 :truncate true :hexpand true :halign "start" :text {vpn.name}))))))))
 
 (defwindow vpn [scale]
   :monitor 1

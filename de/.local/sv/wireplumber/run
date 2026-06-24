@@ -3,6 +3,6 @@
 # manager. WirePlumber can't enumerate ALSA devices without a session bus, so
 # block on the dbus socket (path derived from the inherited bus address).
 xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"
+bus="${DBUS_SESSION_BUS_ADDRESS#unix:path=}"; bus="${bus%%,*}"
 while [ ! -e "$xrd/pipewire-0" ] || [ ! -S "$bus" ]; do sleep 0.2; done
 exec wireplumber
