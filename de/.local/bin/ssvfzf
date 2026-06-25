@@ -1,0 +1,93 @@
+#!/bin/sh
+# runit SYSTEM service manager: /etc/sv, supervised via /service symlinks.
+# fzf to pick + act; the list re-renders so you can toggle several in a row.
+# Bound to a floating kitty. For USER services (~/.local/sv) use `svfzf`.
+#
+# Split from svfzf because per-call doas prompts were wonky inside the fzf
+# action loop (stdin is the pick pipeline, so doas can't read a password).
+# Instead we elevate ONCE up front and re-exec as root via doas (this box
+# symlinks sudo->doas), so root persists for the whole session and nothing
+# inside the loop has to prompt. The fzf UI then runs as root in the floating
+# kitty, which is fine.
+#
+# Enable/disable = add/remove the /service symlink into /etc/sv.
+#
+# Glyphs:  ● running   ○ enabled but stopped   · disabled
+# Keys:
+#   enter   toggle running (sv up / sv down)
+#   ctrl-e  enable  (symlink into /service) + start
+#   ctrl-d  disable (rm /service symlink) + stop
+#   ctrl-r  restart
+#   tab     multi-select (action applies to every selection)
+#   esc     quit
+
+# Elevate once; everything below runs as root.
+if [ "$(id -u)" -ne 0 ]; then
+    exec doas "$0" "$@"
+fi
+
+AVAIL=/etc/sv
+RUN=/service
+export SVDIR="$RUN"
+
+build_list() {
+    enabled=$(ls "$RUN" 2>/dev/null | tr '\n' ' ')
+    running=''
+    [ -n "$enabled" ] && running=$(sv status $enabled 2>/dev/null \
+        | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' ')
+
+    for path in "$AVAIL"/*; do
+        [ -d "$path" ] || continue
+        name=${path##*/}
+        case " $running " in
+            *" $name "*)
+                glyph='\033[32m●\033[0m' ;;                  # green: running
+            *)
+                case " $enabled " in
+                    *" $name "*) glyph='\033[33m○\033[0m' ;; # peach: enabled, stopped
+                    *)           glyph='\033[90m·\033[0m' ;; # gray: disabled
+                esac ;;
+        esac
+        printf "$glyph\t%s\n" "$name"
+    done
+}
+
+while true; do
+    sel=$(build_list \
+            | sort -k2 \
+            | fzf --ansi --no-sort --reverse --multi \
+                  --delimiter='\t' --with-nth=1,2 \
+                  --prompt 'sys service> ' \
+                  --header $'enter: start/stop   ctrl-e: enable   ctrl-d: disable   ctrl-r: restart   tab: multi' \
+                  --expect=ctrl-e,ctrl-d,ctrl-r) || exit 0
+
+    key=$(printf '%s\n' "$sel" | head -n1)
+    picks=$(printf '%s\n' "$sel" | tail -n +2 | awk -F'\t' 'NF>1 {print $2}')
+    [ -n "$picks" ] || exit 0
+
+    printf '%s\n' "$picks" | while IFS= read -r name; do
+        [ -n "$name" ] || continue
+        svcpath="$RUN/$name"
+        case "$key" in
+            ctrl-e)
+                [ -e "$svcpath" ] || ln -s "$AVAIL/$name" "$svcpath"
+                sv up "$svcpath" 2>/dev/null
+                ;;
+            ctrl-d)
+                sv down "$svcpath" 2>/dev/null
+                [ -L "$svcpath" ] && rm "$svcpath"
+                ;;
+            ctrl-r)
+                sv restart "$svcpath" 2>/dev/null
+                ;;
+            *)
+                if sv status "$svcpath" 2>/dev/null | grep -q '^run:'; then
+                    sv down "$svcpath" 2>/dev/null
+                else
+                    [ -e "$svcpath" ] || ln -s "$AVAIL/$name" "$svcpath"
+                    sv up "$svcpath" 2>/dev/null
+                fi
+                ;;
+        esac
+    done
+done

@@ -32,7 +32,7 @@
     .float_step = 40,
 
     // --- tmux-style focused-window border ----------------------------------
-    .border_active = 0x89b4fa,
+    .border_active = 0xcba6f7ff,
     .border_thickness = 2,
 
     // --- session environment (dwl setupenv) --------------------------------
@@ -76,7 +76,6 @@
     .bar = .{
         .font = "JetBrainsMono Nerd Font:size=15",
         .top = true,
-        .layout_symbol = "[]=",
         .normal_fg = 0x7f849cff,
         .normal_bg = 0x1e1e2eff,
         .select_fg = 0xffffffff,

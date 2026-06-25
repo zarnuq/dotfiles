@@ -46,7 +46,12 @@
 
 (defwindow clock [scale]
   :monitor 1
-  :geometry (geometry :x "0px" :y "0px" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "top left")
+  ;; y=14px clears reach's status bar (its height = fcft line height for
+  ;; monospace:size=12 at default DPI = 14px). The clock is :stacking "bottom",
+  ;; so without this offset its top 14px render *behind* the bar. reach can't
+  ;; restack layer surfaces, and this widget claims no exclusive zone, so the
+  ;; fix has to live here: drop the clock below the bar instead of under it.
+  :geometry (geometry :x "0px" :y "14px" :width "${round(420 * scale, 0)}px" :height "${round(150 * scale, 0)}px" :anchor "top left")
   :stacking "bottom"
   (clock))
 

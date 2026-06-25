@@ -16,15 +16,20 @@ wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1)
 while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1); done
 export WAYLAND_DISPLAY="${wl##*/}"
 
-# Detect which monitor to use (0 for laptop, 1 for desktop) and pick a scale.
+# Detect which monitor to use and pick a scale. Target the monitor by its
+# CONNECTOR NAME, not a GDK index: eww's --screen/`:monitor` index follows
+# river's wl_output advertisement order, which reach perturbs when it applies
+# the config.zon layout (positions + the rotate_180/270 transforms on DP-3/DP-1
+# re-advertise those outputs, reshuffling the indices). A hardcoded "1" then
+# lands on the wrong screen. The connector name is stable regardless of order.
 # scale drives BOTH the CSS sizes (eww.scss via _scale.scss) and the window
 # geometry (eww.yuck via the SCALE var). 1.0 = baseline (ultrawide, unchanged).
 if wlr-randr | grep -q "DP-2"; then
-    monitor="1"    # Desktop ultrawide (3440x1440)
+    monitor="DP-2"    # Desktop ultrawide (3440x1440)
     scale="1.0"
 else
-    monitor="0"    # Laptop (1920x1200) — shrink the dashboard to fit
-    scale="0.85"   # <-- tune this: <1.0 smaller, >1.0 bigger
+    monitor="eDP-1"   # Laptop (1920x1200) — shrink the dashboard to fit
+    scale="0.85"      # <-- tune this: <1.0 smaller, >1.0 bigger
 fi
 
 open_dash() {

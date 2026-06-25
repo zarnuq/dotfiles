@@ -1,62 +1,26 @@
 #!/bin/sh
-# runit service manager: lists every service with live status, fzf to pick,
-# act, and the list re-renders so you can toggle several in a row.
-# Bound to a floating kitty in dwl (like killfzf/clipfzf).
+# runit USER service manager: ~/.local/sv, supervised by the per-user
+# `runsvdir ~/.local/sv` from reach's autostart. No sudo/doas — everything runs
+# as you. fzf to pick + act; the list re-renders so you can toggle several in a
+# row. Bound to a floating kitty (Super+Z). For SYSTEM services (/etc/sv) use
+# `ssvfzf` (split out so its one-time doas elevation doesn't tangle with this).
 #
-# Two scopes are merged into one list:
-#   [sys]  system services in /etc/sv, supervised via /service symlinks
-#          (root-owned; managed with sudo). Enable/disable = add/remove the
-#          /service symlink.
-#   [usr]  user services in ~/.local/sv, supervised directly by the per-user
-#          `runsvdir ~/.local/sv` from dwl's autostart (no sudo, no symlinks —
-#          the dir *is* the supervised set). Enable/disable = remove/create a
-#          `down` file inside the service dir, since there's no link to drop.
+# The service dir *is* the supervised set (no /service symlink layer), so
+# enable/disable = remove/create a `down` file inside the service dir.
 #
 # Glyphs:  ● running   ○ enabled but stopped   · disabled
 # Keys:
 #   enter   toggle running (sv up / sv down)
-#   ctrl-e  enable  (sys: symlink into /service; usr: rm down file) + start
-#   ctrl-d  disable (sys: rm /service symlink; usr: touch down file) + stop
-#   ctrl-r  restart (sv restart)
+#   ctrl-e  enable  (rm down file) + start
+#   ctrl-d  disable (touch down file) + stop
+#   ctrl-r  restart
 #   tab     multi-select (action applies to every selection)
 #   esc     quit
-#
-# System service running state is computed BEFORE the fzf pipeline starts so
-# sudo can prompt without conflicting with fzf's terminal ownership.
 
-AVAIL=/etc/sv
-RUN=/service
 USERSV="$HOME/.local/sv"
-
-# Refresh sys_enabled and sys_running. Called once per loop iteration,
-# before build_list | sort | fzf, so sudo never runs inside the pipeline.
-refresh_sys() {
-    sys_enabled=$(ls "$RUN" 2>/dev/null | tr '\n' ' ')
-    sys_running=''
-    [ -n "$sys_enabled" ] && sys_running=$(
-        sudo env SVDIR="$RUN" sv status $sys_enabled 2>/dev/null \
-            | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' '
-    )
-}
+export SVDIR="$USERSV"
 
 build_list() {
-    # --- system services (uses $sys_enabled/$sys_running from outer scope) ---
-    for path in "$AVAIL"/*; do
-        [ -d "$path" ] || continue
-        name=${path##*/}
-        case " $sys_running " in
-            *" $name "*)
-                glyph='\033[32m●\033[0m' ;;                 # green: running
-            *)
-                case " $sys_enabled " in
-                    *" $name "*) glyph='\033[33m○\033[0m' ;; # peach: enabled, stopped
-                    *)           glyph='\033[90m·\033[0m' ;; # gray: disabled
-                esac ;;
-        esac
-        printf "$glyph\t%s\t%s\n" 'sys' "$name"
-    done
-
-    # --- user services -------------------------------------------------------
     [ -d "$USERSV" ] || return
 
     unames=$(
@@ -67,10 +31,8 @@ build_list() {
     )
     [ -n "$unames" ] || return
 
-    urunning=$(
-        SVDIR="$USERSV" sv status $unames 2>/dev/null \
-            | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' '
-    )
+    running=$(sv status $unames 2>/dev/null \
+        | awk '/^run:/ { sub(/:$/, "", $2); print $2 }' | tr '\n' ' ')
 
     for path in "$USERSV"/*; do
         [ -f "$path/run" ] || continue
@@ -78,78 +40,51 @@ build_list() {
         if [ -f "$path/down" ]; then
             glyph='\033[90m·\033[0m'
         else
-            case " $urunning " in
+            case " $running " in
                 *" $name "*) glyph='\033[32m●\033[0m' ;;
                 *)           glyph='\033[33m○\033[0m' ;;
             esac
         fi
-        printf "$glyph\t%s\t%s\n" 'usr' "$name"
+        printf "$glyph\t%s\n" "$name"
     done
 }
 
 while true; do
-    refresh_sys
-
     sel=$(build_list \
             | sort -k2 \
             | fzf --ansi --no-sort --reverse --multi \
-                  --delimiter='\t' --with-nth=1,2,3 \
-                  --prompt 'service> ' \
+                  --delimiter='\t' --with-nth=1,2 \
+                  --prompt 'usr service> ' \
                   --header $'enter: start/stop   ctrl-e: enable   ctrl-d: disable   ctrl-r: restart   tab: multi' \
                   --expect=ctrl-e,ctrl-d,ctrl-r) || exit 0
 
     key=$(printf '%s\n' "$sel" | head -n1)
-    picks=$(printf '%s\n' "$sel" | tail -n +2 | awk -F'\t' 'NF>2 {print $2"\t"$3}')
+    picks=$(printf '%s\n' "$sel" | tail -n +2 | awk -F'\t' 'NF>1 {print $2}')
     [ -n "$picks" ] || exit 0
 
-    printf '%s\n' "$picks" | while IFS="$(printf '\t')" read -r scope name; do
+    printf '%s\n' "$picks" | while IFS= read -r name; do
         [ -n "$name" ] || continue
-        if [ "$scope" = usr ]; then
-            dir="$USERSV/$name"
-            case "$key" in
-                ctrl-e)
+        dir="$USERSV/$name"
+        case "$key" in
+            ctrl-e)
+                rm -f "$dir/down"
+                sv up "$name" 2>/dev/null
+                ;;
+            ctrl-d)
+                sv down "$name" 2>/dev/null
+                touch "$dir/down"
+                ;;
+            ctrl-r)
+                sv restart "$name" 2>/dev/null
+                ;;
+            *)
+                if sv status "$name" 2>/dev/null | grep -q '^run:'; then
+                    sv down "$name" 2>/dev/null
+                else
                     rm -f "$dir/down"
-                    SVDIR="$USERSV" sv up "$name" 2>/dev/null
-                    ;;
-                ctrl-d)
-                    SVDIR="$USERSV" sv down "$name" 2>/dev/null
-                    touch "$dir/down"
-                    ;;
-                ctrl-r)
-                    SVDIR="$USERSV" sv restart "$name" 2>/dev/null
-                    ;;
-                *)
-                    if SVDIR="$USERSV" sv status "$name" 2>/dev/null | grep -q '^run:'; then
-                        SVDIR="$USERSV" sv down "$name" 2>/dev/null
-                    else
-                        rm -f "$dir/down"
-                        SVDIR="$USERSV" sv up "$name" 2>/dev/null
-                    fi
-                    ;;
-            esac
-        else
-            svcpath="$RUN/$name"
-            case "$key" in
-                ctrl-e)
-                    [ -e "$svcpath" ] || sudo ln -s "$AVAIL/$name" "$svcpath"
-                    sudo sv up "$svcpath" 2>/dev/null
-                    ;;
-                ctrl-d)
-                    sudo sv down "$svcpath" 2>/dev/null
-                    [ -L "$svcpath" ] && sudo rm "$svcpath"
-                    ;;
-                ctrl-r)
-                    sudo sv restart "$svcpath" 2>/dev/null
-                    ;;
-                *)
-                    if sudo sv status "$svcpath" 2>/dev/null | grep -q '^run:'; then
-                        sudo sv down "$svcpath" 2>/dev/null
-                    else
-                        [ -e "$svcpath" ] || sudo ln -s "$AVAIL/$name" "$svcpath"
-                        sudo sv up "$svcpath" 2>/dev/null
-                    fi
-                    ;;
-            esac
-        fi
+                    sv up "$name" 2>/dev/null
+                fi
+                ;;
+        esac
     done
 done

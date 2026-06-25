@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal dotfiles for a **Void Linux** system. Wayland compositor stack centered on DWL (custom-patched dwm port). GNU Stow manages all symlinks from `de/` to `$HOME`. Terminal emulator is **kitty** (not ghostty, not wezterm). Theme is **Catppuccin Mocha (Mauve accent)** across all applications. UI aesthetic: **flat/sharp** — all border-radius is explicitly 0 everywhere.
+Personal dotfiles for a **Gentoo Linux** system. Wayland compositor stack centered on **reach** (a custom Zig Wayland compositor; dwl-like — tags, master/stack tiling, a baked-in someblocks-style status bar). GNU Stow manages all symlinks from `de/` to `$HOME`. Terminal emulator is **kitty** (not ghostty, not wezterm). Theme is **Catppuccin Mocha (Mauve accent)** across all applications. UI aesthetic: **flat/sharp** — all border-radius is explicitly 0 everywhere.
 
-Package manager is `xbps` (`xbps-install`, `xbps-query`, `xbps-remove`). `pacman`/`paru`/AUR do not apply. Nix + home-manager is used alongside xbps for a curated set of packages (security tools in `cyber.nix`, GUI apps, Python libs — see [Nix / home-manager](#nix--home-manager) section). Clean nix garbage with `nix-collect-garbage -d`.
+System package manager is **Portage** (`emerge`). `sudo` is symlinked to **`doas`** on this box. `xbps`/`pacman`/`paru`/AUR do **not** apply. Nix + home-manager is used alongside Portage for a curated set of packages (security tools in `modules/cyber.nix`, GUI apps, Python libs — see [Nix / home-manager](#nix--home-manager) section). Clean nix garbage with `nix-collect-garbage -d`.
+
+> **Migration note:** this box was previously Void Linux. Some configs still carry Void-era bits that are now stale and may break or no-op on Gentoo — see [Stale Void/DWL leftovers](#stale-voiddwl-leftovers).
 
 ---
 
@@ -15,45 +17,30 @@ Package manager is `xbps` (`xbps-install`, `xbps-query`, `xbps-remove`). `pacman
 ```
 dotfiles/
 ├── de/                        # Stowed to $HOME
-│   ├── .config/               # Application configs
+│   ├── .config/               # Application configs (incl. reach/, dconf/)
 │   ├── .local/bin/            # Custom scripts
-│   ├── .local/src/            # WM source (dwl, dwlb, someblocks)
-│   ├── .local/share/          # Shared data
+│   ├── .local/sv/             # Per-user runit service definitions
+│   ├── .local/share/          # Shared data (icons, rofi themes)
 │   └── .zen/                  # Zen browser chrome/userChrome.css
 ├── archive/                   # Archived old configs
 └── screenshots/               # README screenshots
 ```
 
+> The old `de/.local/src/` (dwl/dwlb/someblocks source) is **gone** — reach replaced the dwl stack and is installed/built outside this repo. `de/.config/eww.bak/` is a leftover backup dir.
+
 ---
 
 ## Installation & Setup
+
+The old `install.sh` / `install-tui.sh` bootstrap scripts have been **removed**. Setup is now: clone, stow, then apply the nix/home-manager and runit layers manually.
 
 ```bash
 cd ~
 git clone https://github.com/zarnuq/dotfiles.git
 cd dotfiles
 stow de
-~/.local/bin/install.sh
+home-manager switch            # nix-managed packages (see Nix section)
 ```
-
-### install.sh functions
-- `install_groups()` — adds user to: power, video, storage, kvm, disk, audio, nordvpn, mpd
-- `install_system()` — enables pacman colors + multilib (Arch-era; Void equivalent: xbps config)
-- `install_packages()` — base, dev, terminal, wayland, audio, media, fonts, libraries
-- `install_paru()` — AUR helper (Arch-era; not applicable on Void)
-- `install_aur()` — AUR packages (Arch-era; not applicable on Void)
-- `install_dwl()` — builds and installs dwl, dwlb, someblocks (binaries symlinked to /bin/)
-- `install_grub()` — GRUB with Catppuccin Mocha theme
-- `install_greetd()` — tuigreet display manager
-- `install_swap()` — 16GB swapfile
-- `install_shell()` — zsh + zplug, sets shell to /bin/zsh
-- `install_zen()` — symlinks Zen browser configs
-- `install_tpm()` — tmux plugin manager
-- `install_services()` — enables: mpd, mpdris, xdg-desktop-portal, ufw, udisks2, bluetooth, dbus, greetd
-- `install_nvidia()` — installs Nvidia packages (opt-in, available via install-tui.sh)
-
-### install-tui.sh
-Interactive fzf-based TUI that wraps `install.sh`. Presents a multi-select menu of all install modules using Catppuccin Mocha colors. Use tab to toggle modules, Enter to run selected ones. Includes `nvidia` as a selectable option (not run by default).
 
 ### Stow Commands
 ```bash
@@ -61,46 +48,43 @@ stow de      # apply all symlinks
 stow -D de   # remove all symlinks
 ```
 
-### Building Window Managers
-```bash
-cd ~/.local/src/dwl && make clean install
-cd ~/.local/src/dwlb && make clean install
-cd ~/.local/src/someblocks && make
-```
+reach itself is configured by `de/.config/reach/config.zon` (no build step in this repo). User services are picked up by the `runsvdir ~/.local/sv` that reach's autostart launches.
 
 ---
 
 ## Nix / home-manager
 
 **Configs:**
-- `de/.config/home-manager/home.nix` — main config (GUI apps, Python ecosystem); imports `cyber.nix`
-- `de/.config/home-manager/cyber.nix` — security / pentesting toolkit (`home.packages`)
+- `de/.config/home-manager/home.nix` — main config (GUI apps, Python ecosystem); imports `default.nix`
+- `de/.config/home-manager/default.nix` — thin entrypoint that imports `./modules/cyber.nix`
+- `de/.config/home-manager/modules/cyber.nix` — security / pentesting toolkit (`home.packages`)
+- `de/.config/home-manager/security-box/` — a large library of per-category `*.nix` package sets (NixOS-style `environment.systemPackages`). **Not imported** by `default.nix`/`home.nix` — it's a staging/reference catalog, not active config.
 - `de/.config/home-manager/flake.nix` / `flake.lock` — flake pinning inputs
 - `de/.config/nixpkgs/config.nix` — `{ allowUnfree = true; }` (required for burpsuite, wpscan, binaryninja-free, etc.)
 
-Home-manager is used **alongside** xbps on Void Linux to manage a curated set of packages that aren't easily available or kept up-to-date via xbps. Run `home-manager switch` to apply.
+Home-manager runs **alongside** Portage to manage a curated set of packages not easily available or kept up-to-date via emerge. Run `home-manager switch` to apply.
 
-> **Note:** `home.nix` is now intentionally minimal — it no longer manages GTK theming (`gtk.enable`), cursors, fonts, the Tidaler `.desktop` entry, or Qt/Kvantum plugins. GTK theming is now stowed directly (see [GTK / Qt Theming](#gtk--qt-theming)). EasyEffects was dropped in favor of a PipeWire filter-chain EQ (see [Audio](#audio-pipewire--wireplumber)).
+> **Note:** `home.nix` is intentionally minimal — it no longer manages GTK theming (`gtk.enable`), cursors, fonts, or Qt/Kvantum plugins. GTK theming is stowed directly (see [GTK / Qt Theming](#gtk--qt-theming)) and also pushed into GNOME/GTK settings via `dconf load` in reach's autostart. EasyEffects was dropped in favor of a PipeWire filter-chain EQ (see [Audio](#audio-pipewire--wireplumber)).
 
-### Session Variables (injected by home-manager)
+### Session Variables (set by home.nix)
 - `XDG_DATA_DIRS=/usr/local/share:/usr/share:$HOME/.nix-profile/share`
 
-(This is the only session variable home.nix sets now. Qt/theme env vars are set by DWL's setupenv patch — see [DWL Environment Variables](#environment-variables-set-by-dwl-via-setupenv-patch).)
+(This is the only session variable home.nix sets. Qt/desktop env vars are set by reach's `env` block — see [reach Environment](#environment-variables-set-by-reach).)
 
 ### home.nix Packages (GUI + Python)
-- GUI apps: `obsidian`, `antigravity`, `termius`, `legcord`, `steam`, `nwg-look`, `vscodium`
+- GUI / CLI apps: `chromium`, `firefox-bin`, `claude-code`, `kiro-cli`, `antigravity`, `termius`, `nwg-look`, `unhide`, `wl-gammarelay-rs`
 - LaTeX: `texlive.combine { scheme-medium + latexmk }`
 - Python: `python3.withPackages` → `impacket`, `virtualenv`, `pip`, `icalendar`, `recurring-ical-events`, `x-wr-timezone` (last three power the eww calendar widget)
-- `pipx`
+- `pipx` (tests disabled via `overridePythonAttrs` — pipx 1.8.0's suite breaks on newer `packaging`)
 
-### Security / Pentesting Toolkit (`cyber.nix`)
+### Security / Pentesting Toolkit (`modules/cyber.nix`)
 
-A separate file imported by `home.nix`, providing `home.packages`. Current list (trimmed from the larger former set — many tools commented out or removed):
+Imported by `default.nix`, providing `home.packages`:
 
 | Category              | Tools                                                                                    |
 |-----------------------|------------------------------------------------------------------------------------------|
 | RECON & OSINT         | enum4linux, theharvester, whois, dnsrecon                                                |
-| SCANNING & ENUM       | nmap, onesixtyone, nikto, snmpcheck                                                      |
+| SCANNING & ENUM       | nmap, onesixtyone, nikto, snmpcheck, nuclei                                              |
 | WEB APP TESTING       | burpsuite, sqlmap, gobuster, ffuf, feroxbuster, wfuzz, whatweb, wpscan                  |
 | EXPLOITATION          | metasploit, exploitdb (searchsploit)                                                     |
 | PASSWORD ATTACKS      | hashcat, thc-hydra, ncrack, medusa, crunch, chntpw, fcrackzip (john commented out — use system john) |
@@ -112,7 +96,7 @@ A separate file imported by `home.nix`, providing `home.packages`. Current list 
 | CRYPTO & STEGO        | steghide, stegseek                                                                       |
 | UTILITIES             | unrar, dos2unix, ethtool, inetutils, exiftool, responder, netexec, smbclient-ng         |
 
-> **Note:** `hashcat` is installed via nix but the comment recommends the system `/usr/bin/hashcat` for OpenCL/GPU driver compatibility.
+> **Note:** `hashcat` is installed via nix but the comment recommends the system `hashcat` for OpenCL/GPU driver compatibility.
 
 ---
 
@@ -129,7 +113,7 @@ Used consistently across ALL applications:
 | Subtext0   | #a6adc8   | Secondary/muted text           |
 | Subtext1   | #bac2de   | Slightly less muted text       |
 | Mauve      | #cba6f7   | Accent: focus, active, borders |
-| Blue       | #89b4fa   | Info, links                    |
+| Blue       | #89b4fa   | Info, links, focused border    |
 | Green      | #a6e3a1   | Success                        |
 | Peach      | #fab387   | Warnings                       |
 | Red        | #f38ba8   | Errors, critical               |
@@ -139,164 +123,149 @@ Used consistently across ALL applications:
 
 ---
 
-## DWL Window Manager
+## reach Window Manager
 
-**Config:** `de/.local/src/dwl/config.h`
+reach is a custom **Zig** Wayland compositor that fills the role dwl/dwlb/someblocks used to: dynamic tags, master/stack tiling, a monocle-style fullscreen, regex window rules, monitor layout, and an **in-process** status bar (someblocks-style). It maps closely to dwl concepts (the config comments cross-reference them).
 
-### Applied Patches
-autostart, warpcursor, cursortheme, customfloat, monitorconfig, ipc, centerfloating, tmuxborder, moveresizekb, switchtotag, regexrules, keepontag, keychords, setupenv
+**Config:** `de/.config/reach/config.zon` — ZON (Zig Object Notation). Read **once at startup**. Every field is optional; anything omitted falls back to the compiled-in default (`config.zig`). Lookup order (first found wins): `$XDG_CONFIG_HOME/reach/config.zon`, `~/.config/reach/config.zon`, `/etc/reach/config.zon`. Colors are `0xRRGGBB` (border) or `0xRRGGBBAA` (bar).
+
+### Layout / Behavior
+- `outer_gap=0`, `inner_gap=2`
+- `sloppy_focus=true` (focus follows mouse)
+- `nmaster=1`, `mfact=0.55`
+- floating default size `0.6 × 0.65` of the screen; `float_step=40` px
+- `repeat_rate=50`, `repeat_delay=300`
+- Border (tmux-style, only on the focused window): `border_active=0x89b4fa` (blue), `border_thickness=2`
 
 ### Monitor Layout
+Array **order** defines monitor numbering for `focusmon`/`tagmon` and the `.monitor` index in window rules.
 
-| Name  | Resolution | Position     | Rotation | Notes              |
-|-------|-----------|--------------|----------|--------------------|
-| eDP-1 | 1920x1200 | —            | normal   | Laptop screen      |
-| DP-2  | 3440x1440 | x=0, y=1440  | normal   | Secondary ultrawide |
-| DP-3  | 3440x1440 | x=0, y=0     | 180°     | Primary ultrawide  |
-| DP-1  | 1920x1080 | x=3440, y=1440 | 270°   | Vertical monitor   |
+| Idx | Name  | Resolution | Position       | Transform   | Notes               |
+|-----|-------|-----------|----------------|-------------|---------------------|
+| 0   | DP-3  | 3440x1440 | x=0, y=0       | rotate_180  | Primary ultrawide   |
+| 1   | DP-2  | 3440x1440 | x=0, y=1440    | normal      | Secondary ultrawide |
+| 2   | DP-1  | 1920x1080 | x=3440, y=1440 | rotate_270  | Vertical, 165 Hz    |
+| 3   | eDP-1 | 1920x1200 | —              | normal      | Laptop screen       |
 
-All: mfact=0.55, nmaster=1, tile layout, scale=1.0
-
-### Environment Variables (set by DWL via setupenv patch)
-- `XDG_CURRENT_DESKTOP=sway` (Wayland compatibility)
+### Environment Variables (set by reach)
+From the `.env` block in `config.zon`:
+- `XDG_CURRENT_DESKTOP=river`
 - `XDG_SESSION_TYPE=wayland`
-- `QT_QPA_PLATFORMTHEME=qt6ct`
-- `QT_STYLE_OVERRIDE=kvantum`
-- `WAYLAND_DISPLAY=wayland-0`
-- `JAVA_HOME=/usr/lib/jvm/java-21-openjdk`
-- `XDG_DATA_DIRS=/home/miles/.nix-profile/share:/usr/local/share:/usr/share` (propagates nix profile to all DWL children)
+- `QT_QPA_PLATFORM=wayland`
+- `DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus`
 
-### Autostart (`de/.local/src/dwl/autostart.sh`)
-The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autostart.sh`. The script first `pkill`s each daemon (clean restart on session reload), then launches them backgrounded under a `trap 'kill 0'`:
-- pipewire, pipewire-pulse, wireplumber
-- eww daemon (`--config $HOME/.config/eww`) + `~/.local/bin/eww.sh open`
-- mpd (`mpd --no-daemon`)
-- mpDris2
-- wl-clip-persist (`-c regular`)
-- mako
-- syncthing (`--no-browser`)
-- gammastep -O 4000:4000
-- awww-daemon (wallpaper daemon)
-- dwlb + `someblocks -p | dwlb -status-stdin all`
-- kitty --class rmpc rmpc
-- emacs --fg-daemon (Emacs daemon; replaces relying solely on the systemd user service)
+### Autostart (`de/.config/reach/autostart.sh`)
+`config.zon`'s `.autostart` just execs `$HOME/.config/reach/autostart.sh`. The script is now **minimal** — most daemons moved to runit user services (see [Services](#services)). It:
+- pins `DBUS_SESSION_BUS_ADDRESS` to `$XDG_RUNTIME_DIR/bus`
+- starts `runsvdir $HOME/.local/sv` (the per-user runit supervisor) if not already running, and waits for the bus socket
+- runs `redshift.sh 4000` (after a 2 s delay), launches `kitty --class rmpc rmpc`
+- `dconf load /org/gnome/desktop/interface/ < ~/.config/dconf/interface.dconf` (pushes GTK theme/icons/cursor/font into GNOME settings)
 
-> **Note:** No more `easyeffects` (EQ moved to PipeWire conf). The wallpaper daemon is `awww`/`awww-daemon` here and in the Mod+B keybind, though `install.sh` still installs `swww` — likely an `awww` fork/rename or a consistent naming choice.
+### Window Rules
+Match `app_id`/`title`: `^foo` = starts-with, `foo` = contains. `tags` is a `1<<n` bitmask; `monitor` is an index into the monitor array.
 
-### Window Rules (regex-based)
+| Match        | tags (bitmask) | Float | Monitor | Notes                          |
+|--------------|----------------|-------|---------|--------------------------------|
+| rmpc         | —              | No    | 2 (DP-1)| Music player on vertical mon   |
+| zen          | 4              | No    | —       | switchtotag                    |
+| mpv          | 1              | No    | —       | switchtotag                    |
+| ^steam       | 16             | No    | —       | —                              |
+| ^float       | —              | Yes   | —       | Float at 25%/25%, 50%×50%      |
+| pavucontrol  | —              | Yes   | —       | Float at 25%/25%, 50%×50%      |
 
-| App ID      | Tag  | Float | Monitor | Notes                       |
-|-------------|------|-------|---------|----------------------------|
-| rmpc        | —    | No    | DP-3    | Music player on primary     |
-| zen         | 2    | No    | —       | Browser auto-switches tag   |
-| mpv         | 0    | No    | —       | Video on tag 0              |
-| ^steam      | 4    | No    | —       | Steam on tag 4              |
-| ^float      | —    | Yes   | —       | Float at 25%/25%, 50%/50%  |
-| pavucontrol | —    | Yes   | —       | Float at 25%/25%, 50%/50%  |
+### Status Bar (baked-in)
+reach renders the bar in-process (no dwlb/someblocks). From the `.bar` block:
+- Font `JetBrainsMono Nerd Font:size=15`, anchored top, layout symbol `[]=`, delimiter `|`
+- Selected tag bg `0xcba6f7` (mauve) / fg white; normal/status fg `0x7f849c`, bg `0x1e1e2e`
+- Blocks (someblocks-style: `icon ++ first line of command stdout`; re-run every `interval` s and/or on `SIGRTMIN+signal`):
 
-### Layouts
-1. `[]=` — Tile (master/stack)
-2. `><>` — Floating
-3. `[M]` — Monocle
+| Block   | Command                                         | Interval | Signal |
+|---------|-------------------------------------------------|----------|--------|
+| ip      | `blocks/ip.sh` (default-route iface + IP)       | 30s      | —      |
+| audio   | `blocks/audio.sh` (default sink description)     | 60s      | RTMIN+1 |
+| volume  | `pactl get-sink-volume @DEFAULT_SINK@` %        | 1s       | RTMIN+1 |
+| mic     | `blocks/mic.sh` (source vol, red if unmuted)    | 1s       | RTMIN+2 |
+| date    | `date '+%a %m/%d %I:%M %p'`                      | 1s       | —      |
+| battery | `blocks/battery.sh` (BAT0 capacity + glyph)     | 30s      | —      |
 
-### Keyboard Settings
-- Cursor theme: Bibata-Modern-Classic (size 24)
-- Sloppyfocus: enabled (focus follows mouse)
-- Border: 1px, focus color: #cba6f7, urgent: #ff0000
-- Repeat rate: 50Hz, delay: 300ms
+Keybinds poke the bar with `kill -35 $(pidof reach)` (RTMIN+1, audio/volume) and `kill -36` (RTMIN+2, mic) for instant refresh after a volume change.
 
 ### Keybindings
+`Super` = Mod. Providing a `.binds` block **replaces the entire default action/spawn/chord keymap** — except the per-tag digit binds (view/toggleview/tag/toggletag for `1`–`9`, the usual dwl scheme) which are always auto-generated and are not listed in the config.
 
-**Window & App Management:**
-| Binding        | Action                                    |
-|----------------|-------------------------------------------|
-| Mod+P          | Lock screen (swaylock)                    |
-| Mod+Tab        | Open kitty terminal                       |
-| Mod+Space      | Rofi drun launcher                        |
-| Mod+BackSpace  | Open floating kitty                       |
-| Mod+W          | Open rmpc (music)                         |
-| Mod+Shift+W    | Rescan MPD music library                  |
-| Mod+T          | Open Zen browser                          |
-| Mod+Shift+B    | Browse ~/Pictures/bgs with yazi           |
-| Mod+B          | Random wallpaper (awww img, top transition) |
-| Mod+D          | Open emacsclient (`emacsclient -c`)       |
-| Mod+E          | Toggle eww desktop widgets                |
-| Mod+Shift+E    | Kill eww                                  |
-| Mod+Shift+P    | Quit DWL                                  |
-| Mod+Shift+Q    | Kill focused client                       |
-| Mod+Return     | Zoom (swap master/stack)                  |
-| Mod+F          | Toggle floating                           |
-| Mod+Shift+F    | Toggle fullscreen                         |
+**Launchers & apps:**
+| Binding        | Action                                       |
+|----------------|----------------------------------------------|
+| Super+P        | Lock screen (`swaylock`)                      |
+| Super+Tab      | kitty terminal                                |
+| Super+Space    | rofi drun (`-show drun -show-icons`)          |
+| Super+BackSpace| Floating kitty (`--class float`)              |
+| Super+V        | Floating kitty → `clipfzf` (clipboard picker) |
+| Super+X        | Floating kitty → `killfzf` (process killer)   |
+| Super+Z        | Floating kitty → `svfzf` (user service manager) |
+| Super+W        | rmpc (music)                                  |
+| Super+Shift+W  | `rmpc rescan`                                 |
+| Super+T        | Zen browser (`zen-browser`)                   |
+| Super+Shift+B  | Browse `~/Pictures/bgs` with yazi             |
+| Super+B        | Random wallpaper (`awww img`, top transition) |
+| Super+D        | emacsclient frame (`emacsclient -c`)          |
+| Super+E        | eww widgets open (`eww.sh open`) — see note   |
+| Super+Shift+E  | eww widgets close (`eww.sh close`) — see note |
+| Super+Shift+P  | Quit reach                                    |
+| Super+Shift+Q  | Kill focused client                           |
+| Super+Return   | Zoom (swap master/stack)                      |
+| Super+F        | Toggle floating                               |
+| Super+Shift+F  | Toggle fullscreen                             |
 
-**Two-Key Chords (Mod+r then...):**
-| Chord     | Action                  |
-|-----------|------------------------|
-| Mod+r, d  | Open Legcord (Discord) |
-| Mod+r, b  | Open Brave             |
-| Mod+r, a  | Open pavucontrol       |
-| Mod+r, s  | Open Steam             |
-| Mod+r, w  | Run runbar.sh          |
+> **Note:** `Super+E`/`Super+Shift+E` spawn `~/.local/bin/eww.sh`, but **that script no longer exists in the repo** — eww is now a runit user service that opens the dashboard itself (see [EWW](#eww-desktop-widgets)). These two binds are effectively broken until rebound or `eww.sh` is restored.
 
-**Screenshots (Mod+s then...):**
-| Chord     | Action                        |
-|-----------|------------------------------|
-| Mod+s, s  | Quick screenshot to clipboard |
-| Mod+s, d  | Section screenshot + satty    |
-| Mod+s, 1  | Full DP-1 screenshot          |
-| Mod+s, 2  | Full DP-2 screenshot          |
-| Mod+s, 3  | Full DP-3 screenshot          |
+**Two-key chords (Super+r then…):**
+| Chord       | Action          |
+|-------------|-----------------|
+| Super+r, d  | Legcord         |
+| Super+r, b  | Brave           |
+| Super+r, a  | pavucontrol     |
+| Super+r, s  | Steam           |
 
-**Audio Effects (Mod+q then...):**
-| Chord     | Action              |
-|-----------|---------------------|
-| Mod+q, 1  | `easyeffects -l EQ`   (stale — see note) |
-| Mod+q, 2  | `easyeffects -l None` (stale — see note) |
+**Screenshots (Super+s then…):**
+| Chord       | Action                          |
+|-------------|--------------------------------|
+| Super+s, s  | Quick screenshot → clipboard   |
+| Super+s, d  | Section screenshot + satty     |
+| Super+s, 1  | Full DP-1 screenshot           |
+| Super+s, 2  | Full DP-2 screenshot           |
+| Super+s, 3  | Full DP-3 screenshot           |
 
-> **Note:** These chords still call `easyeffects` in `config.h`, but EasyEffects has been removed. EQ is now a static PipeWire filter-chain (`sink-eq.conf`); switch the EQ'd output with `Alt+[` (flip.sh). The Mod+q chords are effectively no-ops until rebound.
+**Media / volume / mic / brightness:**
+| Binding         | Action                                          |
+|-----------------|-------------------------------------------------|
+| XF86AudioPlay   | `playerctl -p mpd play-pause`                   |
+| XF86AudioPrev   | `playerctl -p mpd previous`                     |
+| XF86AudioNext   | `playerctl -p mpd next`                         |
+| Alt+Up / Down   | Sink volume ±5% (refresh bar)                   |
+| Alt+Left / Right| Mic (source) volume ∓5% / ±5% (refresh bar)     |
+| Alt+End         | Mic mute toggle                                 |
+| Alt+[ (bracketleft) | Cycle EQ output sink (`flip.sh`)            |
+| Super+Alt+Left / Right | Brightness down/up (`brightness.sh`)     |
+| Super+Alt+Up    | Toggle night-light 4000K↔6500K (`redshift.sh`)  |
 
-**Media & Volume:**
-| Binding        | Action                              |
-|----------------|-------------------------------------|
-| XF86AudioPlay  | MPD toggle play/pause               |
-| XF86AudioPrev  | MPD previous track                  |
-| XF86AudioNext  | MPD next track                      |
-| Alt+Up         | Volume +5% (someblocks update)      |
-| Alt+Down       | Volume -5%                          |
-| Alt+Left       | Mic -5%                             |
-| Alt+Right      | Mic +5%                             |
-| Alt+End        | Mic mute toggle                     |
-| Alt+[          | Cycle audio output sinks (flip.sh)  |
-| Mod+Alt+Left   | Brightness -5%                      |
-| Mod+Alt+Right  | Brightness +5%                      |
-| Mod+Alt+Up     | Toggle gammastep (color temp)       |
+**Focus & layout:**
+| Binding                | Action                          |
+|------------------------|---------------------------------|
+| Super+J / K            | Focus next/prev in stack        |
+| Super+H / L            | Resize master area (mfact ∓0.05)|
+| Super+M / N            | Decrease/increase nmaster       |
+| Super+, / .            | Focus prev/next monitor         |
+| Super+Shift+, / .      | Move window to prev/next monitor|
+| Super+Arrows           | Move floating window (±40)      |
+| Super+Shift+Arrows     | Resize floating window (±40)    |
 
-**Focus & Layout:**
-| Binding              | Action                     |
-|----------------------|---------------------------|
-| Mod+J/K              | Focus next/prev in stack  |
-| Mod+H/L              | Resize master area        |
-| Mod+M/N              | Decrease/increase master  |
-| Mod+,/.              | Focus prev/next monitor   |
-| Mod+Shift+</>        | Move window to prev/next monitor |
-| Mod+Ctrl+Y/U/I       | Tile / Floating / Monocle layout |
-| Arrow keys           | Move floating window      |
-| Mod+Shift+Arrows     | Resize floating window    |
-
-**Tags (workspaces):**
-| Binding               | Action                      |
-|-----------------------|-----------------------------|
-| Mod+1–9              | View tag                    |
-| Mod+Ctrl+1–9         | Toggle tag visibility        |
-| Mod+Shift+!–(        | Move window to tag          |
-| Mod+0                | View all tags               |
-
-**Mouse:**
-- Mod+Left drag: Move floating window
-- Mod+Middle click: Toggle floating
-- Mod+Right drag: Resize floating window
-
-**Touchpad:**
-- Tap: enabled, natural scroll: disabled, 2-finger scroll, DWT enabled, adaptive accel
+**Tags (auto-generated defaults):**
+| Binding         | Action                |
+|-----------------|-----------------------|
+| Super+1–9       | View tag              |
+| Super+Ctrl+1–9  | Toggle tag visibility |
+| Super+Shift+1–9 | Move window to tag    |
 
 ---
 
@@ -312,21 +281,23 @@ The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autos
 - spaceship-prompt
 - zsh-vi-mode
 
-### Key Aliases
+### Key Aliases / Functions
 
-| Alias      | Command                                   |
+| Alias / fn | Command                                   |
 |------------|-------------------------------------------|
 | gs         | git status -s                             |
-| gac        | git add . && git commit -m               |
+| gac        | git add . ; git commit -m                 |
 | gp         | git push                                  |
+| ip         | ip -c                                     |
 | vim        | nvim                                      |
-| p          | paru                                      |
 | ff         | fastfetch                                 |
-| y          | yazi                                      |
+| y          | yazi (function; cd's to last dir on exit) |
 | ta         | tmux attach-session -t                    |
-| nord       | sudo systemctl start nordvpnd && nordvpn c Chicago |
 | pickcolor  | grim+slurp+convert color picker           |
-| doomsync   | pkill emacs → doom sync → restart service |
+| zshrc      | nvim $ZDOTDIR/.zshrc                       |
+| pyserver   | python -m http.server                     |
+| doomsync   | pkill emacs → `sv stop emacs` → doom sync → `sv start emacs` |
+| xi/xr/xu/xq| **stale Void xbps wrappers** — see [Stale leftovers](#stale-voiddwl-leftovers) |
 
 ### FZF Integration
 - Default: `fd --hidden --strip-cwd-prefix --exclude .git`
@@ -339,7 +310,7 @@ The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autos
 - CONFIG: ~/.config, DATA: ~/.local/share, STATE: ~/.local/state, CACHE: ~/.cache
 - ZDOTDIR: ~/.config/zsh
 - All tool homes (cargo, rustup, go, npm, yarn, etc.) redirect to XDG_DATA_HOME
-- EDITOR=nvim, JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+- `EDITOR=nvim`
 
 ---
 
@@ -354,6 +325,7 @@ The autostart patch's array in `config.h` just execs `$HOME/.local/src/dwl/autos
 - Clipboard: Ctrl+Shift+C/V
 - Theme: Catppuccin Mocha (current-theme.conf)
 - Sync to monitor: yes
+- Window classes used by reach binds: `float` (floating fzf pickers), `rmpc` (music player)
 
 ---
 
@@ -467,33 +439,33 @@ Plugin manager: lazy.nvim (auto-installed to ~/.local/share/lazy/lazy.nvim)
 - catppuccin-theme
 
 ### Daemon
-- Launched at session start by `autostart.sh` (`emacs --fg-daemon`); also available as a systemd user service (`systemctl --user start emacs`)
-- `Mod+D` in DWL opens a client frame (`emacsclient -c`)
-- `doomsync` alias handles sync: kill → doom sync → restart
+- Runs as a runit **user service** (`~/.local/sv/emacs`); `doomsync` restarts it via `sv`
+- `Super+D` in reach opens a client frame (`emacsclient -c`)
+- `doomsync` alias: kill → `sv stop emacs` → doom sync → `sv start emacs`
 
 ---
 
 ## EWW Desktop Widgets
 
 **Config:** `de/.config/eww/`
-**Architecture:** Single config dir. The old `dash/` subdir was removed — `eww.yuck`/`eww.scss` now live at the eww root:
+**Architecture:** Single config dir (the old `dash/` subdir is gone; `de/.config/eww.bak/` still holds the old layout as a backup):
 - `eww.yuck` — all widget + window definitions
 - `eww.scss` — styling; does `@import "scale"` → reads the generated `_scale.scss`
-- `_scale.scss` — generated at runtime by `eww.sh` (holds `$scale`); sits next to `eww.scss`
+- `_scale.scss` — generated at runtime (holds `$scale`); sits next to `eww.scss`
 - `scripts/` — data provider scripts
 - `calendar.url` — ICS/CalDAV URL for calendar widget
 
-### Launch
-```bash
-~/.local/bin/eww.sh open     # all widgets (writes _scale.scss, reload, open each)
-~/.local/bin/eww.sh close    # close all
-```
-`eww.sh` exposes only `open`/`close`. The daemon itself is started from DWL `autostart.sh` (`eww --config "$HOME/.config/eww" daemon`).
+### Launch (runit service)
+The eww **daemon and dashboard now live in the `eww` runit user service** (`~/.local/sv/eww/run`) — there is no `eww.sh` anymore. The service:
+- waits for the dbus + wayland sockets, exports `WAYLAND_DISPLAY`
+- detects monitor/scale (if `DP-2` present → monitor 1 desktop, scale `1.0`; else monitor 0 laptop, scale `0.85`)
+- writes `_scale.scss`, reloads SCSS, then opens every window once with `--screen <mon> --arg scale=<scale>`
+- `exec`s `eww daemon --no-daemonize` so runsv supervises the long-lived daemon (not the one-shot open, which would flap)
 
-Monitor/scale detection: if DP-2 present → monitor 1 (desktop), scale `1.0`; else monitor 0 (laptop), scale `0.85`. `scale` drives **both** CSS sizes (`eww.scss` `s(n)` helper → `n*$scale*1px`, fed by `_scale.scss`) and window geometry (a per-window `scale` arg, since `defwindow :geometry` can't read globals).
+`scale` drives **both** CSS sizes (`eww.scss` `s(n)` helper → `n*$scale*1px`, fed by `_scale.scss`) and window geometry (a per-window `scale` arg, since `defwindow :geometry` can't read globals).
 
 ### EWW Styling
-`eww.scss` uses Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
+`eww.scss` uses the Catppuccin Mocha palette with `$border-radius: 0px` — all widgets are flat/sharp.
 
 ### Widgets (de/.config/eww/eww.yuck)
 Eleven windows are launched: `clock cpu net-graph tray weather notifications mpd outlook ports vpn brightness`.
@@ -512,15 +484,13 @@ Eleven windows are launched: `clock cpu net-graph tray weather notifications mpd
 | vpn           | scripts/vpn-manager.sh list/status       | 5s / 2s     | OpenVPN connect/toggle                                  |
 | brightness    | `~/.local/bin/brightness.sh get/set`     | 2s          | Software brightness slider (10–100%) for ALL outputs via wl-gammarelay-rs |
 
-> **Note:** The volume sliders are not a standalone window — the `(volume)` widget is embedded inside the `mpd` widget. Older docs listed standalone `ram`/`disk`/`temps`/`hwinfo`/`procs`/`services`/`notes`/`updates`/`fetch` widgets; these were removed or folded into the windows above.
+> **Note:** The volume sliders are not a standalone window — the `(volume)` widget is embedded inside the `mpd` widget.
 
 ### EWW Scripts (de/.config/eww/scripts/)
 - `ports.sh` — ss + awk + jq → JSON array of {proto, port, process}
 - `calendar.sh` — Python (`events`, `refresh` subcommands): requires `icalendar` + `recurring_ical_events` (installed via home-manager); reads ~/.config/eww/calendar.url; caches ICS to /tmp/eww-calendar.ics
 - `vpn-manager.sh` — OpenVPN management (`list`, `status`, `toggle`); state in /tmp/eww-openvpn.{pid,status,log}
 - `focused-output.sh` — wlr-randr monitor detection
-
-> **Note:** `procs.sh` and `services.sh` (in older versions of this file) are no longer present.
 
 ### EWW Dependencies
 - jq — ports, notifications, net-graph (IP list)
@@ -530,7 +500,7 @@ Eleven windows are launched: `clock cpu net-graph tray weather notifications mpd
 - nvidia-smi — GPU usage + temp in the cpu widget
 - curl — weather (wttr.in)
 - python3 + `icalendar` + `recurring-ical-events` — calendar widget (managed by home-manager)
-- wlr-randr — monitor detection in eww.sh
+- wlr-randr — monitor detection (in the eww service)
 - Calendar URL config: `~/.config/eww/calendar.url` (ICS/CalDAV URL)
 
 ---
@@ -539,7 +509,7 @@ Eleven windows are launched: `clock cpu net-graph tray weather notifications mpd
 
 **Config:** `de/.config/mako/config`
 
-Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via basu), so it needs no `busctl`/systemd — unlike `dunstctl history`, which is gated behind `busctl` and is therefore broken on Void. mako just needs the D-Bus **session bus** that `dbus-run-session dwl` already provides; it's launched from `autostart.sh` and inherits `DBUS_SESSION_BUS_ADDRESS` like any other DWL child. (Running `mako`/`makoctl`/`notify-send` from a terminal that lacks that env — e.g. one that survived a session restart — fails with "Could not connect" / "Failed to connect to user bus"; open a fresh DWL terminal.)
+Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via basu), so it needs no `busctl`/systemd. mako just needs the D-Bus **session bus** reach provides (pinned via `DBUS_SESSION_BUS_ADDRESS`); it runs as a runit user service (`~/.local/sv/mako`) and inherits the bus like every other service. (Running `mako`/`makoctl`/`notify-send` from a terminal that lacks that env — e.g. one that survived a session restart — fails with "Could not connect"; open a fresh terminal under the session.)
 
 - Font: JetBrains Mono Nerd Font 18
 - Anchor: top-right, border-size 2, **border-radius 0** (flat), width 350
@@ -576,7 +546,7 @@ Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via b
 |---------|----------------|
 | edit    | nvim ($EDITOR) |
 | open    | xdg-open       |
-| setbg   | swww img       |
+| setbg   | `swww img` (stale — system uses `awww`) |
 | view    | loupe          |
 | read    | zathura (PDF)  |
 | play    | mpv            |
@@ -612,9 +582,10 @@ Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via b
 - Audio output: PipeWire (pulse backend), software mixer
 - Format: 192kHz, 24-bit, stereo
 - Curl input: enabled (streaming)
+- Runs as a runit user service (`~/.local/sv/mpd`)
 
 ### mpDris (`de/.config/mpd/mpDris.conf`)
-- Server: 127.0.0.1:6600
+- Server: 127.0.0.1:6600 (runit user service `mpDris2`)
 
 ### rmpc (`de/.config/rmpc/config.ron`)
 - Connection: 127.0.0.1:6600
@@ -636,28 +607,7 @@ Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via b
 - Key highlight: #cba6f7 (mauve), backspace: #f38ba8
 - Text: #cdd6f4
 - Ignore empty password: enabled
-
----
-
-## Key Remapping: xremap
-
-**Config:** `de/.config/xremap/config.yml`
-
-### Keyboard Remaps
-
-| From         | To           |
-|--------------|--------------|
-| Capslock     | Escape       |
-| Keypad /     | Previous song |
-| Keypad *     | Play/pause   |
-| Keypad -     | Next song    |
-
-### Mouse Remaps (G502 sensitivity button = F13)
-
-| Combo            | Action      |
-|------------------|-------------|
-| F13 + Left click | Left        |
-| F13 + Right click| Right       |
+- Triggered by `Super+P` and by the `swayidle` user service (idle timeout)
 
 ---
 
@@ -679,9 +629,9 @@ Replaced dunst. mako is Wayland-native and `makoctl` talks D-Bus directly (via b
 
 **Config:** `de/.config/fastfetch/config.jsonc`
 
-Logo: `source: auto`. Module order: Title, Separator, Host, CPU, GPU, Memory, Swap, Disk, Display, OS, Kernel, Bootloader, Init, Driver (custom command — nvidia/OpenGL/OpenCL/Vulkan versions), OS Age (custom — from `/` birth time), Seat Manager (custom — seatd/elogind/logind via xbps), Packages, WM, Login Manager (custom — scans `/var/service/` for greetd/gdm/etc.), Theme, Icons, Font, Cursor, Terminal, Shell.
+Logo: `source: auto`. Module order: Title, Separator, Host, CPU, GPU, Memory, Swap, Disk, Display, OS, Kernel, Bootloader, Init, Driver (custom — nvidia/OpenGL/OpenCL/Vulkan versions), OS Age (custom — from `/` birth time), Seat Manager (custom), Packages, WM, Login Manager (custom), Theme, Icons, Font, Cursor, Terminal, Shell.
 
-The Driver, OS Age, Seat Manager, and Login Manager entries are `command`-type modules with inline shell that's Void-specific (uses `xbps-query` and runit's `/var/service/`).
+> **Stale (Void):** the **Seat Manager** and **Login Manager** custom `command` modules still call `xbps-query` and scan runit's `/var/service/`. On this Gentoo box `xbps-query` doesn't exist and the runit service dir is `/service`, so these two entries are broken until rewritten for Portage (`equery`/`qlist`) + `/service`.
 
 ---
 
@@ -690,8 +640,8 @@ The Driver, OS Age, Seat Manager, and Login Manager entries are `command`-type m
 **UI Aesthetic: flat/sharp** — all border-radius is 0 across GTK and eww. Enforced globally in `gtk-3.0/gtk.css` (sets `border-radius: 0px` on `*`, `window`, `button`, `entry`, `.titlebar`).
 
 ### GTK3 (`de/.config/gtk-3.0/`)
-Now **stowed directly** as plain files (no longer home-manager–generated — `gtk.enable` was removed from home.nix). Edit the repo files and re-stow.
-- Theme: `catppuccin-mocha-mauve-standard+default` (xbps package naming — note the `+default` suffix)
+**Stowed directly** as plain files (no longer home-manager–generated). Edit the repo files and re-stow. Settings are also pushed into GNOME's dconf via `dconf load` (`de/.config/dconf/interface.dconf`) in reach autostart.
+- Theme: `catppuccin-mocha-mauve-standard+default`
 - Icons: **Papirus-Dark**
 - Font: JetBrainsMono Nerd Font 14
 - Cursor: Bibata-Modern-Classic, size 24
@@ -701,21 +651,24 @@ Now **stowed directly** as plain files (no longer home-manager–generated — `
 ### GTK4 (`de/.config/gtk-4.0/`)
 Also stowed directly. Contains `settings.ini`, `gtk.css`, `gtk-dark.css`, and `assets/`.
 
+### dconf (`de/.config/dconf/interface.dconf`)
+Loaded into `/org/gnome/desktop/interface/` by reach autostart so GTK apps that read GNOME settings get: gtk-theme, icon-theme, cursor-theme/size, font-name, `color-scheme='prefer-dark'`.
+
 ### xsettingsd (`de/.config/xsettingsd/xsettingsd.conf`)
-XSETTINGS daemon for non-GTK/Qt apps (Firefox, Signal, Electron apps). Must be running for these apps to pick up dark theme and cursor settings.
+XSETTINGS daemon for non-GTK/Qt apps (Firefox, Signal, Electron). Must be running for these apps to pick up dark theme + cursor.
 - `Net/ThemeName` — catppuccin-mocha-mauve-standard+default
 - `Net/IconThemeName` — Papirus-Dark
 - `Gtk/CursorThemeName` — Bibata-Modern-Classic
 - `Gtk/ApplicationPreferDarkTheme 1` — required for Firefox/Signal dark mode
-- `Xft/Antialias` — 1
-- `Xft/Hinting` — 1, hintslight
-- `Xft/RGBA` — rgb
+- `Xft/Antialias 1`, `Xft/Hinting 1` (hintslight), `Xft/RGBA rgb`
 
 ### Qt6 (`de/.config/qt6ct/qt6ct.conf`)
 - Style: Kvantum
 - Color: catppuccin-mocha-mauve
 - Font: JetBrainsMono Nerd Font 13
 - Single-click activation: yes
+
+> reach sets `QT_QPA_PLATFORM=wayland` (native Wayland Qt). It does **not** set `QT_QPA_PLATFORMTHEME`/`QT_STYLE_OVERRIDE` like the old dwl setupenv did — if Qt apps stop picking up qt6ct/Kvantum, re-export those.
 
 ### Kvantum (`de/.config/Kvantum/kvantum.kvconfig`)
 - Theme: catppuccin-mocha-mauve
@@ -739,6 +692,9 @@ Apps connect to the default sink; `~/.local/bin/flip.sh` (bound to `Alt+[`) cycl
 
 ### WirePlumber (`de/.config/wireplumber/wireplumber.conf.d/`)
 - `softvol.conf` — ALSA rule: enables `api.alsa.soft-mixer = true` for all USB audio cards (`alsa_card.usb-.*`). Required for USB audio devices to have software volume control.
+- `usb2-iec958.conf` — profile rule for the USB2.0 optical device (its comment still references the old `~/.local/src/dwl/autostart.sh` — now driven by `flip.sh`).
+
+PipeWire/WirePlumber/pipewire-pulse run as runit user services.
 
 ---
 
@@ -770,9 +726,6 @@ Apps connect to the default sink; `~/.local/bin/flip.sh` (bound to `Alt+[`) cycl
 
 ## Custom Scripts (`de/.local/bin/`)
 
-### eww.sh
-Launches eww dashboard. Detects monitor via wlr-randr (DP-2 = desktop monitor 1, else monitor 0). Opens all dash widgets + VPN widget.
-
 ### screenshot.sh
 - `ss` — quick screenshot to clipboard (grim+slurp)
 - `section` — region screenshot → satty annotation
@@ -780,75 +733,91 @@ Launches eww dashboard. Detects monitor via wlr-randr (DP-2 = desktop monitor 1,
 - Output: ~/Pictures/screenshot-YYYY-MM-DD_HH-MM-SS.png
 
 ### flip.sh
-Cycles the default sink between the two EQ filter-chain sinks (`effect_input.eq_fiio` / `effect_input.eq_optical`) and migrates already-playing app streams to the new default. When switching to the optical EQ, first sets the USB2.0 card to its `iec958-stereo` profile so the chain's `target.object` resolves. Raw `alsa_output.*` sinks are intentionally excluded. Uses pactl.
+Cycles the default sink between the two EQ filter-chain sinks (`effect_input.eq_fiio` / `effect_input.eq_optical`) and migrates already-playing app streams to the new default. When switching to the optical EQ, first sets the USB2.0 card to its `iec958-stereo` profile so the chain's `target.object` resolves. Raw `alsa_output.*` sinks are intentionally excluded. Uses pactl. Bound to `Alt+[`.
 
-### gammastep.sh
-Toggles blue light filter: `gammastep -O 4000:4000`. Kill if running, start if not.
+### redshift.sh
+Night-light color temperature for **all** outputs via `wl-gammarelay-rs` (D-Bus session bus, `gdbus`). `redshift.sh` toggles 4000K↔6500K (Mod+Alt+Up); `redshift.sh <K>` sets an absolute Kelvin. Replaces the old `gammastep.sh`.
 
 ### brightness.sh
-Software brightness for **all** outputs (laptop panel + the 3 externals) via `wl-gammarelay-rs` — dims the gamma curve per output, so it works on DP/HDMI monitors that have no `/sys/class/backlight`. Uses the D-Bus **session** bus dwl already provides (via `gdbus`, since Void has no `busctl`); no root/i2c. Subcommands: `up`/`down` (step ±5%), `set <0-100>` (the eww slider calls this), `get` (the eww poll reads this). Floor 10% (never fully black). Bound to Mod+Alt+Left/Right in DWL and drives the eww `brightness` widget.
+Software brightness for **all** outputs (laptop panel + the 3 externals) via `wl-gammarelay-rs` — dims the gamma curve per output, so it works on DP/HDMI monitors with no `/sys/class/backlight`. Uses the D-Bus **session** bus reach provides (via `gdbus`); no root/i2c. Subcommands: `up`/`down` (±5%), `set <0-100>` (eww slider), `get` (eww poll). Floor 10% (never fully black). Bound to Super+Alt+Left/Right and drives the eww `brightness` widget.
 
-### runbar.sh
-Kills dwlb, restarts it, pipes someblocks status.
+### clipfzf
+Clipboard-history picker: `cliphist list | fzf | cliphist decode | wl-copy`. Bound to `Super+V` (floating kitty via `float` class). Output redirected so kitty exits once copied.
 
-### svfzf
-runit service manager: merges **system** and **user** services into one fzf list (bound to a floating kitty, like killfzf/clipfzf). Glyphs: `●` running, `○` enabled but stopped, `·` disabled. Keys: `enter` toggle running, `ctrl-e` enable + start, `ctrl-d` disable + stop, `ctrl-r` restart, `tab` multi-select, `esc` quit. The list re-renders after each action so you can toggle several in a row.
+### killfzf
+Process killer: `ps --forest` tree → fzf (kernel threads under PID 2 filtered out). `Enter` = SIGTERM, `Ctrl-K` = SIGKILL, `Tab` = multi-select. Bound to `Super+X`.
 
-Two scopes, distinguished by a `[sys]`/`[usr]` column:
-- **`[sys]`** — system services in `/etc/sv`, supervised via `/var/service` symlinks (root-owned; all actions use `sudo`, cached once up front). Enable/disable = add/remove the `/var/service` symlink.
-- **`[usr]`** — user services in `~/.local/sv`, supervised directly by the per-user `runsvdir ~/.local/sv` from DWL autostart (no sudo). Because the dir **is** the supervised set (no symlink layer), enable/disable = `rm`/`touch` a `down` file inside the service dir; `down` present means runsv won't auto-start it. All user `sv` calls run with `SVDIR=~/.local/sv`.
+### svfzf / ssvfzf
+Two runit service managers (floating kitty, fzf). Both share the same UI — glyphs `●` running / `○` enabled but stopped / `·` disabled; keys `enter` toggle running, `ctrl-e` enable + start, `ctrl-d` disable + stop, `ctrl-r` restart, `tab` multi-select, `esc` quit; the list re-renders after each action. Originally one merged script — **split in two** because per-call `doas` prompts were wonky inside the fzf action loop (stdin is the pick pipeline, so `doas` couldn't read a password).
 
-### install.sh
-Full system installation script. See [Installation & Setup](#installation--setup).
+- **`svfzf`** — **user** services in `~/.local/sv`, supervised by the per-user `runsvdir ~/.local/sv` from reach autostart. No elevation; all `sv` calls run with `SVDIR=~/.local/sv`. The dir **is** the supervised set (no symlink layer), so enable/disable = `rm`/`touch` a `down` file inside the service dir. Bound to `Super+Z`.
+- **`ssvfzf`** — **system** services in `/etc/sv`, supervised via `/service` symlinks. Elevates **once** up front by re-exec'ing under `doas` (this box symlinks `sudo`→`doas`), so root persists for the whole session and nothing in the loop re-prompts; the fzf UI runs as root. Enable/disable = add/remove the `/service` symlink. No default keybind (run from a terminal).
 
-### install-tui.sh
-Interactive fzf-based wrapper around install.sh. Multi-select menu for choosing which install modules to run. Catppuccin Mocha colored UI.
+### rebuild-kernel.sh
+Gentoo kernel rebuild helper (this box is "lazygentoo" with Secure Boot + UKI). Optionally `emerge --update`s `sys-kernel/gentoo-sources` (`-e`), seeds `.config` (from `-c FILE`, the running `/proc/config.gz`, or the existing `$SRC/.config`), `olddefconfig`s, builds + installs modules, then `kernel-install add` builds the initramfs+UKI, signs it (ukify, keys from `/etc/kernel/uki.conf`), prunes old UKIs, and rewrites the efibootmgr entry — all via `/etc/kernel/install.d` hooks. Self-elevates via `doas` (this box symlinks `sudo`→`doas`). `-y` skips the prompt; `-h` for usage.
 
-> **Note:** `lrc-extract.sh`, `kill.sh`, and `br0.sh` are documented in older versions of this file but are **not present** in `de/.local/bin/`. They may have been removed or never committed.
+### runbar.sh — **stale**
+`pkill dwlb; dwlb &; someblocks -p | dwlb -status-stdin all`. Dead — reach has a baked-in bar and dwlb/someblocks are gone. No longer bound to anything.
 
 ---
 
 ## Services
 
-### User Services (runit, `~/.local/sv`)
-Supervised by a per-user `runsvdir ~/.local/sv` started from DWL `autostart.sh` (replaced the old autostart-launched daemons — see commit "use runit services instead of an autostart"). Disable a service by dropping a `down` file in its dir (not by removing it — there's no symlink layer). Manage them with `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`. Current set:
-- dbus — persistent user D-Bus **session** bus (pinned via `DBUS_SESSION_BUS_ADDRESS` in DWL setupenv; the whole stack inherits it)
-- pipewire, pipewire-pulse, wireplumber — audio
-- mpd — Music Player Daemon
-- mpDris2 — MPRIS interface for MPD
-- emacs — Doom Emacs daemon
-- syncthing
-- wl-gammarelay-rs — gamma/brightness D-Bus service (drives brightness.sh + eww widget)
-- swayidle — idle locker (`swayidle -w timeout 300 'swaylock -f'`)
-- cliphist-text / cliphist-image — clipboard-history watchers (`wl-paste --type {text,image} --watch cliphist store`); two services, one per type
+Both scopes are **runit**, managed by separate pickers: `svfzf` (user, `Super+Z`) and `ssvfzf` (system, elevates via `doas`) — or `sv` directly. See [svfzf / ssvfzf](#svfzf--ssvfzf).
 
-### System Services (runit, `/etc/sv` → `/var/service`)
-Enable/disable via the `/var/service` symlink (managed by `svfzf` `[sys]` scope or `ln`/`rm` + `sv`).
-- greetd — Display manager (tuigreet)
-- ufw — Firewall
-- bluetooth
-- dbus
-- udisks2 — Disk management
-- nordvpnd — NordVPN daemon
+### User Services (runit, `~/.local/sv`)
+Supervised by a per-user `runsvdir ~/.local/sv` started from reach `autostart.sh`. Disable a service by dropping a `down` file in its dir (no symlink layer). Manage with `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`. Current set:
+- `dbus` — persistent user D-Bus **session** bus (pinned via `DBUS_SESSION_BUS_ADDRESS`; the whole stack inherits it)
+- `pipewire`, `pipewire-pulse`, `wireplumber` — audio
+- `mpd` — Music Player Daemon
+- `mpDris2` — MPRIS interface for MPD
+- `emacs` — Doom Emacs daemon
+- `eww` — eww daemon + opens the dashboard (replaces the old `eww.sh` + autostart launch)
+- `mako` — notification daemon
+- `awww` — wallpaper daemon
+- `syncthing`
+- `wl-gammarelay-rs` — gamma/brightness D-Bus service (drives brightness.sh + redshift.sh + eww widget)
+- `swayidle` — idle locker (`swayidle -w timeout 300 'swaylock -f'`)
+- `cliphist-text` / `cliphist-image` — clipboard-history watchers (`wl-paste --type {text,image} --watch cliphist store`); one service per type
+
+### System Services (runit, `/etc/sv` → `/service`)
+Enable/disable via the `/service` symlink (managed by `ssvfzf`, or `ln`/`rm` + `sv`). These live **outside this repo** (system-level, not stowed), so the exact set isn't tracked here — inspect `/etc/sv` and `/service` on the box. Typically: a display manager (greetd/tuigreet), `ufw`, `bluetooth`, `dbus`, `udisks2`.
 
 ---
 
 ## Package Management
 
-**Primary: xbps** (Void Linux)
+**Primary: Portage** (Gentoo)
 ```bash
-xbps-install -S <pkg>    # install
-xbps-remove <pkg>        # remove
-xbps-query -Rs <pkg>     # search
-xbps-install -Su         # update system
+sudo emerge -av <pkg>              # install (sudo → doas on this box)
+sudo emerge --unmerge <pkg>        # remove
+emerge --search <pkg>              # search (or `eix <pkg>`)
+sudo emerge --sync && sudo emerge -avuDN @world   # update system
 ```
 
-**Secondary: Nix / home-manager** — for security tools, theming packages, Python libs
+**Secondary: Nix / home-manager** — security tools, theming packages, Python libs
 ```bash
 home-manager switch          # apply home.nix changes
 nix-env -iA nixpkgs.<pkg>    # ad-hoc nix package
 nix-collect-garbage -d       # remove old generations + garbage collect
 ```
+
+**Kernel:** see [`rebuild-kernel.sh`](#rebuild-kernelsh).
+
+---
+
+## Stale Void/DWL leftovers
+
+Tracked here so they can be cleaned up. None are load-bearing on Gentoo + reach:
+
+- `de/.config/zsh/.zshrc` — `xi`/`xr`/`xu`/`xq` aliases wrap `xbps-install`/`xbps-remove`/`xbps-query` (won't work on Portage; repoint to `emerge`/`eix`).
+- `de/.config/fastfetch/config.jsonc` — Seat Manager + Login Manager modules call `xbps-query` and scan `/var/service/` (Void runit path; this box uses `/service`).
+- `de/.local/bin/runbar.sh` — entirely dwlb/someblocks; dead, unbound.
+- `de/.config/yazi/yazi.toml` — `setbg` opener uses `swww img` (system uses `awww`).
+- `de/.config/wireplumber/wireplumber.conf.d/usb2-iec958.conf` — comment points to `~/.local/src/dwl/autostart.sh` (now `flip.sh`).
+- `~/.local/bin/eww.sh` is referenced by reach's `Super+E`/`Super+Shift+E` binds but **doesn't exist** (eww is a service now) — rebind or restore.
+- `de/.config/eww.bak/` — old eww layout backup dir.
+- Comments mentioning "dwl"/"Void" in `clipfzf`, `killfzf`, `svfzf`, `brightness.sh`, `~/.local/sv/emacs/run` (cosmetic).
 
 ---
 
@@ -856,7 +825,7 @@ nix-collect-garbage -d       # remove old generations + garbage collect
 
 ```bash
 gs    # git status -s
-gac   # git add . && git commit -m
+gac   # git add . ; git commit -m
 gp    # git push
 ```
 
