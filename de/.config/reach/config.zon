@@ -32,7 +32,7 @@
     .float_step = 40,
 
     // --- tmux-style focused-window border ----------------------------------
-    .border_active = 0xcba6f7ff,
+    .border_active = 0xcba6f7,
     .border_thickness = 2,
 
     // --- session environment (dwl setupenv) --------------------------------
@@ -68,6 +68,7 @@
         .{ .app_id = "zen", .tags = 4, .switchtotag = true },
         .{ .app_id = "mpv", .tags = 1, .switchtotag = true },
         .{ .app_id = "^steam", .tags = 16 },
+        .{ .app_id = "signal", .tags = 8 },
         .{ .app_id = "^float", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
         .{ .app_id = "pavucontrol", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
     },
@@ -119,8 +120,6 @@
         .{ .key = "Super+t", .action = .{ .spawn = "zen-browser" } },
         .{ .key = "Super+Shift+b", .action = .{ .spawn = "kitty -e yazi $HOME/Pictures/bgs" } },
         .{ .key = "Super+b", .action = .{ .spawn = "awww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1" } },
-        .{ .key = "Super+e", .action = .{ .spawn = "$HOME/.local/bin/eww.sh open" } },
-        .{ .key = "Super+Shift+e", .action = .{ .spawn = "$HOME/.local/bin/eww.sh close" } },
 
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },

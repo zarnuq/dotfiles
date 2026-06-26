@@ -11,7 +11,6 @@
 - awww
 - btop
 - doom emacs
-- dwl (dwlb,someblocks)
 - eww
 - fastfetch
 - gtk themes
@@ -22,6 +21,7 @@
 - nvim
 - pipewire settings
 - qt themes
+- reach(personal wm)
 - rmpc
 - rofi
 - swaylock
@@ -30,26 +30,6 @@
 - zen-browser theme
 - zsh (spaceship, zplug)
 
-
-## My Custom DWL Repo
-
-#### included patches
-
-- autostart (adds autostart section in config.h)
-- warpcursor (warps cursor to active window and monitor)
-- cursortheme (<-)
-- customfloat (adds rules for floating window placement)
-- monitorconfig (adds more parameters for monitors such as refresh rate)
-- ipc (for dwlb)
-- centerfloating (new floating windows center to monitor)
-- tmuxborder (only show borders for a window when touching another window and when it is focused)
-- moveresizekb (keybinds for moving and resizing a floating window)
-- switchtotag (adds rule to switch to tag on window open and switch back on close)
-- regexrules (adds regex to dwl rules)
-- keepontag (patch i made that makes moving clients between monitors stay on the same tag and view on that monitor. also restores tag on origin monitor to tag 1 if there are no other clients on that tag)
-- keychords (adds functionallity for multikey combo like "mod+o" then "t" for opening terminal like in emacs )
-- setupenv (adds a array for setting environment variables)
-
 ## Install
 
 ```
@@ -57,7 +37,21 @@ cd ~
 git clone https://github.com/zarnuq/dotfiles.git
 cd dotfiles
 stow de
-install.sh
+home-manager switch
 ```
+
+### reach (window manager)
+
+reach is my window manager (source: https://github.com/zarnuq/reach). On
+Gentoo it's packaged in the **zarnuq overlay**:
+
+```
+eselect repo add zarnuq git https://github.com/zarnuq/gentoo-overlay.git
+emaint sync -r zarnuq
+emerge -av gui-wm/reach
+```
+
+Config: `~/.config/reach/config.zon` (this repo, stowed); the ebuild also
+installs a system default at `/etc/reach/config.zon`.
 
 

@@ -2,4 +2,8 @@
 # headless daemon; server socket lives in $XDG_RUNTIME_DIR/emacs (persistent).
 # pgtk build: a GUI frame open during a dwl crash may take the daemon down with
 # it (GTK aborts on wl_display loss) — runsv then restarts it fresh.
+# tty frames (emacsclient -t) decide color depth from the daemon's env. The
+# bare runit env has no COLORTERM, so Emacs falls back to 256 colors and
+# approximates catppuccin's dark-navy bg (#1e1e2e) to ANSI blue. Force 24-bit.
+export COLORTERM=truecolor
 exec emacs --fg-daemon
