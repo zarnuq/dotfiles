@@ -64,9 +64,8 @@
     // Match app_id/title: "^foo" = starts-with, "foo" = contains. tags is a
     // 1<<n bitmask. monitor is an index into .monitors above.
     .rules = .{
-        .{ .app_id = "rmpc", .monitor = 2 },
+        .{ .app_id = "rmpc", .tags = 1, .monitor = 2 },
         .{ .app_id = "zen", .tags = 4, .switchtotag = true },
-        .{ .app_id = "mpv", .tags = 1, .switchtotag = true },
         .{ .app_id = "^steam", .tags = 16 },
         .{ .app_id = "signal", .tags = 8 },
         .{ .app_id = "^float", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
