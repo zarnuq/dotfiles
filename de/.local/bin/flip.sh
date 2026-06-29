@@ -2,7 +2,7 @@
 
 # Cycle the default sink between the two EQ-wrapped outputs:
 #   effect_input.eq_fiio     -> FiiO K11 (USB DAC)
-#   effect_input.eq_optical  -> USB2.0 Device (built-in 5.1 optical)
+#   effect_input.eq_optical  -> motherboard S/PDIF optical (PCH) -> AVR
 #
 # Apps connect to the default sink, so flipping here moves their stream
 # through the EQ chain pinned to the corresponding hardware output. We
@@ -13,9 +13,11 @@
 # wpctl/pavucontrol if you want to bypass the EQ.
 
 # Hardcoded because both the EQ chains and the optical profile setup
-# are hardware-specific to this machine.
-USB2_CARD="alsa_card.usb-Generic_USB2.0_Device_20170726905923-00"
-USB2_PROFILE="output:iec958-stereo"
+# are hardware-specific to this machine. The PCH card carries the
+# motherboard's rear optical S/PDIF jack; the +input:analog-stereo
+# variant keeps the analog input available alongside the digital out.
+OPTICAL_CARD="alsa_card.pci-0000_00_1f.3"
+OPTICAL_PROFILE="output:iec958-stereo+input:analog-stereo"
 
 sinks="$(pactl list short sinks | awk '$2 ~ /^effect_input\.eq_/ {print $2}')"
 
@@ -44,16 +46,17 @@ for sink in "$@"; do
     i=$((i + 1))
 done
 
-# If switching to the optical EQ, make sure the USB2.0 card is on its
+# If switching to the optical EQ, make sure the PCH card is on an
 # iec958 profile so the filter-chain's target.object actually resolves.
 if [ "$next_sink" = "effect_input.eq_optical" ]; then
-    current_profile=$(pactl list cards | awk -v c="$USB2_CARD" '
+    current_profile=$(pactl list cards | awk -v c="$OPTICAL_CARD" '
         $1 == "Name:" && $2 == c { found=1 }
         found && /Active Profile:/ { print $3; exit }
     ')
-    if [ "$current_profile" != "$USB2_PROFILE" ]; then
-        pactl set-card-profile "$USB2_CARD" "$USB2_PROFILE" 2>/dev/null
-    fi
+    case "$current_profile" in
+        *iec958-stereo*) ;;  # already exposes the digital output
+        *) pactl set-card-profile "$OPTICAL_CARD" "$OPTICAL_PROFILE" 2>/dev/null ;;
+    esac
 fi
 
 pactl set-default-sink "$next_sink"
