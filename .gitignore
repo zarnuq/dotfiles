@@ -19,3 +19,5 @@ de/.local/sv/*/supervise/
 de/.local/sv/*/log/supervise/
 de/.local/sv/*/log/main/
 de/.local/sv/*/log/current
+de/.local/sv/*/log/lock
+de/.local/sv/*/log/@*
