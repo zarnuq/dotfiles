@@ -25,6 +25,7 @@
     wfuzz                     # web fuzzer
     whatweb                   # web technology identifier
     wpscan                    # WordPress scanner (unfree — needs allowUnfree)
+    rustscan
 
     # EXPLOITATION
     metasploit                # exploitation framework

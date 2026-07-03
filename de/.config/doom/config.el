@@ -15,7 +15,8 @@
 
 
 (setq select-enable-primary nil
-      select-enable-clipboard t)
+      select-enable-clipboard t
+      x-select-enable-clipboard-manager nil)  ; don't block frame close on X clipboard-manager handoff
 
 ;; Doom exposes five (optional) variables for controlling fonts in Doom:
 ;;
