@@ -1,7 +1,8 @@
 { config, lib, pkgs, ... }:
 
 {
-  imports = [ 
-  ./modules/cyber.nix 
+  imports = [
+  ./modules/cyber.nix
+  ./modules/virt.nix
   ];
 }
