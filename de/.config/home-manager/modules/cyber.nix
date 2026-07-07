@@ -55,7 +55,6 @@
 
     # POST-EXPLOITATION & TUNNELING
     netcat-openbsd            # The Swiss Army Knife of networking
-    openvpn                   # VPN client/server for HTB/THM
     evil-winrm                # Interactive WinRM shell
 
     # REVERSE ENGINEERING
@@ -78,6 +77,10 @@
     responder                 # LLMNR/NBT-NS/mDNS poisoner
     netexec                   # Modern network exploitation (Successor to CME)
     smbclient-ng              # Enhanced SMB client
+    nfs-utils
+    zip
+    penelope
+
 
   ];
 }

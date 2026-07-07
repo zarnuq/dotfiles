@@ -6,4 +6,6 @@
 # bare runit env has no COLORTERM, so Emacs falls back to 256 colors and
 # approximates catppuccin's dark-navy bg (#1e1e2e) to ANSI blue. Force 24-bit.
 export COLORTERM=truecolor
+# route stderr (fatal errors / backtraces) to svlogd so crashes leave a trace.
+exec 2>&1
 exec emacs --fg-daemon

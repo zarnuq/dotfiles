@@ -1,12 +1,32 @@
 #!/bin/bash
 
 # VPN Manager Script for EWW
-# Requires: sudoers entry for openvpn and kill
+# Requires a passwordless escalation rule for openvpn (and kill for disconnect).
+# NOTE: doas/sudo match the command as typed, so we MUST call absolute paths that
+# match the rule exactly (a bare "openvpn" will NOT match "cmd /usr/bin/openvpn"):
+#   doas:     permit nopass <user> cmd /usr/bin/openvpn
+#             permit nopass <user> cmd /usr/bin/kill
+#   sudoers:  <user> ALL=(root) NOPASSWD: /usr/bin/openvpn, /usr/bin/kill
 
 VPN_DIR="$HOME/VPNs"
 PID_FILE="/tmp/eww-openvpn.pid"
 STATUS_FILE="/tmp/eww-openvpn.status"
 LOG_FILE="/tmp/eww-openvpn.log"
+
+# Escalation command: prefer doas (this box symlinks sudo->doas), fall back to
+# sudo so the script stays portable to sudoers systems.
+if command -v doas >/dev/null 2>&1; then
+    ESC=doas
+elif command -v sudo >/dev/null 2>&1; then
+    ESC=sudo
+else
+    ESC=""
+fi
+
+# Absolute binary paths — must match the doas/sudo rule exactly (see header).
+OPENVPN_BIN=$(command -v openvpn 2>/dev/null || echo /usr/bin/openvpn)
+KILL_BIN=/usr/bin/kill
+[ -x "$KILL_BIN" ] || KILL_BIN=/bin/kill
 
 list_vpns() {
     local vpns="["
@@ -34,7 +54,10 @@ list_vpns() {
 get_status() {
     if [ -f "$STATUS_FILE" ] && [ -f "$PID_FILE" ]; then
         local pid=$(cat "$PID_FILE" 2>/dev/null)
-        if [ -n "$pid" ] && sudo kill -0 "$pid" 2>/dev/null; then
+        # Rootless liveness check: openvpn runs as root, so `kill -0` from a
+        # normal user gets EPERM (not proof of death); /proc is world-readable.
+        if [ -n "$pid" ] && [ -d "/proc/$pid" ] \
+           && grep -qi openvpn "/proc/$pid/comm" 2>/dev/null; then
             cat "$STATUS_FILE"
             return
         fi
@@ -55,12 +78,12 @@ connect() {
     
     local vpn_name=$(basename "$config_file" .ovpn)
     
-    # Run openvpn with sudo (passwordless via sudoers)
-    sudo openvpn --config "$config_file" --daemon --log "$LOG_FILE" --writepid "$PID_FILE"
-    
+    # Run openvpn elevated (passwordless rule required)
+    $ESC "$OPENVPN_BIN" --config "$config_file" --daemon --log "$LOG_FILE" --writepid "$PID_FILE"
+
     if [ -f "$PID_FILE" ]; then
         local pid=$(cat "$PID_FILE")
-        if sudo kill -0 "$pid" 2>/dev/null; then
+        if [ -d "/proc/$pid" ]; then
             echo "$vpn_name" > "$STATUS_FILE"
             notify-send "VPN Connected" "Connected to $vpn_name" -u normal
         else
@@ -75,9 +98,9 @@ disconnect() {
     if [ -f "$PID_FILE" ]; then
         local pid=$(cat "$PID_FILE" 2>/dev/null)
         if [ -n "$pid" ]; then
-            sudo kill "$pid" 2>/dev/null
+            $ESC "$KILL_BIN" "$pid" 2>/dev/null
             sleep 1
-            sudo kill -9 "$pid" 2>/dev/null
+            $ESC "$KILL_BIN" -9 "$pid" 2>/dev/null
         fi
         rm -f "$PID_FILE"
     fi

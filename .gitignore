@@ -1,8 +1,9 @@
 de/.config/tmux/plugins/
+de/.local/share/icons/hicolor/
+**/icon-theme.cache
 *.uuid
 
 lazy-lock.json
-*.m3u
 de/.config/dconf/user
 de/.config/mpd/mpd.log
 de/.config/mpd/mpd.state
@@ -14,7 +15,6 @@ token.json
 _scale.scss
 __pycache__
 
-# runit per-user service runtime state (created by runsv inside the stowed dirs)
 de/.local/sv/*/supervise/
 de/.local/sv/*/log/supervise/
 de/.local/sv/*/log/main/
