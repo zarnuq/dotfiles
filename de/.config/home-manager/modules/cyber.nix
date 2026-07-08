@@ -80,7 +80,8 @@
     nfs-utils
     zip
     penelope
-
+    metasploit
+    httpie
 
   ];
 }
