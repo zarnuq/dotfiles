@@ -13,7 +13,7 @@
     scrolloff: 3,
     wrap_navigation: false,
     enable_mouse: false,
-    status_update_interval_ms: 1000,
+    status_update_interval_ms: 100,
     select_current_song_on_change: false,
     album_art: (
         method: Auto,

@@ -22,6 +22,15 @@
             # so 7 tests in test_package_specifier.py fail and the build aborts.
             # The shipped binary is unaffected — skip the check phase.
             pipx = prev.pipx.overridePythonAttrs (old: { doCheck = false; });
+
+            # evil-winrm's Gemfile pulls in winrm-fs, which does `require "csv"`.
+            # Ruby 3.4 (the current nixpkgs default) dropped csv from its default
+            # gems, and it isn't in evil-winrm's gemset, so the tool dies at startup
+            # with `cannot load such file -- csv`. Build its bundlerEnv against
+            # Ruby 3.3, where csv is still a default gem.
+            evil-winrm = prev.evil-winrm.override {
+              bundlerEnv = args: prev.bundlerEnv (args // { ruby = final.ruby_3_3; });
+            };
           })
         ];
       };
