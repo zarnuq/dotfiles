@@ -48,12 +48,9 @@ in
     # PASSWORD ATTACKS
     #john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
-    thc-hydra                 # network login brute-forcer
-    ncrack                    # network auth cracker
     medusa                    # parallel login brute-forcer
     crunch                    # wordlist generator
     chntpw                    # Windows password/registry editor
-    fcrackzip                 # zip password cracker
 
     # WIRELESS
     aircrack-ng               # wireless WEP/WPA cracking suite
@@ -77,15 +74,12 @@ in
 
     # FORENSICS & RECOVERY
     binwalk                   # firmware analysis
-
-    # CRYPTO & STEGANOGRAPHY
     steghide                  # steganography tool
     stegseek                  # fast steghide cracker
 
     # UTILITIES
     unrar                     # RAR archive extractor
     dos2unix                  # Fix line endings between OS transfers
-    ethtool                   # Network interface configuration
     inetutils                 # provides telnet, ftp, etc.
     exiftool                  # Metadata analysis
     responder                 # LLMNR/NBT-NS/mDNS poisoner
