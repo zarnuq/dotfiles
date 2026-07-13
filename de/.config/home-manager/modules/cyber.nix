@@ -36,7 +36,6 @@ in
     gobuster                  # directory/DNS brute-forcer
     ffuf                      # fast web fuzzer
     feroxbuster               # recursive content discovery
-    wfuzz                     # web fuzzer
     whatweb                   # web technology identifier
     wpscan                    # WordPress scanner (unfree — needs allowUnfree)
     rustscan
