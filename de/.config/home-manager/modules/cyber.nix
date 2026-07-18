@@ -99,6 +99,7 @@ in
     #neo4j
     adalanche
     caido-desktop
+    dig
 
 
   ];
