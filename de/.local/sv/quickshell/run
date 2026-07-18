@@ -1,0 +1,20 @@
+#!/bin/sh
+# Quickshell desktop widgets, runit user service.
+#
+# Unlike the eww service, there's no daemon/open split and no monitor/scale
+# detection here: qs runs in the foreground and stays alive (so runsv can
+# supervise it directly), and the per-monitor scale logic lives inside the QML
+# (Widget.qml pins to DP-2). So this script just waits for the session sockets
+# and exec's the default config (~/.config/quickshell/shell.qml).
+
+# Wait for the dbus session socket + a live wayland socket before starting.
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
+wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1)
+while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1); done
+export WAYLAND_DISPLAY="${wl##*/}"
+
+# reach usually exports this, but make Qt pick Wayland regardless of inherited env.
+export QT_QPA_PLATFORM=wayland
+
+exec qs 2>&1
