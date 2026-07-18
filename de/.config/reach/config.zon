@@ -118,8 +118,7 @@
         .{ .key = "Super+w", .action = .{ .spawn = "kitty --class rmpc rmpc" } },
         .{ .key = "Super+Shift+w", .action = .{ .spawn = "rmpc rescan" } },
         .{ .key = "Super+t", .action = .{ .spawn = "zen-browser" } },
-        .{ .key = "Super+Shift+b", .action = .{ .spawn = "kitty -e yazi $HOME/Pictures/bgs" } },
-        .{ .key = "Super+b", .action = .{ .spawn = "awww img \"$(find $HOME/Pictures/bgs -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1)\" --transition-fps 144 --transition-type top --transition-duration 1" } },
+        .{ .key = "Super+b", .action = .{ .spawn = "qs ipc call wallpaper random" } },
 
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },

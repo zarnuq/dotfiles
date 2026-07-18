@@ -1,0 +1,9 @@
+[D-BUS Service]
+# Shadows /usr/share/dbus-1/services/fr.emersion.mako.service (XDG_DATA_HOME wins).
+# Stops D-Bus from auto-activating mako when org.freedesktop.Notifications is
+# unowned — Quickshell (Notifs.qml) is the notification server now. Without this,
+# any app that notifies while qs is briefly down relaunches mako, which then
+# grabs the bus name and blocks qs from re-registering.
+# Revert: delete this file (real mako activation returns).
+Name=org.freedesktop.Notifications
+Exec=/bin/true
