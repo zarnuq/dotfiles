@@ -15,7 +15,7 @@ Widget {
 
     Process {
         id: proc
-        command: [Quickshell.env("HOME") + "/.config/eww/scripts/ports.sh"]
+        command: [Quickshell.env("HOME") + "/.config/quickshell/scripts/ports.sh"]
         stdout: StdioCollector {
             onStreamFinished: { try { root.ports = JSON.parse(text) || []; } catch (e) { root.ports = []; } }
         }

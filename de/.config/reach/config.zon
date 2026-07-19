@@ -106,7 +106,7 @@
     // .{ .focusmon = n }, .{ .tagmon = n }.
     .binds = .{
         // launchers
-        .{ .key = "Super+p", .action = .{ .spawn = "swaylock" } },
+        .{ .key = "Super+p", .action = .{ .spawn = "qs ipc call lock lock" } },
         .{ .key = "Super+Tab", .action = .{ .spawn = "kitty" } },
         .{ .key = "Super+d", .action = .{ .spawn = "GDK_BACKEND=wayland emacs" } },
         .{ .key = "Super+space", .action = .{ .spawn = "rofi -show drun -show-icons" } },

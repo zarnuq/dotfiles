@@ -11,7 +11,7 @@ Widget {
     implicitWidth: s(420)
     implicitHeight: s(150)
 
-    readonly property string script: Quickshell.env("HOME") + "/.config/eww/scripts/calendar.sh"
+    readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"
     property var events: []      // [{ day, time, summary, location, color }]
 
     Process {

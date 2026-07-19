@@ -5,6 +5,7 @@ import Quickshell
 ShellRoot {
     WallpaperView {}
     NotificationPopups {}
+    Lock {}
     Clock {}
     CpuGraph {}
     NetGraph {}

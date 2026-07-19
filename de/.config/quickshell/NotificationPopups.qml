@@ -57,11 +57,11 @@ PanelWindow {
                     anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter
                               leftMargin: win.s(12); rightMargin: win.s(12) }
                     spacing: win.s(2)
-                    Txt { text: card.modelData.appName || "Notification"; color: Theme.subtext0; font.pixelSize: win.s(12) }
-                    Txt { text: card.modelData.summary; font.bold: true; font.pixelSize: win.s(16)
+                    Txt { text: card.modelData.appName || "Notification"; color: Theme.subtext0; font.pixelSize: win.s(15) }
+                    Txt { text: card.modelData.summary; font.bold: true; font.pixelSize: win.s(20)
                           width: parent.width; wrapMode: Text.WordWrap }
                     Txt { visible: card.modelData.body !== ""; text: card.modelData.body; color: Theme.subtext0
-                          font.pixelSize: win.s(14); width: parent.width; wrapMode: Text.WordWrap }
+                          font.pixelSize: win.s(18); width: parent.width; wrapMode: Text.WordWrap }
                 }
 
                 MouseArea { anchors.fill: parent; onClicked: card.modelData.dismiss() }

@@ -12,7 +12,7 @@ Widget {
     implicitWidth: s(210)
     implicitHeight: s(150)
 
-    readonly property string script: Quickshell.env("HOME") + "/.config/eww/scripts/vpn-manager.sh"
+    readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/vpn-manager.sh"
     property var vpns: []       // [{ name, file }]
     property string status: ""  // connected profile name, or ""
     readonly property bool connected: status !== ""

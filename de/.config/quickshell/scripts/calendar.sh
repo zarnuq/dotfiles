@@ -20,7 +20,7 @@ except ImportError:
     print("[]")
     sys.exit(0)
 
-CONFIG_FILE = Path.home() / ".config/eww/calendar.url"
+CONFIG_FILE = Path.home() / ".config/quickshell/scripts/calendar.url"
 CACHE_FILE = Path("/tmp/eww-calendar.ics")
 CACHE_AGE = 300  # 5 minutes
 
