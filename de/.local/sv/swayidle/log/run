@@ -1,2 +1,0 @@
-#!/bin/sh
-exec svlogd -tt /home/miles/.local/sv/swayidle/log

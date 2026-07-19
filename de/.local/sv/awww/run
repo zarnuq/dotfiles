@@ -1,8 +1,0 @@
-#!/bin/sh
-# Wallpaper daemon (awww). Needs a live wayland socket, which may be stale if
-# runsvdir outlives a compositor restart — wait for it instead of trusting the
-# inherited WAYLAND_DISPLAY.
-wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1)
-while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1); done
-export WAYLAND_DISPLAY="${wl##*/}"
-exec awww-daemon

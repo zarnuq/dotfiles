@@ -1,9 +1,0 @@
-#!/bin/sh
-# Notification daemon (mako). Wayland socket may be stale after a compositor
-# restart; wait for both it and the dbus socket before connecting.
-xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
-wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1)
-while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "${XDG_RUNTIME_DIR}"/wayland-[0-9] 2>/dev/null | head -1); done
-export WAYLAND_DISPLAY="${wl##*/}"
-exec mako
