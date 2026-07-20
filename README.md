@@ -3,21 +3,14 @@
 ## Gallery
 
 ![Alt text](./screenshots/rice1.png)
-![Alt text](./screenshots/rice2.png)
-![Alt text](./screenshots/rice3.png)
-
-# configured applications
-
-- awww
+![Alt text](./screenshots/rice2.png) ![Alt text](./screenshots/rice3.png) # configured applications
 - btop
 - doom emacs
-- eww
 - fastfetch
 - gtk themes
 - kitty
 - kvantum
 - mpd
-- mako
 - nvim
 - pipewire settings
 - qt themes

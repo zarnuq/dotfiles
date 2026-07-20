@@ -17,7 +17,6 @@ return {
             capabilities = capabilities,
           })
         end,
-        -- Lua
         ["lua_ls"] = function()
           lspconfig.lua_ls.setup({
             capabilities = capabilities,
@@ -34,21 +33,22 @@ return {
             },
           })
         end,
-        -- Python
-        ["pyright"] = function()
-          lspconfig.pyright.setup({
-            capabilities = capabilities,
-            settings = {
-              python = {
-                analysis = {
-                  typeCheckingMode = "basic", -- "off" | "basic" | "strict"
-                  autoSearchPaths = true,
-                  useLibraryCodeForTypes = true,
-                },
-              },
+      })
+    end
+
+    -- pyright installed via nix, not mason (no node on this system)
+    if vim.fn.executable("pyright") == 1 then
+      lspconfig.pyright.setup({
+        capabilities = capabilities,
+        settings = {
+          python = {
+            analysis = {
+              typeCheckingMode = "basic",
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
             },
-          })
-        end,
+          },
+        },
       })
     end
   end,

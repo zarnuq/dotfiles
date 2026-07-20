@@ -41,6 +41,9 @@
         .{ "XDG_SESSION_TYPE", "wayland" },
         .{ "QT_QPA_PLATFORM", "wayland" },
         .{ "DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus" },
+        // nix bins not always inherited from greetd (laptop vs desktop)
+        .{ "PATH", "/home/miles/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/home/miles/.local/bin:/home/miles/.config/emacs/bin:/usr/local/bin:/usr/bin:/bin" },
+        .{ "XDG_DATA_DIRS", "/home/miles/.nix-profile/share:/nix/var/nix/profiles/default/share:/usr/local/share:/usr/share" },
     },
 
     // --- startup programs (dwl autostart) ----------------------------------

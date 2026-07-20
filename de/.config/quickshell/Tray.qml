@@ -4,9 +4,9 @@ import Quickshell.Wayland
 import QtQuick
 
 // eww `tray` window. Top-right, overlay layer.
-// Native StatusNotifierItem host (no script equivalent existed).
-// Left-click activates; right-click = secondary action. Full SNI context
-// menus are intentionally omitted to keep this simple.
+// Native StatusNotifierItem host.
+// Left-click: activate() unless onlyMenu. Right-click or onlyMenu: QsMenuAnchor.open().
+// display() is for X11 platform menus; on Wayland use QsMenuAnchor instead.
 Widget {
     id: root
     pad: 0
@@ -25,17 +25,33 @@ Widget {
 
         Repeater {
             model: SystemTray.items
-            delegate: MouseArea {
+            delegate: Item {
                 required property var modelData
+                id: iconArea
                 width: root.s(18); height: root.s(18)
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
-                onClicked: (m) => {
-                    if (m.button === Qt.LeftButton) modelData.activate();
-                    else modelData.secondaryActivate();
+
+                QsMenuAnchor {
+                    id: menuAnchor
+                    menu: iconArea.modelData.menu
+                    anchor.item: iconArea
+                    anchor.edges: Edges.Bottom
+                    anchor.gravity: Edges.Bottom | Edges.Right
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: (m) => {
+                        if (m.button === Qt.LeftButton && !iconArea.modelData.onlyMenu)
+                            iconArea.modelData.activate()
+                        else if (iconArea.modelData.hasMenu)
+                            menuAnchor.open()
+                    }
+                }
+
                 Image {
                     anchors.fill: parent
-                    source: parent.modelData.icon
+                    source: iconArea.modelData.icon
                     fillMode: Image.PreserveAspectFit
                 }
             }
