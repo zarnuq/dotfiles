@@ -137,7 +137,7 @@ Flat (`border-radius: 0` global, enforced in `gtk-3.0/gtk.css`). GTK3/GTK4 are *
 
 Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or `sv` directly.
 
-**User** (`~/.local/sv`, supervised by per-user `runsvdir` from reach autostart; disable = drop a `down` file): `dbus` (persistent user D-Bus **session** bus — whole stack inherits it), `pipewire`/`pipewire-pulse`/`wireplumber`, `mpd`, `mpDris2`, `emacs`, `quickshell` (widgets + wallpaper + lock + notifications), `syncthing`, `wl-gammarelay-rs`, `cliphist-text`/`cliphist-image`. Manage via `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`.
+**User** (`~/.local/sv`, supervised by per-user `runsvdir` from reach autostart; disable = drop a `down` file): `dbus` (persistent user D-Bus **session** bus — whole stack inherits it), `pipewire` (**group service**: pipewire + wireplumber + pipewire-pulse), `mpd` (**group service**: mpd + mpd-mpris), `emacs`, `quickshell` (widgets + wallpaper + lock + notifications), `syncthing`, `wl-gammarelay-rs`, `cliphist` (**group service**: text + image `wl-paste --watch` watchers). Manage via `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`. **Group services** run several related daemons from one `run` script (`wait -n` → kill the group → runsv respawns all together), so a crash of any one restarts the set as a unit.
 
 **System** (`/etc/sv` → `/service`, **outside this repo**, not stowed): enable/disable via the `/service` symlink. Inspect on-box; typically greetd/tuigreet, ufw, bluetooth, dbus, udisks2.
 

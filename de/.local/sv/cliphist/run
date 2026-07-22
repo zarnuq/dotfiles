@@ -1,0 +1,27 @@
+#!/bin/bash
+# Group service: both cliphist clipboard-history watchers (text + image) as one
+# unit. wl-paste can only --watch a single MIME type per process, so history
+# needs two watchers; running them as a group means if either exits the whole
+# thing is torn down and runsv restarts both together. Replaces the old separate
+# cliphist-text / cliphist-image service dirs.
+exec 2>&1
+
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+pids=""
+
+cleanup() { kill $pids 2>/dev/null; exit; }
+trap cleanup TERM INT
+
+# Both watchers need a live wayland socket, which may be stale if runsvdir
+# outlives a compositor restart — wait for it instead of trusting the inherited
+# WAYLAND_DISPLAY.
+wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1)
+while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1); done
+export WAYLAND_DISPLAY="${wl##*/}"
+
+wl-paste --type text  --watch cliphist store & pids="$pids $!"
+wl-paste --type image --watch cliphist store & pids="$pids $!"
+
+wait -n                    # block until either exits...
+kill $pids 2>/dev/null     # ...then take the group down
+wait                       # reap, then exit -> runsv respawns both
