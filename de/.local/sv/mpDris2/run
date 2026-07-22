@@ -1,4 +1,0 @@
-#!/bin/sh
-xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
-exec mpd-mpris

@@ -1,2 +1,27 @@
-#!/bin/sh
-exec pipewire
+#!/bin/bash
+# Group service: runs pipewire + wireplumber + pipewire-pulse as one unit.
+# If ANY of the three exits, the whole group is torn down and runsv restarts
+# the script fresh — matching the "restart all three together" recovery habit.
+# (wireplumber/pipewire-pulse are kept as `down` service dirs; do not enable
+# them alongside this or you'll get two of each.)
+exec 2>&1
+
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+pids=""
+
+cleanup() { kill $pids 2>/dev/null; exit; }
+trap cleanup TERM INT
+
+# main graph/server first
+pipewire & pids="$pids $!"
+
+# session manager needs the pipewire socket AND the dbus session bus
+while [ ! -e "$xrd/pipewire-0" ] || [ ! -S "$xrd/bus" ]; do sleep 0.2; done
+wireplumber & pids="$pids $!"
+
+# pulse shim needs the pipewire socket
+pipewire-pulse & pids="$pids $!"
+
+wait -n                    # block until any one exits...
+kill $pids 2>/dev/null     # ...then take the whole group down
+wait                       # reap, then exit -> runsv respawns all three

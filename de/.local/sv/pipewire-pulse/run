@@ -1,5 +1,0 @@
-#!/bin/sh
-# wait for the main pipewire socket before starting the pulse shim
-sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pipewire-0"
-while [ ! -e "$sock" ]; do sleep 0.2; done
-exec pipewire-pulse

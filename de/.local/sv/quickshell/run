@@ -17,4 +17,11 @@ export WAYLAND_DISPLAY="${wl##*/}"
 # reach usually exports this, but make Qt pick Wayland regardless of inherited env.
 export QT_QPA_PLATFORM=wayland
 
+# Use the gtk3 platform theme so Qt's icon lookup follows the GTK icon theme
+# (Papirus-Dark) *and* its Adwaita symbolic fallback. Without this Qt only sees
+# hicolor, so freedesktop `*-symbolic` names used by SNI menus (e.g. blueman's
+# bluetooth-symbolic) fail to resolve and render blank. The shell draws its own
+# QML with explicit Theme colours/fonts, so this only affects icon resolution.
+export QT_QPA_PLATFORMTHEME=gtk3
+
 exec qs 2>&1

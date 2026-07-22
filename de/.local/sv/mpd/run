@@ -1,2 +1,23 @@
-#!/bin/sh
-exec mpd --no-daemon
+#!/bin/bash
+# Group service: mpd + mpd-mpris (MPRIS/D-Bus bridge) as one unit.
+# If either exits, the whole group is torn down and runsv restarts both
+# together (mpd-mpris is useless without mpd). Replaces the old separate
+# mpDris2 service dir.
+exec 2>&1
+
+xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+pids=""
+
+cleanup() { kill $pids 2>/dev/null; exit; }
+trap cleanup TERM INT
+
+mpd --no-daemon & pids="$pids $!"
+
+# bridge needs the dbus session bus and a reachable mpd (localhost:6600)
+while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
+until (exec 3<>/dev/tcp/127.0.0.1/6600) 2>/dev/null; do sleep 0.2; done
+mpd-mpris & pids="$pids $!"
+
+wait -n                    # block until either exits...
+kill $pids 2>/dev/null     # ...then take the group down
+wait                       # reap, then exit -> runsv respawns both
