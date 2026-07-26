@@ -13,8 +13,6 @@
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
 
-    pyright
-
     chromium
     claude-code
     kiro-cli
@@ -24,6 +22,7 @@
     nwg-look
     wl-gammarelay-rs
     firefox-bin
+    concord-tui
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

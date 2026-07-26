@@ -3,7 +3,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Wayland
 import QtQuick
 
-// eww `tray` window. Top-right, overlay layer.
+// eww `tray` window. Top-center, overlay layer.
 // Native StatusNotifierItem host.
 // Left- or right-click opens the item's context menu (our own themed TrayMenu,
 // not the native Qt platform menu). Items with no menu fall back to activate().
@@ -13,8 +13,7 @@ Widget {
     bg: "transparent"
     borderColor: "transparent"
     stackLayer: WlrLayer.Overlay
-    anchors { top: true; right: true }
-    margins { right: s(500) }
+    anchors { top: true }
     implicitWidth: Math.max(1, tray.width)
     implicitHeight: s(20)
 

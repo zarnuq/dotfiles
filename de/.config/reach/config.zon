@@ -126,7 +126,7 @@
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },
             .{ .key = "b", .action = .{ .spawn = "brave" } },
-            .{ .key = "a", .action = .{ .spawn = "pavucontrol" } },
+            .{ .key = "a", .action = .{ .spawn = "kitty --class float -e pulsemixer" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },
 
