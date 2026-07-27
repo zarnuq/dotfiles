@@ -12,6 +12,19 @@ Singleton {
     property string current: ""
     readonly property string dir: Quickshell.env("HOME") + "/Pictures/bgs"
 
+    // Single decode size shared by every WallpaperView across all outputs.
+    // Because it is byte-identical everywhere, QQuickPixmapCache keys all
+    // monitors' Image elements to ONE decoded buffer (see WallpaperView.qml).
+    // Global max WxH so no output has to upscale (PreserveAspectCrop covers).
+    readonly property size decodeSize: {
+        var w = 0, h = 0, s = Quickshell.screens;
+        for (var i = 0; i < s.length; i++) {
+            if (s[i].width > w)  w = s[i].width;
+            if (s[i].height > h) h = s[i].height;
+        }
+        return Qt.size(w || 1920, h || 1080);
+    }
+
     // Pick a random image from ~/Pictures/bgs (same set awww's Super+b used).
     Process {
         id: pick

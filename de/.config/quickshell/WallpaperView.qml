@@ -5,6 +5,13 @@ import QtQuick
 // One background-layer surface per output, all showing Wallpaper.current.
 // Switching crossfades between two layers so it never flashes black: the new
 // image loads into the hidden layer and only fades in once fully decoded.
+//
+// Memory: the two layers exist ONLY for the ~0.7s crossfade. cache:true +
+// a single shared sourceSize (Wallpaper.decodeSize) make every output's
+// visible layer reference the SAME decoded pixmap in QQuickPixmapCache -- so
+// N identical monitors cost one buffer, not N. Once a fade finishes the
+// hidden layer drops its source, so at steady state only ONE buffer is
+// referenced for the whole desktop (swww-style), the other layer holds none.
 Variants {
     model: Quickshell.screens
 
@@ -30,21 +37,24 @@ Variants {
                 id: a
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
-                sourceSize: Qt.size(width, height)   // decode at output res, not native
-                cache: false
+                sourceSize: Wallpaper.decodeSize   // one shared size -> one shared decode
+                cache: true                        // dedupe identical decodes across outputs
                 asynchronous: true
                 opacity: bg.aFront ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutQuad } }
+                // Once faded out, drop the buffer so only the visible layer holds pixels.
+                Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutQuad
+                    onRunningChanged: if (!running && a.opacity === 0) a.source = "" } }
             }
             Image {
                 id: b
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectCrop
-                sourceSize: Qt.size(width, height)
-                cache: false
+                sourceSize: Wallpaper.decodeSize
+                cache: true
                 asynchronous: true
                 opacity: bg.aFront ? 0 : 1
-                Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutQuad } }
+                Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutQuad
+                    onRunningChanged: if (!running && b.opacity === 0) b.source = "" } }
             }
 
             // New wallpaper -> load into the hidden layer.
