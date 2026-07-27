@@ -2,7 +2,9 @@
 # rebuild-kernel.sh — rebuild the gentoo-sources kernel + UKI on a lazygentoo box,
 # re-sign it for Secure Boot, and re-register the efibootmgr entry. All the heavy
 # lifting (initramfs, UKI assembly, signing, efibootmgr) happens in the single
-# `kernel-install add` at the end via the install.d hooks.
+# `kernel-install add` at the end via the install.d hooks. Out-of-tree modules
+# (nvidia-drivers etc.) are rebuilt via `emerge @module-rebuild` so they bind to
+# the new kernel instead of breaking on the next boot.
 #
 # TPM2 needs no reseal: PCR 7 measures the Secure Boot policy, not the UKI, and the
 # new UKI is signed with the already-enrolled key (keys live in /etc/kernel/uki.conf).
@@ -91,6 +93,14 @@ fi
 
 make -C "$SRC" -j"$JOBS"
 make -C "$SRC" INSTALL_MOD_STRIP=1 modules_install
+
+# Rebuild out-of-tree kernel modules (nvidia-drivers etc.) against the kernel we
+# just built. Without this the old nvidia .ko stays bound to the previous KVER and
+# the display stack breaks on the next boot. Runs before the UKI/initramfs is
+# assembled below so anything that gets pulled into the initramfs is current.
+# No-op if no external modules are installed.
+echo ">> rebuilding out-of-tree modules (@module-rebuild)"
+emerge --quiet-build @module-rebuild
 
 # Feed the bzImage straight from the source tree (NOT `make install`, which has been
 # seen to update /boot/vmlinuz yet skip the UKI rebuild -> stale UKI). This one call

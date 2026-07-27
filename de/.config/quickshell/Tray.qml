@@ -7,15 +7,24 @@ import QtQuick
 // Native StatusNotifierItem host.
 // Left- or right-click opens the item's context menu (our own themed TrayMenu,
 // not the native Qt platform menu). Items with no menu fall back to activate().
-Widget {
-    id: root
-    pad: 0
-    bg: "transparent"
-    borderColor: "transparent"
-    stackLayer: WlrLayer.Overlay
-    anchors { top: true }
-    implicitWidth: Math.max(1, tray.width)
-    implicitHeight: s(20)
+//
+// Cloned onto every output: one Widget instance per screen (Variants), each
+// pinned to its screen. SystemTray.items is a shared global model, so all
+// clones show the same icons.
+Variants {
+    model: Quickshell.screens
+
+    Widget {
+        id: root
+        required property var modelData
+        forceScreen: modelData
+        pad: 0
+        bg: "transparent"
+        borderColor: "transparent"
+        stackLayer: WlrLayer.Overlay
+        anchors { top: true }
+        implicitWidth: Math.max(1, tray.width)
+        implicitHeight: s(20)
 
     // One shared menu popup, retargeted to whichever icon was clicked.
     TrayMenu {
@@ -71,5 +80,6 @@ Widget {
                 }
             }
         }
+    }
     }
 }

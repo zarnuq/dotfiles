@@ -1,4 +1,5 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
 import QtQuick
@@ -25,6 +26,24 @@ Widget {
         for (var j = 0; j < ps.length; j++)
             if ((ps[j].dbusName || "").toLowerCase().indexOf("mpd") >= 0) return ps[j];
         return ps[0];
+    }
+
+    // ── MPD specifically — media keys target MPD, never the active player.
+    // Parity with the old `playerctl -p mpd …` binds. ──
+    readonly property var mpdPlayer: {
+        var ps = Mpris.players ? Mpris.players.values : [];
+        for (var i = 0; i < ps.length; i++)
+            if ((ps[i].dbusName || "").toLowerCase().indexOf("mpd") >= 0) return ps[i];
+        return null;
+    }
+
+    // XF86Audio{Play,Prev,Next} -> `qs ipc call media {playpause,previous,next}`
+    // (replaces media-sound/playerctl; reuses this already-running process).
+    IpcHandler {
+        target: "media"
+        function playpause(): void { if (root.mpdPlayer) root.mpdPlayer.togglePlaying(); }
+        function next(): void      { if (root.mpdPlayer) root.mpdPlayer.next(); }
+        function previous(): void  { if (root.mpdPlayer) root.mpdPlayer.previous(); }
     }
 
     readonly property string title: player ? player.trackTitle : ""

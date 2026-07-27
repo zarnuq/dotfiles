@@ -16,13 +16,11 @@
     chromium
     claude-code
     kiro-cli
-    unhide
-    antigravity
     termius
     nwg-look
     wl-gammarelay-rs
     firefox-bin
-    concord-tui
+    proton-ge-bin
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

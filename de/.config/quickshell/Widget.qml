@@ -21,8 +21,13 @@ PanelWindow {
     property color borderColor: Theme.surface0
     property int stackLayer: WlrLayer.Bottom // eww "bottom"; tray overrides to Overlay
 
-    // Pin to DP-2, falling back to the first screen if it's absent.
+    // When set (e.g. one instance per output via Variants), pin to this screen
+    // instead of the DP-2 default. Lets a widget be cloned onto every monitor.
+    property var forceScreen: null
+
+    // Pin to forceScreen if given, else DP-2, falling back to the first screen.
     Component.onCompleted: {
+        if (win.forceScreen) { win.screen = win.forceScreen; return; }
         for (var i = 0; i < Quickshell.screens.length; i++)
             if (Quickshell.screens[i].name === "DP-2") { win.screen = Quickshell.screens[i]; return; }
         if (Quickshell.screens.length > 0)

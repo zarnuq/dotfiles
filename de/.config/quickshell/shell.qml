@@ -11,6 +11,7 @@ ShellRoot {
     LazyLoader { active: Config.notificationPopups;  NotificationPopups {} }
     LazyLoader { active: Config.lock;                Lock {} }
     LazyLoader { active: Config.clipboard;           Clipboard {} }
+    LazyLoader { active: Config.launcher;            Launcher {} }
     LazyLoader { active: Config.clock;               Clock {} }
     LazyLoader { active: Config.cpuGraph;            CpuGraph {} }
     LazyLoader { active: Config.netGraph;            NetGraph {} }

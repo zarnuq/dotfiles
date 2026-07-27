@@ -18,6 +18,7 @@ Singleton {
     // Session
     property bool lock: true                 // idle-lock + lock screen (replaces swayidle/swaylock)
     property bool clipboard: true            // cliphist text+image watchers (replaces the cliphist service)
+    property bool launcher: true             // drun app launcher (replaces rofi; `qs ipc call launcher toggle`)
 
     // Ambient widgets (the DP-2 panel)
     property bool clock: true

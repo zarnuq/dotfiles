@@ -70,7 +70,7 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 
 **Status bar** (baked-in, someblocks-style: `icon ++ first stdout line`, re-run per interval and/or on `SIGRTMIN+n`). Blocks: `ip` (30s), `audio` (60s, RTMIN+1), `volume` (1s, RTMIN+1), `mic` (1s, RTMIN+2), `date` (1s), `battery` (30s). Scripts in `de/.config/reach/blocks/`. Keybinds poke it with `kill -35 $(pidof reach)` (audio/volume) and `kill -36` (mic) for instant refresh.
 
-**Keybinds:** `Super`=Mod. A `.binds` block **replaces the entire** default action/spawn/chord keymap **except** the auto-generated per-tag digit binds (`Super`/`+Ctrl`/`+Shift` + `1`–`9` = view/toggle/move, never listed in config). See `config.zon` for the full map. Notable: launchers (`Super+Tab` kitty, `Super+Space` rofi, `Super+V` clipfzf, `Super+X` killfzf, `Super+Z` svfzf), `Super+r`/`Super+s` two-key chords (apps / screenshots), `Alt+[` cycle EQ sink, `Super+Alt+Left/Right` brightness, `Super+Alt+Up` night-light toggle, `Super+P` lock (`qs ipc call lock lock`), `Super+b` random wallpaper (`qs ipc call wallpaper random`).
+**Keybinds:** `Super`=Mod. A `.binds` block **replaces the entire** default action/spawn/chord keymap **except** the auto-generated per-tag digit binds (`Super`/`+Ctrl`/`+Shift` + `1`–`9` = view/toggle/move, never listed in config). See `config.zon` for the full map. Notable: launchers (`Super+Tab` kitty, `Super+Space` quickshell launcher (`qs ipc call launcher toggle`, replaced rofi), `Super+V` clipfzf, `Super+X` killfzf, `Super+Z` svfzf), `Super+r`/`Super+s` two-key chords (apps / screenshots), `Alt+[` cycle EQ sink, `Super+Alt+Left/Right` brightness, `Super+Alt+Up` night-light toggle, `Super+P` lock (`qs ipc call lock lock`), `Super+b` random wallpaper (`qs ipc call wallpaper random`).
 
 ## Per-app configs (read the file for exact keys/values)
 
@@ -79,7 +79,7 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 - **tmux** — `de/.config/tmux/tmux.conf`. Prefix `Ctrl+F`, base index 1, mouse on, zsh. Plugins via tpm: catppuccin, sensible, resurrect, continuum.
 - **Neovim** — `de/.config/nvim/`. lazy.nvim. Leader `Space`, tab=4 expandtab, system clipboard, nvim-tree (right, no netrw), telescope, treesitter, lspconfig+mason (lua_ls, pyright), nvim-cmp, catppuccin. Spell en_us for md/text.
 - **Doom Emacs** — `de/.config/doom/`. catppuccin, org `~/org/`, both PRIMARY+clipboard sync `t`. Runs as runit **user service** (`~/.local/sv/emacs`); `Super+D` opens `emacsclient -c`; `doomsync` = kill → `sv stop emacs` → doom sync → `sv start emacs`.
-- **rofi** — `de/.config/rofi/config.rasi`, rofi-**wayland**, theme `spotlight-dark.rasi`.
+- **rofi** — `de/.config/rofi/config.rasi`, rofi-**wayland**, theme `spotlight-dark.rasi`. **Superseded** by the quickshell `Launcher.qml` for the `Super+Space` drun launcher; config kept for standalone `rofi` invocations.
 - **yazi** — `de/.config/yazi/`. Hidden shown, vim nav. Openers: nvim/xdg-open/loupe/zathura/mpv. Plugins: git, piper, mount, chmod. `setbg` opener uses `swww img` — **stale**, system uses `qs ipc call wallpaper set <path>`.
 - **btop** — `de/.config/btop/btop.conf`. mocha theme, GPU nvidia/amd/intel.
 - **Zen browser** — `de/.zen/` (userChrome.css + user.js, custom CSS enabled). `de/.config/mimeapps.list`: default browser zen, Discord→legcord.
@@ -90,7 +90,7 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 
 **Service:** `~/.local/sv/quickshell/run` — waits for dbus+wayland sockets, sets `QT_QPA_PLATFORM=wayland`, `exec qs`. Unlike eww, no monitor/scale detection in the shell script — that logic lives in Widget.qml (`DP-2` present → scale 1.0, else 0.85).
 
-**Components (shell.qml, gated by Config flags):** `WallpaperView` (per-screen wallpaper, replaces awww), `NotificationPopups` (toasts, replaces mako popups), `Lock` (idle+lock, replaces swaylock+swayidle), `Clipboard` (cliphist text+image watchers, replaces the runit cliphist service), `Clock`, `CpuGraph`, `NetGraph`, `Ports`, `Vpn`, `Mpd`, `Weather`, `Notifications` (history panel + DND), `Calendar`, `Brightness`, `Tray`.
+**Components (shell.qml, gated by Config flags):** `WallpaperView` (per-screen wallpaper, replaces awww), `NotificationPopups` (toasts, replaces mako popups), `Lock` (idle+lock, replaces swaylock+swayidle), `Clipboard` (cliphist text+image watchers, replaces the runit cliphist service), `Clock`, `CpuGraph`, `NetGraph`, `Ports`, `Vpn`, `Mpd`, `Weather`, `Notifications` (history panel + DND), `Calendar`, `Brightness`, `Tray`, `Launcher` (drun app launcher, replaces rofi).
 
 **Notable wiring:**
 - `Lock.qml` — `IdleMonitor` at 300s → lock; `IpcHandler` target `"lock"` for `Super+P` (`qs ipc call lock lock`); `WlSessionLock` (ext-session-lock protocol); PAM auth to unlock.
@@ -100,6 +100,7 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 - `Brightness.qml` / `Sys.qml` / `CpuGraph.qml` — brightness via wl-gammarelay-rs; CPU/RAM/disk + nvidia-smi GPU; `/proc/net/dev` + `ip -j addr` for net.
 - `Mpd.qml` — **fully native, no subprocess polling**: transport/metadata/art/progress via `Quickshell.Services.Mpris` (follows the active MPRIS player, prefers a playing one then MPD — so it also drives Zen etc.; needs the `mpd-mpris` bridge in the `mpd` group service to put MPD on the MPRIS bus), volume/mute via `Quickshell.Services.Pipewire` (`defaultAudioSink`/`defaultAudioSource` + a `PwObjectTracker` to keep `.audio.volume`/`.muted` live). Replaced the old `mpc`×4/s + `wpctl`×2/s polling.
 - `Calendar.qml` — ICS calendar (reads `calendar.url` via `calendar.sh`).
+- `Launcher.qml` — minimal drun app launcher (replaces `rofi -show drun`). Opens on the **focused monitor**: a full-screen overlay is mapped per output (`Variants` over `Quickshell.screens`), but the box is drawn only on the output whose overlay contains the pointer — under reach's `sloppy_focus` that IS the focused monitor. reach exposes **no IPC** for the focused output and grants keyboard focus to *every* layer surface, so pointer containment (a `hoverEnabled` MouseArea latching `activeScreen`) is what singles one out; `activeScreen` is blanked on open (150ms DP-2 fallback timer) to avoid flashing on the previously-focused monitor. Shared query/results/selection state lives on the `Scope` root. Type to filter `DesktopEntries.applications` by name; Up/Down or Ctrl+K/J to move, Enter = `entry.execute()`, Esc / click-outside closes. Triggered by `IpcHandler` target `"launcher"` (`toggle`/`show`/`hide`); `Super+space` = `qs ipc call launcher toggle`.
 
 **Scripts** (`de/.config/quickshell/scripts/`): `calendar.sh` (Python; needs `icalendar`+`recurring_ical_events` from home-manager; caches to `/tmp/eww-calendar.ics`), `ports.sh` (ss+jq), `vpn-manager.sh` (OpenVPN; state in `/tmp/eww-openvpn.*`).
 
@@ -132,7 +133,7 @@ Flat (`border-radius: 0` global, enforced in `gtk-3.0/gtk.css`). GTK3/GTK4 are *
 - **clipfzf** — `cliphist list | fzf | cliphist decode | wl-copy`. `Super+V`.
 - **killfzf** — `ps --forest` → fzf; Enter=SIGTERM, Ctrl-K=SIGKILL, Tab=multi. `Super+X`.
 - **svfzf / ssvfzf** — two runit service managers (floating kitty + fzf; glyphs ●/○/·). **Split in two** because per-call `doas` prompts broke inside the fzf action loop (stdin is the pick pipeline). `svfzf` = **user** services in `~/.local/sv` (no elevation; enable/disable = `rm`/`touch` a `down` file; `Super+Z`). `ssvfzf` = **system** services in `/etc/sv` (re-execs under `doas` **once** up front so root persists; enable/disable = add/remove `/service` symlink; no default keybind).
-- **rebuild-kernel.sh** — Gentoo kernel rebuild ("lazygentoo", Secure Boot + UKI). Optionally updates `gentoo-sources` (`-e`), seeds + `olddefconfig`s `.config`, builds modules, `kernel-install add` (initramfs+UKI via `/etc/kernel/install.d` hooks), signs with ukify, prunes old UKIs, rewrites efibootmgr entry. Self-elevates via `doas`. `-y` skips prompt.
+- **rebuild-kernel.sh** — Gentoo kernel rebuild ("lazygentoo", Secure Boot + UKI). Optionally updates `gentoo-sources` (`-e`), seeds + `olddefconfig`s `.config`, builds modules, rebuilds out-of-tree modules (`emerge @module-rebuild` — nvidia-drivers etc., else nvidia breaks every boot), `kernel-install add` (initramfs+UKI via `/etc/kernel/install.d` hooks), signs with ukify, prunes old UKIs, rewrites efibootmgr entry. Self-elevates via `doas`. `-y` skips prompt.
 - **runbar.sh** — **stale/dead** (dwlb/someblocks; unbound).
 
 ## Services (runit)
@@ -145,7 +146,7 @@ Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or 
 
 ## Music: MPD + rmpc
 
-`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for `playerctl -p mpd …` media keys and quickshell's `Mpd.qml`. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px.
+`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for the media keys and quickshell's `Mpd.qml`. Media keys (`XF86Audio{Play,Prev,Next}`) call `qs ipc call media {playpause,previous,next}` — an `IpcHandler` in `Mpd.qml` that drives the **MPD** MPRIS player specifically (matched by `dbusName` containing "mpd", never the active player). This replaced `playerctl -p mpd …`, so **media-sound/playerctl is no longer needed**. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px.
 
 ## Package Management
 
