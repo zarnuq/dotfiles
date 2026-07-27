@@ -17,7 +17,6 @@
 - reach(personal wm)
 - rmpc
 - rofi
-- swaylock
 - tmux
 - yazi
 - zen-browser theme

@@ -98,11 +98,12 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 - `Clipboard.qml` — `Scope` with two self-restarting `Process` watchers (`wl-paste --type text/image --watch cliphist store`); inherits qs's `WAYLAND_DISPLAY` (no socket-wait needed). Replaced the runit `cliphist` group service. Picker (`clipfzf`, `Super+V`) unchanged — still reads `cliphist list`.
 - `NotificationPopups.qml` — uses `Quickshell.Services.Notifications` (FreeDesktop D-Bus server). `de/.local/share/dbus-1/services/fr.emersion.mako.service` is a stub (`Exec=/bin/true`) that shadows the system mako activation file — prevents D-Bus from relaunching mako when qs restarts and momentarily drops the `org.freedesktop.Notifications` bus name.
 - `Brightness.qml` / `Sys.qml` / `CpuGraph.qml` — brightness via wl-gammarelay-rs; CPU/RAM/disk + nvidia-smi GPU; `/proc/net/dev` + `ip -j addr` for net.
+- `Mpd.qml` — **fully native, no subprocess polling**: transport/metadata/art/progress via `Quickshell.Services.Mpris` (follows the active MPRIS player, prefers a playing one then MPD — so it also drives Zen etc.; needs the `mpd-mpris` bridge in the `mpd` group service to put MPD on the MPRIS bus), volume/mute via `Quickshell.Services.Pipewire` (`defaultAudioSink`/`defaultAudioSource` + a `PwObjectTracker` to keep `.audio.volume`/`.muted` live). Replaced the old `mpc`×4/s + `wpctl`×2/s polling.
 - `Calendar.qml` — ICS calendar (reads `calendar.url` via `calendar.sh`).
 
 **Scripts** (`de/.config/quickshell/scripts/`): `calendar.sh` (Python; needs `icalendar`+`recurring_ical_events` from home-manager; caches to `/tmp/eww-calendar.ics`), `ports.sh` (ss+jq), `vpn-manager.sh` (OpenVPN; state in `/tmp/eww-openvpn.*`).
 
-**Deps:** jq, wl-gammarelay-rs+gdbus, mpc, wpctl, nvidia-smi, curl, python3+icalendar+recurring-ical-events.
+**Deps:** jq, wl-gammarelay-rs+gdbus, nvidia-smi, curl, python3+icalendar+recurring-ical-events. (Mpd.qml no longer shells out to `mpc`/`wpctl` — it uses native Mpris + Pipewire; it does rely on an MPD→MPRIS bridge being on the bus.)
 
 ## GTK / Qt Theming
 
@@ -144,7 +145,7 @@ Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or 
 
 ## Music: MPD + rmpc
 
-`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. `mpDris.conf` → runit service `mpDris2`. rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px.
+`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for `playerctl -p mpd …` media keys and quickshell's `Mpd.qml`. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px.
 
 ## Package Management
 

@@ -1,8 +1,15 @@
 import Quickshell
-import Quickshell.Io
+import Quickshell.Services.Mpris
+import Quickshell.Services.Pipewire
 import QtQuick
 
-// eww `mpd` window (mpd + volume, combined). Bottom-left, y=450, 420x150.
+// Now-playing + volume widget. Bottom-left, y=450, 420x150.
+//
+// Native throughout — no subprocess polling:
+//   - transport/metadata/art/progress via Quickshell.Services.Mpris (was `mpc`,
+//     forked 4×/s). Follows the active MPRIS player, so it also drives Zen etc.,
+//     defaulting to MPD. mpd-mpris/mpDris2 is what puts MPD on the MPRIS bus.
+//   - volume/mute via Quickshell.Services.Pipewire (was `wpctl`, polled 2×/s).
 Widget {
     id: root
     anchors { bottom: true; left: true }
@@ -10,83 +17,55 @@ Widget {
     implicitWidth: s(420)
     implicitHeight: s(150)
 
-    property string title: ""
-    property string artist: ""
-    property string status: "paused"   // playing / paused
-    property int progress: 0            // 0..100
-    property string cover: ""           // file path, or ""
-    property int coverNonce: 0          // cache-buster for Image
-
-    property int volOut: 0
-    property int volMic: 0
-    property bool outMuted: false
-    property bool micMuted: false
-
-    // Track metadata in one poll (\x1f-separated to survive spaces).
-    Process {
-        id: meta
-        command: ["sh", "-c",
-            "printf '%s\\x1f%s\\x1f%s\\x1f%s' " +
-            "\"$(mpc current -f '%title%' 2>/dev/null)\" " +
-            "\"$(mpc current -f '%artist%' 2>/dev/null)\" " +
-            "\"$(mpc status 2>/dev/null | grep -q playing && echo playing || echo paused)\" " +
-            "\"$(mpc 2>/dev/null | sed -n 's/.*( *\\([0-9]*\\)%).*/\\1/p')\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var p = text.split("\x1f");
-                root.title = p[0] || ""; root.artist = p[1] || "";
-                root.status = p[2] || "paused"; root.progress = Number(p[3]) || 0;
-            }
-        }
-    }
-    // Album art: extract embedded picture to a temp file (path or "").
-    Process {
-        id: art
-        command: ["sh", "-c",
-            "f=$(mpc current -f '%file%' 2>/dev/null); [ -z \"$f\" ] && { echo; exit 0; }; " +
-            "mpc readpicture \"$f\" > /tmp/qs-mpd-cover.jpg 2>/dev/null; " +
-            "case \"$(file -b --mime-type /tmp/qs-mpd-cover.jpg)\" in image/*) echo /tmp/qs-mpd-cover.jpg;; *) echo;; esac"]
-        stdout: StdioCollector {
-            onStreamFinished: { root.cover = text.trim(); root.coverNonce++; }
-        }
-    }
-    // Output/mic volume + mute (0.5s).
-    Process {
-        id: vol
-        command: ["sh", "-c",
-            "o=$(wpctl get-volume @DEFAULT_AUDIO_SINK@); i=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@); " +
-            "printf '%s %s %s %s' " +
-            "\"$(echo \"$o\" | awk '{printf \"%.0f\", $2*100}')\" \"$(echo \"$o\" | grep -q MUTED && echo 1 || echo 0)\" " +
-            "\"$(echo \"$i\" | awk '{printf \"%.0f\", $2*100}')\" \"$(echo \"$i\" | grep -q MUTED && echo 1 || echo 0)\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var p = text.trim().split(" ");
-                root.volOut = Number(p[0]) || 0; root.outMuted = p[1] === "1";
-                root.volMic = Number(p[2]) || 0; root.micMuted = p[3] === "1";
-            }
-        }
+    // ── Active player: prefer one that's playing, else MPD, else the first. ──
+    readonly property var player: {
+        var ps = Mpris.players ? Mpris.players.values : [];
+        if (ps.length === 0) return null;
+        for (var i = 0; i < ps.length; i++) if (ps[i].isPlaying) return ps[i];
+        for (var j = 0; j < ps.length; j++)
+            if ((ps[j].dbusName || "").toLowerCase().indexOf("mpd") >= 0) return ps[j];
+        return ps[0];
     }
 
-    Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true
-            onTriggered: { meta.running = true; art.running = true; } }
-    Timer { interval: 500; running: true; repeat: true; triggeredOnStart: true
-            onTriggered: vol.running = true }
+    readonly property string title: player ? player.trackTitle : ""
+    readonly property string artist: player ? player.trackArtist : ""
+    readonly property string art: player ? player.trackArtUrl : ""
+    readonly property bool isPlaying: player ? player.isPlaying : false
+
+    // Progress: re-read position on a 1s tick while playing (native, no fork).
+    property int _tick: 0
+    Timer { interval: 1000; running: root.isPlaying; repeat: true; onTriggered: root._tick++ }
+    readonly property real progress: {
+        root._tick;   // dependency so the binding re-evaluates each tick
+        return (player && player.length > 0)
+            ? Math.min(100, Math.max(0, player.position / player.length * 100)) : 0;
+    }
+
+    // ── Audio: default sink/source, kept live by the tracker below. ──
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var source: Pipewire.defaultAudioSource
+    PwObjectTracker { objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource] }
+
+    readonly property int volOut: (sink && sink.audio) ? Math.round(sink.audio.volume * 100) : 0
+    readonly property int volMic: (source && source.audio) ? Math.round(source.audio.volume * 100) : 0
+    readonly property bool outMuted: (sink && sink.audio) ? sink.audio.muted : false
+    readonly property bool micMuted: (source && source.audio) ? source.audio.muted : false
 
     Row {
         anchors.fill: parent
         spacing: root.s(10)
 
-        // Album art (hidden when absent).
+        // Album art (hidden when the player exposes none).
         Image {
-            visible: root.cover !== ""
+            visible: root.art !== ""
             width: root.s(120); height: root.s(120)
             fillMode: Image.PreserveAspectCrop
-            cache: false
-            source: root.cover === "" ? "" : "file://" + root.cover + "?" + root.coverNonce
+            asynchronous: true
+            source: root.art
         }
 
         Column {
-            width: parent.width - (root.cover !== "" ? root.s(120) + root.s(10) : 0)
+            width: parent.width - (root.art !== "" ? root.s(120) + root.s(10) : 0)
             spacing: root.s(2)
 
             Txt { text: root.title !== "" ? root.title : "Not playing"; font.bold: true
@@ -98,9 +77,9 @@ Widget {
             Row {
                 width: parent.width
                 bottomPadding: root.s(6)
-                MpdBtn { width: parent.width / 3; icon: "󰒮"; size: root.s(18); onClicked: Quickshell.execDetached(["mpc", "prev"]) }
-                MpdBtn { width: parent.width / 3; icon: root.status === "playing" ? "󰏤" : "󰐊"; size: root.s(18); onClicked: Quickshell.execDetached(["mpc", "toggle"]) }
-                MpdBtn { width: parent.width / 3; icon: "󰒭"; size: root.s(18); onClicked: Quickshell.execDetached(["mpc", "next"]) }
+                MpdBtn { width: parent.width / 3; icon: "󰒮"; size: root.s(18); onClicked: if (root.player) root.player.previous() }
+                MpdBtn { width: parent.width / 3; icon: root.isPlaying ? "󰏤" : "󰐊"; size: root.s(18); onClicked: if (root.player) root.player.togglePlaying() }
+                MpdBtn { width: parent.width / 3; icon: "󰒭"; size: root.s(18); onClicked: if (root.player) root.player.next() }
             }
 
             // Progress.
@@ -116,12 +95,12 @@ Widget {
                 VolBtn {
                     width: parent.width / 2
                     icon: root.outMuted ? "󰖁" : "󰕾"; muted: root.outMuted; value: root.volOut
-                    onClicked: Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
+                    onClicked: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
                 }
                 VolBtn {
                     width: parent.width / 2
                     icon: root.micMuted ? "󰍭" : "󰍬"; muted: root.micMuted; value: root.volMic
-                    onClicked: Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"])
+                    onClicked: if (root.source && root.source.audio) root.source.audio.muted = !root.source.audio.muted
                 }
             }
         }
