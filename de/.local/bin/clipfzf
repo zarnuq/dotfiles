@@ -1,7 +1,42 @@
 #!/bin/sh
 # Clipboard-history picker: cliphist + fzf, re-copies the selection via wl-copy.
-# Bound to MOD+v in dwl (opens in a floating kitty via the ^float rule).
+# Bound to Super+V (opens in a floating kitty via reach's ^float rule).
 # wl-copy forks a daemon to serve the clipboard; it inherits the terminal's
 # fds and keeps kitty's pty open (window won't close). Redirect its
 # stdout/stderr to /dev/null so kitty exits once the selection is copied.
-cliphist list | fzf --no-sort --reverse --prompt 'clip> ' | cliphist decode | wl-copy >/dev/null 2>&1
+#
+# Image entries (cliphist stores them as `[[ binary data ... png ... ]]`) get a
+# real inline preview: since this always runs inside kitty, `kitten icat` draws
+# the decoded image in the fzf preview pane via the kitty graphics protocol
+# (unicode-placeholder mode is the one that behaves inside fzf's redraws). Text
+# entries just show their decoded contents.
+
+# --- preview mode: invoked by fzf per highlighted entry, keyed by cliphist id ---
+if [ "$1" = "--preview" ]; then
+    id=$2
+    tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    cliphist decode "$id" > "$tmp" 2>/dev/null
+    case "$(file -b --mime-type "$tmp" 2>/dev/null)" in
+        image/*)
+            kitten icat --clear --transfer-mode=memory --unicode-placeholder \
+                --stdin=no --scale-up \
+                --place="${FZF_PREVIEW_COLUMNS:-40}x${FZF_PREVIEW_LINES:-20}@0x0" "$tmp"
+            ;;
+        *)
+            cat "$tmp"
+            ;;
+    esac
+    exit 0
+fi
+
+# Absolute path to self so fzf's --preview callback works regardless of cwd
+# (invoked as bare `clipfzf` from PATH by the reach keybind).
+SELF=$0
+case "$SELF" in */*) : ;; *) SELF=$(command -v "$SELF") ;; esac
+
+cliphist list | fzf --no-sort --reverse --prompt 'clip> ' \
+    --delimiter='\t' --with-nth=2 \
+    --preview "$SELF --preview {1}" \
+    --preview-window='right:50%' \
+  | cliphist decode | wl-copy >/dev/null 2>&1

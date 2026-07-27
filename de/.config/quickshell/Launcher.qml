@@ -78,7 +78,11 @@ Scope {
             color: "transparent"
             exclusiveZone: 0
             WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            // Only the window drawing the box grabs the keyboard, so keystrokes
+            // land on the visible field's monitor — not whatever output reach
+            // would otherwise pick when every surface requests Exclusive.
+            WlrLayershell.keyboardFocus: (root.open && win.modelData.name === root.activeScreen)
+                                         ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             anchors { top: true; bottom: true; left: true; right: true }
 
             // Click-outside closes; hover latches this as the focused output.

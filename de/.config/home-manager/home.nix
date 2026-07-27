@@ -20,7 +20,7 @@
     nwg-look
     wl-gammarelay-rs
     firefox-bin
-    proton-ge-bin
+    signal-desktop
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;
@@ -41,4 +41,10 @@
     (pipx.overridePythonAttrs (_: { doCheck = false; doInstallCheck = false; }))
 
   ];
+
+  # proton-ge-bin's default output is a bare file, so it can't go in
+  # home.packages (buildEnv can't merge a file). Steam is the system Portage
+  # package; symlink the steamcompattool output into its compatibilitytools.d.
+  home.file.".local/share/Steam/compatibilitytools.d/GE-Proton10-34".source =
+    pkgs.proton-ge-bin.steamcompattool;
 }
