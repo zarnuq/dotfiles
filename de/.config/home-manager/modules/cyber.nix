@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 let
   # OWASP ZAP (Java/Swing) renders a blank grey canvas under non-reparenting
@@ -15,10 +15,57 @@ let
   };
 in
 {
-  home.packages = with pkgs; [
+  # Merged into home.nix's python3.withPackages (one env avoids a bin/python3 collision).
+  options.my.cyberPythonLibs = lib.mkOption {
+    type = with lib.types; listOf package;
+    default = with pkgs.python3Packages; [
+      # AD / SMB / WinRM
+      impacket
+      pywinrm
+      ldap3
+      pyasn1
+      # workshop reqs (~/Workshops requirements.txt)
+      pyyaml
+      pycdlib
+      lxml
+      xmljson
+      passlib
+      jmespath
+      jsonschema
+      netaddr
+      # HTTP / web
+      requests
+      httpx
+      beautifulsoup4
+      xmltodict
+      flask
+      websocket-client
+      # crypto
+      cryptography
+      pycryptodome
+      pyopenssl
+      asn1crypto
+      # network / recon
+      dnspython
+      scapy
+      paramiko
+      python-nmap
+      shodan
+      # exploit dev / binary
+      pwntools
+      pefile
+      capstone
+      ropper
+      # output / TUI
+      rich
+      colorama
+    ];
+  };
+
+  config.home.packages = with pkgs; [
 
     # RECON & OSINT
-    enum4linux                # SMB/Samba enumeration
+    enum4linux-ng
     theharvester              # email/subdomain harvester
     whois                     # domain info lookup
     dnsrecon                  # Advanced DNS enumeration
