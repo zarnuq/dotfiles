@@ -147,6 +147,7 @@ in
     adalanche
     caido-desktop
     dig
+    thc-hydra
 
 
   ];
