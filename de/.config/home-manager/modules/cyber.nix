@@ -20,6 +20,9 @@ in
     type = with lib.types; listOf package;
     default = with pkgs.python3Packages; [
       # AD / SMB / WinRM
+      termcolor
+      aiohttp
+      tabulate
       impacket
       pywinrm
       ldap3
@@ -148,6 +151,7 @@ in
     caido-desktop
     dig
     thc-hydra
+    swaks
 
 
   ];

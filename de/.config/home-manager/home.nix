@@ -24,6 +24,13 @@
     signal-desktop
     tealdeer
 
+    # Music library: beets owns canonical tags + layout (~/.config/beets),
+    # ~/mux owns audio-hash dedupe. No pluginOverrides needed — every plugin
+    # defaults to enabled, and `chroma` already pulls pyacoustid and wraps
+    # chromaprint. chromaprint is listed too so fpcalc is on PATH directly.
+    beets
+    chromaprint
+
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;
     })

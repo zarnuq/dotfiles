@@ -1,0 +1,195 @@
+# beets — MusicBrainz is the authority for metadata AND layout of ~/Music
+#
+# Split of duties with ~/mux:
+#   mux    finds duplicates by decoded audio (FLAC STREAMINFO md5). beets
+#          cannot: its `duplicates` plugin keys on tags/MBIDs, and this
+#          library's tags are exactly what is inconsistent. mux also owns the
+#          .lrc sidecar reconciliation after the import moves files.
+#   beets  owns canonical metadata (MusicBrainz), the on-disk layout, and the
+#          library database. mux's `organize` command is retired — do not run
+#          it, two owners of layout is how a library gets shredded.
+#
+# Run `mux dedupe` FIRST. Importing 247 redundant copies wastes hours of
+# rate-limited MusicBrainz lookups and leaves beets holding several items per
+# recording.
+
+directory: ~/Music
+library: ~/.local/share/beets/library.db
+
+# Reorganize in place: the files are already under `directory`, so move rather
+# than copy — 143 GiB does not need a second home.
+import:
+    move: yes
+    copy: no
+    write: yes           # push canonical tags into the files
+    incremental: yes     # safe to interrupt and resume
+    incremental_skip_later: no   # skipped albums stay eligible for pass 2
+    quiet_fallback: skip # in -q mode, skip rather than guess
+    resume: ask
+    detail: yes
+    group_albums: yes    # source dirs are messy; group by tags, not by folder
+    duplicate_action: skip
+    log: ~/mux/beets-skipped.log
+
+paths:
+    # Leaks, loosies and vault material get a shelf of their own per artist.
+    # This rule MUST come first: without it the import re-files everything by
+    # the default scheme and silently undoes whatever `mux unreleased` shelved.
+    # The flag is a beets flexible field, set at import time — see below.
+    # Provenance rides in `catalognum`, not `album`. `album` cannot be used:
+    # for a flat leak folder the script has nothing to set it to, beets rejects
+    # `--set album=`, and the file's own album tag then leaks into the path —
+    # which produced `Kanye West/Unreleased/mamas boyfriend/mamas boyfriend.flac`,
+    # a directory per track. catalognum is set on 0 of 6214 files in this
+    # library, so it is ours alone and cannot leak.
+    #
+    # Keyed on `grouping`, a REAL tag written into the file — not on the
+    # `unreleased` flexible field, which lives only in library.db and dies with
+    # it. A file that has already been through the unreleased import carries
+    # grouping=Unreleased in its own tags, so re-importing it from scratch
+    # re-files it under Unreleased/ instead of clobbering the shelving.
+    grouping:Unreleased: $albumartist/Unreleased/%if{$catalognum,$catalognum/}$title
+    unreleased:1: $albumartist/Unreleased/%if{$catalognum,$catalognum/}$title
+    default: $albumartist/$album%aunique{}/%if{$multidisc,$disc-}$track $title
+    singleton: $albumartist/Singles/$title
+    comp: Compilations/$album%aunique{}/%if{$multidisc,$disc-}$track $title
+    albumtype:soundtrack: Soundtracks/$album%aunique{}/$track $title
+
+# Unreleased material must be imported with -A (no autotag) and with
+# albumartist pinned from the source folder. Both matter, and both were learned
+# the hard way:
+#
+#   * Autotagging leaks produces confident WRONG matches. `Juice WRLD/DEAD TO
+#     ME` matched "HAARPER - DEAD TO ME" at 100%, `Addictions` matched "I Set My
+#     Friends on Fire". MusicBrainz has no entry for vault material, so the
+#     matcher reaches for whatever shares a title. -A stops it dead, and skips
+#     every network round trip, so the import runs in minutes not hours.
+#   * The albumartist tag on a leak is the uploader — `999life`, `$lux`,
+#     `Willis Fame`. Left to itself this rule turns one artist's vault into
+#     dozens of invented artist directories.
+#
+# Use ~/mux/import-unreleased.sh, not a bare `beet import ~/Music/*/Unreleased`.
+
+# `multidisc` is NOT a built-in beets field — it has to be defined here, or
+# %if{$multidisc,...} is always true (an undefined $name renders as the literal
+# string, which is truthy) and every single-disc album gets a "01-" prefix.
+item_fields:
+    multidisc: 1 if disctotal > 1 else ''
+
+art_filename: cover
+
+# Keep unicode: the library has artists like "$not" and "¥$".
+asciify_paths: no
+replace:
+    '[\\/]': '-'
+    '[\x00-\x1f]': ''
+    '[<>:"\?\*\|]': ''
+    '\s+$': ''
+    '^\s+': ''
+    '^-': _
+
+# `musicbrainz` MUST be listed. In beets 2.x it is a plugin, and the stock
+# default is `plugins: [musicbrainz]` — setting this key overrides that default
+# wholesale, so leaving it out silently disables MusicBrainz and every album
+# comes back "No matching release found". Verified: without it, Frank Ocean's
+# Blonde does not match; with it, it matches exactly.
+plugins: >
+    musicbrainz inline chroma fromfilename fetchart embedart lastgenre
+    importadded badfiles unimported duplicates missing scrub mbsync edit info
+    convert mpdupdate ftintitle
+
+match:
+    # This is a rap/hip-hop library with many deluxe/extended editions; let
+    # beets prefer an exact-length match over a same-titled standard edition.
+    preferred:
+        media: ['Digital Media', 'CD']
+    strong_rec_thresh: 0.10   # auto-accept clearly-correct matches
+    max_rec:
+        missing_tracks: medium
+        unmatched_tracks: medium
+
+musicbrainz:
+    # beets penalises a candidate whose `data_source` differs from the file's
+    # own — meant for weighing MusicBrainz against Discogs/Spotify. With
+    # MusicBrainz as the only source and no data_source tag on any of these
+    # files, it is a flat penalty on every album for nothing. Measured on
+    # Frank Ocean's Blonde: 89.5% with the 0.5 default, 100.0% without it —
+    # the difference between `-q` skipping the album and auto-accepting it.
+    data_source_mismatch_penalty: 0.0
+    search_limit: 10      # more candidates for the messy mixtape folders
+
+chroma:
+    # Acoustic fingerprinting. Two jobs here: identify the files whose tags are
+    # too poor for a text match, and catch cross-format duplicates (same song
+    # as FLAC and MP3) that mux's exact audio hash cannot see.
+    # Costs ~1-2s of CPU per track on top of the MusicBrainz round trip. Worth
+    # it on the first pass, because bad tags are the whole problem here.
+    auto: yes
+
+fromfilename:
+    # Last resort for files with no usable tags at all (the ex-WAV Frank Ocean
+    # leaks): parse track number and title out of the filename so the matcher
+    # has something to work with.
+    auto: yes
+
+fetchart:
+    auto: yes
+    # Must be a list — a space-separated string is parsed as one source name
+    # and fetchart refuses to load.
+    sources:
+        - filesystem     # adopt the cover.jpg/folder.jpg already on disk
+        - coverart       # Cover Art Archive, keyed by the matched MBID
+        - itunes
+
+embedart:
+    auto: yes
+    remove_art_file: no
+
+importadded:
+    # Without this, every one of the 6300 tracks gets `added` = import day and
+    # "recently added" is meaningless forever. Take the file mtime instead.
+    preserve_mtimes: yes
+
+lastgenre:
+    auto: yes
+    source: album
+    count: 2
+
+ftintitle:
+    # Rap library: "Artist feat. Guest" belongs in the title, not the artist,
+    # which is also what MusicBrainz does. Manual only — run `beet ftintitle`
+    # once after the import and eyeball it before letting it near everything.
+    auto: no
+
+scrub:
+    # Strip junk tags on import, then beets writes clean ones back.
+    # NOTE: this also drops embedded lyrics and ReplayGain tags. Lyrics live in
+    # .lrc sidecars here, so that is fine; re-run ReplayGain later if you use it.
+    auto: yes
+
+duplicates:
+    tiebreak:
+        items: [bitrate]
+
+badfiles:
+    check_on_import: no    # run `beet bad` as a separate pass, it is slow
+    commands:
+        flac: flac --test --silent --warnings-as-errors
+
+convert:
+    # Phase 4: portable Opus mirror. Never touches the originals.
+    dest: ~/Music-opus
+    format: opus
+    formats:
+        opus:
+            command: ffmpeg -i $source -y -vn -acodec libopus -ab 128k $dest
+            extension: opus
+
+mpdupdate:
+    # `mpc` is not installed; this plugin talks to MPD over python-mpd2 and
+    # refreshes the database itself after every import.
+    host: 127.0.0.1
+    port: 6600
+
+ui:
+    color: yes

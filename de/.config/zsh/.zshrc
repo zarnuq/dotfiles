@@ -1,9 +1,3 @@
-typeset -U path
-path=("$HOME/.local/bin" $path)
-
-# Iris Autocomplete
-eval "$(iris init zsh)"
-
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
 if [[ ! -f $HOME/.local/share/zplug/init.zsh ]]; then
     curl -sL --proto-redir -all,https \
@@ -29,6 +23,8 @@ alias ta='tmux attach-session -t'
 alias esync='sudo emerge --sync'
 alias eworld='sudo emerge -avuDN @world'
 alias pyserver='python -m http.server'
+alias c='claude'
+alias :q='exit'
 
 function y() {
   local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
@@ -67,7 +63,6 @@ zstyle :prompt:pure:prompt:error    color '#f38ba8'   # prompt > on error (red)
 # Declare plugins
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "zsh-users/zsh-autosuggestions"
-zplug "Aloxaf/fzf-tab"
 zplug "jeffreytse/zsh-vi-mode"
 zplug "mafredri/zsh-async", from:github
 zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
@@ -78,17 +73,6 @@ zplug load
 
 PROMPT=' '$PROMPT                      # 1-space left buffer on the dir/git preprompt line (matches PURE_PROMPT_SYMBOL)
 RPROMPT='%F{#6c7086}%D{%H:%M:%S}%f'   # clock on the right (was SPACESHIP time)
-
-# Colored tab-completion menu (populate LS_COLORS, then hand it to fzf-tab / the completion system)
-eval "$(dircolors -b)"
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-zstyle ':completion:*' menu no          # let fzf-tab own the menu (it advises against `menu select`)
-
-# Give fzf-tab priority over iris's inline overlay: render it in a floating tmux popup
-# (its own surface) instead of inline under the cursor, where iris also draws.
-if [[ -n $TMUX ]]; then
-  zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
-fi
 
 export MANPAGER="nvim +Man!"
 export ZSH_AUTOCOMPLETE_WIDGET_ASYNC="true"

@@ -16,7 +16,7 @@ Singleton {
     property bool notificationHistory: true  // history panel + DND toggle widget
 
     // Session
-    property bool lock: true                 // idle-lock + lock screen (replaces swayidle/swaylock)
+    property bool lock: false // idle-lock + lock screen (replaces swayidle/swaylock)
     property bool clipboard: true            // cliphist text+image watchers (replaces the cliphist service)
     property bool launcher: true             // drun app launcher (replaces rofi; `qs ipc call launcher toggle`)
 
