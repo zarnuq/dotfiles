@@ -1,39 +1,30 @@
-// config.example.zon — reach runtime configuration (optional).
-//
-// Copy to one of (first found wins):
-//   $XDG_CONFIG_HOME/reach/config.zon
-//   ~/.config/reach/config.zon
-//   /etc/reach/config.zon            (system default; ship this from your package)
-//
-// Read ONCE at startup. Every field is optional: delete anything you don't want to
-// change and the compiled-in default (config.zig) is used. This file reproduces
-// the built-in defaults, so with it in place reach behaves exactly as without it —
-// edit from here. For a distro package, trim the machine-specific bits (monitors,
-// env) to taste; binds/blocks reference $HOME so they are user-portable as-is.
-//
-// Syntax is ZON (Zig Object Notation): `.{ ... }` is a struct, `.field = value`,
-// strings in "quotes", enums as `.name`. Colors are 0xRRGGBB (border) or 0xRRGGBBAA
-// (bar). A bind's `key` is "Mod+Mod+...+Keysym": modifiers (case-insensitive
-// Super/Mod/Win, Alt, Ctrl, Shift, Mod3, Mod5) then the xkb keysym NAME, joined by
-// '+'. Letters/digits are themselves ("q", "1"); everything else uses its xkb name
-// ("Return", "space", "comma", "bracketleft", "XF86AudioPlay", "plus"). A chord
-// sub-key normally has no modifier, so just "d".
 .{
     // --- layout / behavior -------------------------------------------------
     .outer_gap = 0,
-    .inner_gap = 2,
+    .inner_gap = 0,
     .sloppy_focus = true,
     .repeat_rate = 50,
     .repeat_delay = 300,
     .nmaster = 1,
-    .mfact = 0.55,
+    .mfact = 0.6,
     .float_default_frac_w = 0.6,
     .float_default_frac_h = 0.65,
     .float_step = 40,
 
+    .cursor = .{
+        .theme = "default",
+        .size = 24,
+        .shake = .{
+            .enabled = true,
+            .delay = 150,
+            .speed = 600.0,
+        },
+    },
+
     // --- tmux-style focused-window border ----------------------------------
     .border_active = 0xcba6f7,
-    .border_thickness = 2,
+    .border_inactive = 0x45475a,
+    .border_thickness = 5,
 
     // --- session environment (dwl setupenv) --------------------------------
     .env = .{
@@ -107,7 +98,7 @@
     // mask), .{ .spawn = "cmd" }, .quit, .killclient, .zoom, .togglefloating,
     // .togglefullscreen, .{ .move = .{ .x=,.y= } }, .{ .resize = ... },
     // .{ .focusstack = n }, .{ .setmfact = f }, .{ .incnmaster = n },
-    // .{ .focusmon = n }, .{ .tagmon = n }.
+    // .{ .focusmon = n }, .{ .tagmon = n }, .reload.
     .binds = .{
         // launchers
         .{ .key = "Super+p", .action = .{ .spawn = "qs ipc call lock lock" } },
@@ -156,6 +147,7 @@
         .{ .key = "Super+Alt+Up", .action = .{ .spawn = "$HOME/.local/bin/redshift.sh" } },
 
         // window management
+        .{ .key = "Super+Shift+r", .action = .reload },
         .{ .key = "Super+Shift+p", .action = .quit },
         .{ .key = "Super+Shift+q", .action = .killclient },
         .{ .key = "Super+Return", .action = .zoom },

@@ -43,6 +43,8 @@ Runs alongside Portage for packages not easily/freshly available via emerge. `ho
 
 > `hashcat` is installed via nix but the comment recommends the **system** `hashcat` for OpenCL/GPU driver compat.
 
+> **nix GL vs system nvidia:** anything needing OpenGL/EGL/NVENC must come from **Portage**, not nix. The nvidia driver is Portage-managed (`/usr/lib64/libEGL_nvidia.so.*`), but nix binaries run under nix's `ld.so`, which never searches `/usr/lib64` — so the vendor ICD at `/usr/share/glvnd/egl_vendor.d/10_nvidia.json` resolves to nothing and EGL init dies (`eglGetDisplay failed` → *"Your GPU may not be supported"*). Pointing `LD_LIBRARY_PATH` at `/usr/lib64` doesn't fix it: it shadows nix libs with system ones and breaks the app earlier. Bridging the two properly is what `nixGL` exists for, and it works by shipping a *nix-built* driver matching the running kernel module — not by reusing the system one. **OBS lives in Portage for this reason** (`media-video/obs-studio`, USE `nvenc wayland screencast pulseaudio`); keep it out of `home.nix` or `~/.nix-profile/bin` will shadow `/usr/bin` on PATH.
+
 ## Catppuccin Mocha Palette
 
 Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Text `#cdd6f4` · Subtext0 `#a6adc8` · **Mauve `#cba6f7` (accent: focus/active)** · Blue `#89b4fa` (focused border) · Green `#a6e3a1` · Peach `#fab387` (warn) · Red `#f38ba8` · Teal `#94e2d5` · Yellow `#f9e2af` · Lavender `#b4befe`.
@@ -80,7 +82,7 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 - **Neovim** — `de/.config/nvim/`. lazy.nvim. Leader `Space`, tab=4 expandtab, system clipboard, nvim-tree (right, no netrw), telescope, treesitter, lspconfig+mason (lua_ls, pyright), nvim-cmp, catppuccin. Spell en_us for md/text.
 - **Doom Emacs** — `de/.config/doom/`. catppuccin, org `~/org/`, both PRIMARY+clipboard sync `t`. Runs as runit **user service** (`~/.local/sv/emacs`); `Super+D` opens `emacsclient -c`; `doomsync` = kill → `sv stop emacs` → doom sync → `sv start emacs`.
 - **rofi** — `de/.config/rofi/config.rasi`, rofi-**wayland**, theme `spotlight-dark.rasi`. **Superseded** by the quickshell `Launcher.qml` for the `Super+Space` drun launcher; config kept for standalone `rofi` invocations.
-- **yazi** — `de/.config/yazi/`. Hidden shown, vim nav. Openers: nvim/xdg-open/loupe/zathura/mpv. Plugins: git, piper, mount, chmod. `setbg` opener uses `swww img` — **stale**, system uses `qs ipc call wallpaper set <path>`.
+- **yazi** — `de/.config/yazi/`. Hidden shown, vim nav. Openers: nvim/xdg-open/swayimg/zathura/mpv. Plugins: git, piper, mount, chmod. `setbg` opener uses `swww img` — **stale**, system uses `qs ipc call wallpaper set <path>`.
 - **btop** — `de/.config/btop/btop.conf`. mocha theme, GPU nvidia/amd/intel.
 - **Zen browser** — `de/.zen/` (userChrome.css + user.js, custom CSS enabled). `de/.config/mimeapps.list`: default browser zen, Discord→legcord.
 

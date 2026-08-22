@@ -23,6 +23,8 @@
     firefox-bin
     signal-desktop
     tealdeer
+    # obs-studio: must come from Portage — nixpkgs' GL stack can't drive the
+    # Portage-managed nvidia driver (see CLAUDE.md "nix GL vs system nvidia").
 
     # Music library: beets owns canonical tags + layout (~/.config/beets),
     # ~/mux owns audio-hash dedupe. No pluginOverrides needed — every plugin

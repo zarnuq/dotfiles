@@ -43,7 +43,7 @@ setbg = [
 	{ run = 'swww img "$1" --transition-fps 144 --transition-type top --transition-duration 1', orphan = true, desc = "setbg", for = "linux" },
 ]
 view = [
-	{ run = 'loupe "$1"', orphan = true, desc = "View", for = "linux" },
+	{ run = 'swayimg "$1"', orphan = true, desc = "View", for = "linux" },
 ]
 read = [
 	{ run = 'zathura "$1"', orphan = true, desc = "Read", for = "linux" },
@@ -62,6 +62,11 @@ play = [
 [[open.prepend_rules]]
 name = "*/"
 use = [ "cd", "edit", "reveal" ]
+
+# xdg-open hands images to chromium, so bind them to the swayimg opener directly
+[[open.prepend_rules]]
+mime = "image/*"
+use = [ "view", "open", "reveal" ]
 
 [tasks]
 micro_workers    = 10
