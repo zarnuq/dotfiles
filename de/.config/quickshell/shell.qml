@@ -8,6 +8,7 @@ import Quickshell
 // (active: is synchronous, so it loads at startup without needing a window first.)
 ShellRoot {
     LazyLoader { active: Config.wallpaper;           WallpaperView {} }
+    LazyLoader { active: Config.wallpaperPicker;     WallpaperPicker {} }
     LazyLoader { active: Config.notificationPopups;  NotificationPopups {} }
     LazyLoader { active: Config.lock;                Lock {} }
     LazyLoader { active: Config.clipboard;           Clipboard {} }

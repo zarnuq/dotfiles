@@ -114,6 +114,7 @@
         .{ .key = "Super+Shift+w", .action = .{ .spawn = "rmpc rescan" } },
         .{ .key = "Super+t", .action = .{ .spawn = "zen-browser" } },
         .{ .key = "Super+b", .action = .{ .spawn = "qs ipc call wallpaper random" } },
+        .{ .key = "Super+Shift+b", .action = .{ .spawn = "qs ipc call wallpaperpicker toggle" } },
 
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },

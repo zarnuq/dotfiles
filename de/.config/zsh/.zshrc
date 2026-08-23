@@ -22,7 +22,6 @@ alias doomsync='~/.config/emacs/bin/doom sync'
 alias ta='tmux attach-session -t'
 alias esync='sudo emerge --sync'
 alias eworld='sudo emerge -avuDN @world'
-# bump flake.lock (nixpkgs + home-manager) then rebuild the profile
 alias nixup='nix flake update --flake ~/.config/home-manager && home-manager switch --flake ~/.config/home-manager#miles'
 alias nixgc='nix-collect-garbage -d && nix store optimise'
 alias pyserver='python -m http.server'
@@ -45,8 +44,13 @@ HIST_STAMPS="mm/dd/yyyy"
 HISTFILE=$ZDOTDIR/zsh_history
 HISTSIZE=1000000
 SAVEHIST=1000000
+# NOTE: HISTCONTROL and HISTIGNORE are bash variables and do nothing in zsh.
+# zsh spells these `setopt HIST_IGNORE_DUPS` and `HISTORY_IGNORE`. Left as-is.
 HISTCONTROL="ignoredups:erasedups"
 HISTIGNORE="ls:cd:pwd:exit"
+# zsh otherwise flushes history only at shell exit, which would make the current
+# session invisible to zhimmer's matcher.
+setopt INC_APPEND_HISTORY
 
 #PLUGINS
 source $ZPLUG_HOME/init.zsh
@@ -64,11 +68,15 @@ zstyle :prompt:pure:prompt:success  color '#a6e3a1'   # prompt > on success (gre
 zstyle :prompt:pure:prompt:error    color '#f38ba8'   # prompt > on error (red)
 
 # Declare plugins
-zplug "zsh-users/zsh-syntax-highlighting"
-zplug "zsh-users/zsh-autosuggestions"
+# zplug "zsh-users/zsh-autosuggestions"   # replaced by zhimmer: both draw ghost
+                                          # text via POSTDISPLAY and would fight
 zplug "jeffreytse/zsh-vi-mode"
 zplug "mafredri/zsh-async", from:github
 zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
+zplug "/home/miles/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
+# syntax-highlighting wraps whatever widgets exist when it loads, so it has to be
+# declared last -- it was previously first, which left later plugins unwrapped
+zplug "zsh-users/zsh-syntax-highlighting"
 if ! zplug check --verbose; then
     zplug install
 fi

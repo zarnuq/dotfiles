@@ -1,0 +1,84 @@
+#!/bin/bash
+# Pre-renders wallpaper thumbnails for the quickshell picker.
+#
+# Decoding the originals on demand costs ~0.5s of a core per image (a 22MB
+# 7264x4096 PNG) -- that per-glance cost is what made yazi's previewer spin the
+# fans. This pays it once per file, then browsing reads ~25KB JPEGs instead.
+#
+#   wallpaper-thumbs           generate any missing/stale thumbs (idempotent)
+#   wallpaper-thumbs --list    emit "category<TAB>source<TAB>thumb" for the picker
+#
+# --list is the picker's only source of thumb paths, so the naming rule lives
+# here and nowhere else.
+set -euo pipefail
+
+SRC="${WALLPAPER_DIR:-$HOME/Pictures/bgs}"
+CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/wallpaper-thumbs"
+GEOM=400x225
+
+# Absolute path to self, so the xargs fan-out below can re-enter as a worker.
+self=$(command -v -- "$0")
+[[ $self == /* ]] || self=$PWD/${self#./}
+
+# Thumb name = source path relative to SRC with '/' folded to '!', result in
+# $THUMB. Assigns rather than echoes because the picker runs this over ~800
+# files per open and a $() subshell per file cost ~1s.
+#
+# The separator must not be '%': ImageMagick expands %d/%o/%N in OUTPUT
+# filenames as scene-number formats (so "%dominik-mayer.jpg" silently writes
+# "0ominik-mayer.jpg"), and Qt percent-decodes file:// URLs. '!' is inert in
+# both. Doubling a literal '!' keeps the encoding injective.
+thumb_for() {
+    local rel=${1#"$SRC"/}
+    rel=${rel//\!/\!\!}
+    rel=${rel//\//\!}
+    THUMB=$CACHE/$rel.jpg
+}
+
+scan() {
+    find "$SRC" -name .git -prune -o -type f \
+         \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) -print
+}
+
+case "${1:-}" in
+--one)
+    src=$2
+    thumb_for "$src"; dst=$THUMB
+    [[ -f $dst && $dst -nt $src ]] && exit 0
+    # jpeg:size lets libjpeg decode at 1/N scale (DCT scaling) -- ~3x faster,
+    # and 3 of every 4 wallpapers here are JPEG. PNG has no scaled decode.
+    hint=()
+    case $src in
+        *.jpg|*.JPG|*.jpeg|*.JPEG) hint=(-define jpeg:size=800x450) ;;
+    esac
+    # JPEG: prefix is required -- the .tmp extension is unknown to ImageMagick,
+    # so it would otherwise write the thumb in the SOURCE's format (a PNG named
+    # .jpg), costing both size and decode time.
+    if magick "${hint[@]}" "$src" -thumbnail "$GEOM^" -gravity center \
+              -extent "$GEOM" -quality 82 -strip "JPEG:$dst.$$.tmp" 2>/dev/null; then
+        mv -f "$dst.$$.tmp" "$dst"   # rename so a killed run never leaves a torn thumb
+    else
+        rm -f "$dst.$$.tmp"
+    fi
+    ;;
+--list)
+    while IFS= read -r f; do
+        rel=${f#"$SRC"/}
+        [[ $rel == */* ]] && cat=${rel%%/*} || cat=.
+        thumb_for "$f"
+        printf '%s\t%s\t%s\n' "$cat" "$f" "$THUMB"
+    done < <(scan | sort)
+    ;;
+*)
+    mkdir -p "$CACHE"
+    stale=()
+    while IFS= read -r f; do
+        thumb_for "$f"
+        [[ -f $THUMB && $THUMB -nt $f ]] || stale+=("$f")
+    done < <(scan)
+
+    (( ${#stale[@]} == 0 )) && exit 0
+    printf 'wallpaper-thumbs: rendering %s thumbnail(s)...\n' "${#stale[@]}" >&2
+    printf '%s\n' "${stale[@]}" | xargs -d '\n' -P "$(nproc)" -n1 "$self" --one
+    ;;
+esac

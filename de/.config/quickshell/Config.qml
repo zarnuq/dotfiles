@@ -10,6 +10,7 @@ import Quickshell
 Singleton {
     // Background
     property bool wallpaper: true            // per-screen wallpaper (replaces awww)
+    property bool wallpaperPicker: true      // thumbnail grid picker (`qs ipc call wallpaperpicker toggle`)
 
     // Notifications
     property bool notificationPopups: true   // toast daemon / D-Bus server (replaces mako)
