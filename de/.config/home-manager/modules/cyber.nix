@@ -148,7 +148,6 @@ in
     #bloodhound-py
     #neo4j
     adalanche
-    caido-desktop
     dig
     thc-hydra
     swaks
