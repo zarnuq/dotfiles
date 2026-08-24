@@ -13,8 +13,16 @@
   programs.home-manager.enable = true;
   home.packages = with pkgs; [
 
+    # nix itself: this standalone (single-user) install keeps `nix` in
+    # ~/.nix-profile, but home-manager manages that same profile and rebuilds
+    # it from home.packages on every switch — so an undeclared `nix` gets
+    # wiped, leaving `nix: command not found`. Declaring it here makes
+    # home-manager-path provide the CLI, so it survives switches.
+    nix
+
     chromium
     claude-code
+    vscode
     tree-sitter # nvim-treesitter (main branch) needs the CLI to compile parsers
     kiro-cli
     termius

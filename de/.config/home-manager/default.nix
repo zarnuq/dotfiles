@@ -3,5 +3,6 @@
 {
   imports = [
   ./modules/cyber.nix
+  ./modules/webdev.nix
   ];
 }

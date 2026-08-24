@@ -18,6 +18,7 @@ alias grep='grep --color=auto'
 alias pickcolor='grim -g "$(slurp -p)" -t ppm - | convert - -format "%[pixel:p{0,0}]" txt:-'
 alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias ff='fastfetch'
+alias larp='fastfetch'
 alias doomsync='~/.config/emacs/bin/doom sync'
 alias ta='tmux attach-session -t'
 alias esync='sudo emerge --sync'
@@ -73,6 +74,7 @@ zstyle :prompt:pure:prompt:error    color '#f38ba8'   # prompt > on error (red)
 zplug "jeffreytse/zsh-vi-mode"
 zplug "mafredri/zsh-async", from:github
 zplug "sindresorhus/pure", use:pure.zsh, from:github, as:theme
+zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
 zplug "/home/miles/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
 # syntax-highlighting wraps whatever widgets exist when it loads, so it has to be
 # declared last -- it was previously first, which left later plugins unwrapped
