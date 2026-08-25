@@ -126,6 +126,7 @@
         .{ .key = "Super+s", .chord = .{
             .{ .key = "s", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh ss && notify-send Screenshot 'Quick capture saved!'" } },
             .{ .key = "d", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh section && notify-send Screenshot 'Section saved!'" } },
+            .{ .key = "0", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh eDP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
             .{ .key = "1", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
             .{ .key = "2", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-2 && notify-send Screenshot 'Fullscreen saved!'" } },
             .{ .key = "3", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-3 && notify-send Screenshot 'Fullscreen saved!'" } },
