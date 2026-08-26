@@ -2,14 +2,14 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// eww `outlook` window. Bottom-left, y=750, 420 wide.
+// Left bar, 420 wide, y=750 up to the bottom of the brightness widget (164+75):
+// anchoring top+bottom stretches it over the bar's leftover space.
 // ICS calendar via calendar.sh (Python icalendar), polled 60s.
 Widget {
     id: root
-    anchors { bottom: true; left: true }
-    margins { bottom: s(750) }
+    anchors { top: true; bottom: true; left: true }
+    margins { top: s(239); bottom: s(750) }
     implicitWidth: s(420)
-    implicitHeight: s(150)
 
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"
     property var events: []      // [{ day, time, summary, location, color }]
