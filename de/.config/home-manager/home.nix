@@ -24,22 +24,15 @@
     claude-code
     vscode
     tree-sitter # nvim-treesitter (main branch) needs the CLI to compile parsers
-    kiro-cli
     termius
     nwg-look
     wl-gammarelay-rs
     firefox-bin
     signal-desktop
     tealdeer
-    # obs-studio: must come from Portage — nixpkgs' GL stack can't drive the
-    # Portage-managed nvidia driver (see CLAUDE.md "nix GL vs system nvidia").
-
-    # Music library: beets owns canonical tags + layout (~/.config/beets),
-    # ~/mux owns audio-hash dedupe. No pluginOverrides needed — every plugin
-    # defaults to enabled, and `chroma` already pulls pyacoustid and wraps
-    # chromaprint. chromaprint is listed too so fpcalc is on PATH directly.
     beets
     chromaprint
+    caligula
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

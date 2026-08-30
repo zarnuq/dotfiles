@@ -48,6 +48,9 @@ source $ZPLUG_HOME/init.zsh
 zplug "jeffreytse/zsh-vi-mode"
 zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
 zstyle ':zhimmer:*' prompt yes
+# menu-style is gone: zhimmer draws the drop-down itself and complist is no
+# longer a backend for it, so this setting no longer exists (2026-08-30).
+# zstyle ':zhimmer:*' menu-style zle
 zplug "/home/miles/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
 zplug "zsh-users/zsh-syntax-highlighting"
 if ! zplug check --verbose; then
@@ -55,7 +58,15 @@ if ! zplug check --verbose; then
 fi
 zplug load
 
-
+HISTORY_IGNORE='(ls|cd|pwd|exit)'
 RPROMPT='%F{#6c7086}%D{%H:%M:%S}%f'
 export MANPAGER="nvim +Man!"
-eval "$(fzf --zsh)"
+# fzf binds Ctrl+R in four keymaps, so removing it from the current one alone
+# left it reachable: Esc to cancel a search drops into vi normal mode, where
+# vicmd still had fzf's widget. zhimmer takes over emacs and viins itself;
+# vicmd goes back to `redo`, which is what fzf took it from.
+bindkey -r '^R'
+bindkey -M emacs -r '^R'
+bindkey -M viins -r '^R'
+bindkey -M vicmd '^R' redo
+
