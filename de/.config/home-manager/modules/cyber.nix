@@ -141,9 +141,9 @@ in
     metasploit
     httpie
     samba
-    ilspycmd
+    #ilspycmd
     openldap
-    apache-directory-studio
+    #apache-directory-studio
     #bloodhound
     #bloodhound-py
     #neo4j

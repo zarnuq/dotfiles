@@ -52,6 +52,7 @@
         .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
         .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
         .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
+        .{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000},
         .{ .name = "eDP-1", .w = 1920, .h = 1200 },
     },
 

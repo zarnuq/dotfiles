@@ -33,6 +33,7 @@
     beets
     chromaprint
     caligula
+    codex
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;
