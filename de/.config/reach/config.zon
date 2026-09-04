@@ -46,7 +46,7 @@
 
     // --- monitors (dwl monrules) -------------------------------------------
     // Matched by connector name. Array ORDER defines monitor numbering for
-    // focusmon/tagmon and window-rule .monitor indices. transform is one of
+    // focusmon/sendmon and window-rule .monitor indices. transform is one of
     // .normal .rotate_90 .rotate_180 .rotate_270 .flipped .flipped_90/180/270.
     .monitors = .{
         .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
@@ -57,13 +57,14 @@
     },
 
     // --- window rules (dwl rules) ------------------------------------------
-    // Match app_id/title: "^foo" = starts-with, "foo" = contains. tags is a
-    // 1<<n bitmask. monitor is an index into .monitors above.
+    // Match app_id/title: "^foo" = starts-with, "foo" = contains. desktop is a
+    // 1-based desktop number (0/absent = leave it where it opened). monitor is an
+    // index into .monitors above.
     .rules = .{
-        .{ .app_id = "rmpc", .tags = 1, .monitor = 2 },
-        .{ .app_id = "zen", .tags = 4, .switchtotag = true },
-        .{ .app_id = "^steam", .tags = 16 },
-        .{ .app_id = "signal", .tags = 8 },
+        .{ .app_id = "rmpc", .desktop = 1, .monitor = 2 },
+        .{ .app_id = "zen", .desktop = 3, .switchto = true },
+        .{ .app_id = "^steam", .desktop = 5 },
+        .{ .app_id = "signal", .desktop = 4 },
         .{ .app_id = "^float", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
         .{ .app_id = "pavucontrol", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
     },
@@ -95,11 +96,11 @@
     // Providing `binds` REPLACES the entire default action/spawn/chord keymap
     // always generated and are NOT listed here. A bind is either a leaf (`.action`)
     // or a chord leader (`.chord` = list of sub-keys; sub-keys carry no modifier
-    // and nest to any depth). Actions: .view/.toggleview/.tag/.toggletag (u32
-    // mask), .{ .spawn = "cmd" }, .quit, .killclient, .zoom, .togglefloating,
+    // and nest to any depth). Actions: .{ .view = n } / .{ .send = n } (1-based
+    // desktop number), .{ .spawn = "cmd" }, .quit, .killclient, .zoom, .togglefloating,
     // .togglefullscreen, .{ .move = .{ .x=,.y= } }, .{ .resize = ... },
     // .{ .focusstack = n }, .{ .setmfact = f }, .{ .incnmaster = n },
-    // .{ .focusmon = n }, .{ .tagmon = n }, .reload.
+    // .{ .focusmon = n }, .{ .sendmon = n }, .reload.
     .binds = .{
         // launchers
         .{ .key = "Super+p", .action = .{ .spawn = "qs ipc call lock lock" } },
@@ -176,7 +177,7 @@
         .{ .key = "Super+n", .action = .{ .incnmaster = 1 } },
         .{ .key = "Super+comma", .action = .{ .focusmon = -1 } },
         .{ .key = "Super+period", .action = .{ .focusmon = 1 } },
-        .{ .key = "Super+Shift+comma", .action = .{ .tagmon = -1 } },
-        .{ .key = "Super+Shift+period", .action = .{ .tagmon = 1 } },
+        .{ .key = "Super+Shift+comma", .action = .{ .sendmon = -1 } },
+        .{ .key = "Super+Shift+period", .action = .{ .sendmon = 1 } },
     },
 }

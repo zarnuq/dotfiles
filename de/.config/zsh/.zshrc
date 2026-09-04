@@ -22,6 +22,7 @@ alias nixup='nix flake update --flake ~/.config/home-manager && home-manager swi
 alias nixgc='nix-collect-garbage -d && nix store optimise'
 alias pyserver='python -m http.server'
 alias c='claude'
+alias x='codex'
 alias :q='exit'
 function y() {
   local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd

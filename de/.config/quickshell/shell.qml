@@ -23,5 +23,6 @@ ShellRoot {
     LazyLoader { active: Config.notificationHistory; Notifications {} }
     LazyLoader { active: Config.calendar;            Calendar {} }
     LazyLoader { active: Config.brightness;          Brightness {} }
+    LazyLoader { active: Config.battery && Config.batteryPresent; Battery {} }
     LazyLoader { active: Config.tray;                Tray {} }
 }

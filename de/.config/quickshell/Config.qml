@@ -1,5 +1,6 @@
 pragma Singleton
 import Quickshell
+import Quickshell.Io
 
 // ─────────────────────────────────────────────────────────────────────────
 //  The switchboard.  This is the ONLY file you edit to turn parts of the
@@ -17,7 +18,7 @@ Singleton {
     property bool notificationHistory: true  // history panel + DND toggle widget
 
     // Session
-    property bool lock: false // idle-lock + lock screen (replaces swayidle/swaylock)
+    property bool lock: true // idle-lock + lock screen (replaces swayidle/swaylock)
     property bool clipboard: true            // cliphist text+image watchers (replaces the cliphist service)
     property bool launcher: true             // drun app launcher (replaces rofi; `qs ipc call launcher toggle`)
 
@@ -31,5 +32,13 @@ Singleton {
     property bool weather: true
     property bool calendar: true
     property bool brightness: true
+    property bool battery: true          // charge level + low-battery warning (laptop only)
     property bool tray: true                 // system tray
+
+    // Only the laptop has BAT0. Probed once at startup (blockLoading, so the
+    // binding has a real answer by the time shell.qml reads it) — the desktop
+    // then never builds the widget at all rather than building it and hiding
+    // it, which is what every other flag here buys you.
+    FileView { id: batteryProbe; path: "/sys/class/power_supply/BAT0/capacity"; blockLoading: true; printErrors: false }
+    readonly property bool batteryPresent: batteryProbe.text().trim().length > 0
 }
