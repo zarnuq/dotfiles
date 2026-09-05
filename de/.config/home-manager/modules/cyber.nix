@@ -151,7 +151,7 @@ in
     dig
     thc-hydra
     swaks
-
+    websocat
 
   ];
 }
