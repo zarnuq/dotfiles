@@ -11,11 +11,25 @@ pids=""
 cleanup() { kill $pids 2>/dev/null; exit; }
 trap cleanup TERM INT
 
-mpd --no-daemon & pids="$pids $!"
+# Explicit config path: mpd otherwise resolves $XDG_CONFIG_HOME/mpd/mpd.conf and
+# silently falls back to /etc/mpd.conf, which logs to root-owned /var/log/mpd
+# and dies on "Permission denied" if anything leaks a stray XDG_CONFIG_HOME in.
+mpd --no-daemon "$HOME/.config/mpd/mpd.conf" & pids="$pids $!"
 
 # bridge needs the dbus session bus and a reachable mpd (localhost:6600)
 while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
-until (exec 3<>/dev/tcp/127.0.0.1/6600) 2>/dev/null; do sleep 0.2; done
+tries=0
+until (exec 3<>/dev/tcp/127.0.0.1/6600) 2>/dev/null; do
+	# An mpd that dies at startup used to leave this spinning forever, so runsv
+	# kept reporting the service up with no mpd behind it. Bail out loudly.
+	tries=$((tries + 1))
+	if [ "$tries" -gt 75 ]; then
+		echo "mpd never accepted connections on 6600 (see errors above); restarting"
+		kill $pids 2>/dev/null
+		exit 1
+	fi
+	sleep 0.2
+done
 mpd-mpris & pids="$pids $!"
 
 wait -n                    # block until either exits...

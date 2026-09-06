@@ -39,7 +39,7 @@ EOF
 # help shouldn't require root
 case "${1:-}" in -h|--help) usage; exit 0 ;; esac
 
-# elevate via doas (this box symlinks sudo -> doas)
+# elevate via doas (there is no sudo on this box; only app-admin/doas)
 if [ "$(id -u)" -ne 0 ]; then
   exec doas "$0" "$@"
 fi

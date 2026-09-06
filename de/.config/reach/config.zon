@@ -108,6 +108,7 @@
         .{ .key = "Super+d", .action = .{ .spawn = "GDK_BACKEND=wayland emacs" } },
         .{ .key = "Super+space", .action = .{ .spawn = "qs ipc call launcher toggle" } },
         .{ .key = "Super+c", .action = .{ .spawn = "qs ipc call calendar toggle" } },
+        .{ .key = "Super+Escape", .action = .{ .spawn = "qs ipc call power toggle" } },
         .{ .key = "Super+BackSpace", .action = .{ .spawn = "kitty --class float" } },
         .{ .key = "Super+v", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/clipfzf" } },
         .{ .key = "Super+x", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/killfzf" } },

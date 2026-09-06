@@ -16,7 +16,18 @@ trap cleanup TERM INT
 pipewire & pids="$pids $!"
 
 # session manager needs the pipewire socket AND the dbus session bus
-while [ ! -e "$xrd/pipewire-0" ] || [ ! -S "$xrd/bus" ]; do sleep 0.2; done
+tries=0
+while [ ! -e "$xrd/pipewire-0" ] || [ ! -S "$xrd/bus" ]; do
+	# pipewire dying up on line 16 would otherwise leave this spinning forever:
+	# runsv reports the service up, wireplumber/pulse never start, no audio.
+	tries=$((tries + 1))
+	if [ "$tries" -gt 75 ]; then
+		echo "pipewire socket never appeared (see errors above); restarting"
+		kill $pids 2>/dev/null
+		exit 1
+	fi
+	sleep 0.2
+done
 wireplumber & pids="$pids $!"
 
 # pulse shim needs the pipewire socket

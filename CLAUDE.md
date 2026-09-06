@@ -8,7 +8,7 @@ Guidance for Claude Code when working in this repo.
 
 Personal dotfiles for a **Gentoo Linux** system. Wayland stack centered on **reach** (a custom **Zig** Wayland compositor; dwl-like — tags, master/stack tiling, regex window rules, an **in-process** someblocks-style status bar). GNU Stow manages all symlinks from `de/` → `$HOME`. Terminal is **kitty**. Theme is **Catppuccin Mocha (Mauve accent)** everywhere. UI aesthetic: **flat/sharp** — `border-radius: 0` explicitly everywhere.
 
-System package manager is **Portage** (`emerge`). `sudo` is symlinked to **`doas`** on this box. `xbps`/`pacman`/`paru`/AUR do **not** apply. Nix + home-manager runs **alongside** Portage for a curated package set (security tools, GUI apps, Python libs). Clean nix with `nix-collect-garbage -d`.
+System package manager is **Portage** (`emerge`). Elevation is **`doas`** (`app-admin/doas`) — there is **no `sudo`** installed, and no sudo->doas symlink. `xbps`/`pacman`/`paru`/AUR do **not** apply. Nix + home-manager runs **alongside** Portage for a curated package set (security tools, GUI apps, Python libs). Clean nix with `nix-collect-garbage -d`.
 
 > **Migration note:** previously Void Linux. Some configs still carry stale Void-era bits — see [Stale leftovers](#stale-voiddwl-leftovers).
 
@@ -155,7 +155,7 @@ Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or 
 
 ## Package Management
 
-**Primary: Portage** — `sudo emerge -av <pkg>` (sudo→doas), `--unmerge`, `--search`/`eix`, `sudo emerge --sync && sudo emerge -avuDN @world` (update). **Secondary: Nix/home-manager** — `home-manager switch`, `nix-env -iA nixpkgs.<pkg>`, `nix-collect-garbage -d`. **Kernel:** `rebuild-kernel.sh`.
+**Primary: Portage** — `doas emerge -av <pkg>`, `--unmerge`, `--search`/`eix`, `doas emerge --sync && doas emerge -avuDN @world` (update). **Secondary: Nix/home-manager** — `home-manager switch`, `nix-env -iA nixpkgs.<pkg>`, `nix-collect-garbage -d`. **Kernel:** `rebuild-kernel.sh`.
 
 ## Stale Void/DWL leftovers
 

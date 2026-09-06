@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+"""Exit 0 if $XDG_RUNTIME_DIR/<argv[1]> is a wayland socket whose compositor is
+actually advertising xdg_wm_base, else 1.
+
+A bare `[ -S wayland-N ]` test can't tell a live compositor from one that is
+tearing down (or one that hasn't advertised its globals yet). qs connects to
+either, but with no xdg-shell Qt aborts the whole process, so runsv respawns
+into the same window. This does what qs is about to do: connect, ask
+wl_display@1 for the registry, and look for xdg_wm_base in the globals.
+"""
+import os
+import socket
+import struct
+import sys
+
+name = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("WAYLAND_DISPLAY", "")
+path = name if name.startswith("/") else os.path.join(
+    os.environ.get("XDG_RUNTIME_DIR", "/run/user/%d" % os.getuid()), name)
+
+try:
+    sock = socket.socket(socket.AF_UNIX)
+    sock.settimeout(1.0)
+    sock.connect(path)
+    # wl_display@1.get_registry(new_id@2): object id, (size << 16 | opcode), arg
+    sock.send(struct.pack("=III", 1, (12 << 16) | 1, 2))
+    buf = b""
+    while len(buf) < 65536:
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        buf += chunk
+        # Registry globals carry interface names as plain strings on the wire.
+        if b"xdg_wm_base" in buf:
+            sys.exit(0)
+except OSError:
+    pass
+sys.exit(1)

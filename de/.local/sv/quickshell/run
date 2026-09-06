@@ -10,12 +10,51 @@
 # Wait for the dbus session socket + a live wayland socket before starting.
 xrd="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 while [ ! -S "$xrd/bus" ]; do sleep 0.2; done
-wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1)
-while [ -z "$wl" ]; do sleep 0.2; wl=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1); done
-export WAYLAND_DISPLAY="${wl##*/}"
+# Pick a wayland socket a LIVE compositor is serving. `[ -S wayland-N ]` isn't
+# enough: on logout the socket outlives the compositor for a moment, so qs
+# connects, finds no xdg-shell, and Qt aborts the process ("no Qt platform
+# plugin could be initialized") — runsv then respawns ~100ms later, straight
+# back into the same window. That FATAL is what appeared in the log at every
+# logout. wl-ready probes the registry for xdg_wm_base instead of trusting the
+# file, and each candidate is tried, so a stale wayland-0 can't be picked over
+# a live wayland-1.
+pick_display() {
+	for sock in "$xrd"/wayland-[0-9]; do
+		[ -S "$sock" ] || continue
+		if "$(dirname "$0")/wl-ready" "${sock##*/}"; then
+			printf '%s\n' "${sock##*/}"
+			return 0
+		fi
+	done
+	return 1
+}
+
+tries=0
+while :; do
+	if wl=$(pick_display); then break; fi
+	tries=$((tries + 1))
+	# Never brick the shell on a probe bug: after ~30s of a socket that exists
+	# but never advertises xdg_wm_base, hand it to qs anyway and let it decide.
+	if [ "$tries" -gt 100 ]; then
+		first=$(ls "$xrd"/wayland-[0-9] 2>/dev/null | head -1)
+		if [ -n "$first" ]; then
+			echo "wl-ready: no xdg_wm_base after 30s; starting on ${first##*/} anyway"
+			wl=${first##*/}
+			break
+		fi
+		tries=0
+	fi
+	sleep 0.3
+done
+export WAYLAND_DISPLAY="$wl"
 
 # reach usually exports this, but make Qt pick Wayland regardless of inherited env.
 export QT_QPA_PLATFORM=wayland
+
+# qs resolves its config as $XDG_CONFIG_HOME/quickshell/shell.qml, so a stray
+# XDG_CONFIG_HOME inherited from whatever shell started runsvdir silently points
+# it at an empty dir and it crash-loops on "could not find shell.qml". Pin it.
+export XDG_CONFIG_HOME="$HOME/.config"
 
 # Use the gtk3 platform theme so Qt's icon lookup follows the GTK icon theme
 # (Papirus-Dark) *and* its Adwaita symbolic fallback. Without this Qt only sees
