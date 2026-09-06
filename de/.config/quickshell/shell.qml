@@ -14,6 +14,7 @@ ShellRoot {
     LazyLoader { active: Config.clipboard;           Clipboard {} }
     LazyLoader { active: Config.launcher;            Launcher {} }
     LazyLoader { active: Config.calendarWeek;        CalendarWeek {} }
+    LazyLoader { active: Config.powerMenu;           PowerMenu {} }
     LazyLoader { active: Config.clock;               Clock {} }
     LazyLoader { active: Config.cpuGraph;            CpuGraph {} }
     LazyLoader { active: Config.netGraph;            NetGraph {} }
@@ -26,4 +27,5 @@ ShellRoot {
     LazyLoader { active: Config.brightness;          Brightness {} }
     LazyLoader { active: Config.battery && Config.batteryPresent; Battery {} }
     LazyLoader { active: Config.tray;                Tray {} }
+    LazyLoader { active: Config.osd;                 Osd {} }
 }

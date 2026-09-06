@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 
 // eww `vpn` window. Bottom-left, x=210 y=300, 210 wide.
@@ -17,18 +16,16 @@ Widget {
     property string status: ""  // connected profile name, or ""
     readonly property bool connected: status !== ""
 
-    Process {
-        id: listProc
+    Poll {
         command: [root.script, "list"]
-        stdout: StdioCollector { onStreamFinished: { try { root.vpns = JSON.parse(text) || []; } catch (e) { root.vpns = []; } } }
+        interval: 5000
+        onData: function (text) { try { root.vpns = JSON.parse(text) || []; } catch (e) { root.vpns = []; } }
     }
-    Process {
-        id: statusProc
+    Poll {
         command: [root.script, "status"]
-        stdout: StdioCollector { onStreamFinished: root.status = text.trim() }
+        interval: 2000
+        onData: function (text) { root.status = text.trim(); }
     }
-    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: listProc.running = true }
-    Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true; onTriggered: statusProc.running = true }
 
     Column {
         anchors.fill: parent

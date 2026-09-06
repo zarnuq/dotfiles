@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 
 // Left bar, 420 wide, y=750 up to the bottom of the brightness widget (164+75):
@@ -14,12 +13,12 @@ Widget {
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"
     property var events: []      // [{ day, time, summary, location, color }]
 
-    Process {
-        id: proc
+    Poll {
+        id: poll
         command: [root.script, "events"]
-        stdout: StdioCollector { onStreamFinished: { try { root.events = JSON.parse(text) || []; } catch (e) { root.events = []; } } }
+        interval: 60000
+        onData: function (text) { try { root.events = JSON.parse(text) || []; } catch (e) { root.events = []; } }
     }
-    Timer { interval: 60000; running: true; repeat: true; triggeredOnStart: true; onTriggered: proc.running = true }
 
     Column {
         anchors.fill: parent
@@ -42,7 +41,7 @@ Widget {
                 HeaderBtn {
                     id: refresh
                     icon: "󰑓"; size: root.s(14)
-                    onClicked: { Quickshell.execDetached([root.script, "refresh"]); proc.running = true; }
+                    onClicked: { Quickshell.execDetached([root.script, "refresh"]); poll.refresh(); }
                 }
             }
             Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: root.s(1); color: Theme.surface0 }

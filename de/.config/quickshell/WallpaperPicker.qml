@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Io
 import QtQuick
 
@@ -11,12 +10,13 @@ import QtQuick
 // previewer peg every core. The script is re-run on each open so newly added
 // wallpapers appear; warm it costs ~35ms.
 //
-// Per-output overlay + pointer containment to find the focused monitor is the
-// same trick Launcher.qml uses, for the same reason: reach has no IPC to ask,
-// and it gives keyboard focus to every layer surface.
-Scope {
+// Picker owns the overlay, the IPC target and the focused-monitor logic.
+Picker {
     id: root
-    property bool open: false
+
+    ipcTarget: "wallpaperpicker"
+    widthFraction: 0.7
+    heightFraction: 0.72
 
     property var all: []        // [{cat, path, thumb}] -- every wallpaper
     property var cats: ["All"]  // sidebar entries
@@ -24,23 +24,14 @@ Scope {
     property var results: []    // `all` filtered to the selected category
     property int selected: 0
     property int columns: 1     // set by the grid; j/k step by this
-    property string activeScreen: ""
 
     property var dims: ({})     // path -> "WxH", memoized so revisits never re-probe
     property string curDim: ""
 
     readonly property string tool: Quickshell.env("HOME") + "/.local/bin/wallpaper-thumbs"
 
-    onOpenChanged: if (open) { activeScreen = ""; fallback.restart(); reload(); }
-    Timer {
-        id: fallback
-        interval: 150
-        onTriggered: if (root.open && root.activeScreen === "") root.activeScreen = "DP-2";
-    }
-
-    function show()   { root.open = true; }
-    function hide()   { root.open = false; }
-    function toggle() { root.open = !root.open; }
+    // Re-listed on every open so wallpapers added since last time show up.
+    onOpened: root.reload()
 
     function reload() { if (!loader.running) loader.running = true; }
 
@@ -140,253 +131,209 @@ Scope {
         }
     }
 
-    IpcHandler {
-        target: "wallpaperpicker"
-        function toggle(): void { root.toggle(); }
-        function show(): void   { root.show(); }
-        function hide(): void   { root.hide(); }
-    }
+    box: Component {
+        Item {
+            id: keys
+            focus: true
 
-    Variants {
-        model: Quickshell.screens
+            // Called by Picker each time the box appears on an output.
+            function reset() { keys.forceActiveFocus(); }
 
-        PanelWindow {
-            id: win
-            required property var modelData
-            screen: modelData
-            visible: root.open
-
-            color: "transparent"
-            exclusiveZone: 0
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: (root.open && win.modelData.name === root.activeScreen)
-                                         ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-            anchors { top: true; bottom: true; left: true; right: true }
-
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onClicked: root.hide()
-                onContainsMouseChanged: if (containsMouse && root.open) root.activeScreen = win.modelData.name
+            Keys.onPressed: function (e) {
+                var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
+                if (e.key === Qt.Key_Escape) { root.hide(); }
+                else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { root.apply(true); }
+                else if (e.key === Qt.Key_Space) { root.apply(false); }
+                else if (e.key === Qt.Key_Tab) { root.setCat(root.catIndex + 1); }
+                else if (e.key === Qt.Key_Backtab) { root.setCat(root.catIndex - 1); }
+                else if (e.key === Qt.Key_Right || (plain && e.key === Qt.Key_L)) { root.move(1); }
+                else if (e.key === Qt.Key_Left  || (plain && e.key === Qt.Key_H)) { root.move(-1); }
+                else if (e.key === Qt.Key_Down  || (plain && e.key === Qt.Key_J)) { root.move(root.columns); }
+                else if (e.key === Qt.Key_Up    || (plain && e.key === Qt.Key_K)) { root.move(-root.columns); }
+                else if (e.key === Qt.Key_Home) { root.selected = 0; }
+                else if (e.key === Qt.Key_End)  { root.selected = root.results.length - 1; }
+                else { return; }
+                e.accepted = true;
             }
 
-            Rectangle {
-                id: box
-                visible: root.open && win.modelData.name === root.activeScreen
-                onVisibleChanged: if (visible) keys.forceActiveFocus()
-                width: Math.round(win.width * 0.7)
-                height: Math.round(win.height * 0.72)
-                anchors.centerIn: parent
-                color: Theme.base
-                border.color: Theme.mauve
-                border.width: 1
-                radius: Theme.borderRadius
+            Row {
+                anchors.fill: parent
+                spacing: 0
 
-                MouseArea { anchors.fill: parent }   // swallow clicks so they don't close
+                // Category sidebar.
+                Rectangle {
+                    width: 190
+                    height: parent.height
+                    color: Theme.base
 
-                Item {
-                    id: keys
-                    anchors.fill: parent
-                    anchors.margins: box.border.width
-                    focus: true
-
-                    Keys.onPressed: function (e) {
-                        var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
-                        if (e.key === Qt.Key_Escape) { root.hide(); }
-                        else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { root.apply(true); }
-                        else if (e.key === Qt.Key_Space) { root.apply(false); }
-                        else if (e.key === Qt.Key_Tab) { root.setCat(root.catIndex + 1); }
-                        else if (e.key === Qt.Key_Backtab) { root.setCat(root.catIndex - 1); }
-                        else if (e.key === Qt.Key_Right || (plain && e.key === Qt.Key_L)) { root.move(1); }
-                        else if (e.key === Qt.Key_Left  || (plain && e.key === Qt.Key_H)) { root.move(-1); }
-                        else if (e.key === Qt.Key_Down  || (plain && e.key === Qt.Key_J)) { root.move(root.columns); }
-                        else if (e.key === Qt.Key_Up    || (plain && e.key === Qt.Key_K)) { root.move(-root.columns); }
-                        else if (e.key === Qt.Key_Home) { root.selected = 0; }
-                        else if (e.key === Qt.Key_End)  { root.selected = root.results.length - 1; }
-                        else { return; }
-                        e.accepted = true;
-                    }
-
-                    Row {
+                    ListView {
                         anchors.fill: parent
-                        spacing: 0
+                        anchors.topMargin: 8
+                        model: root.cats
+                        boundsBehavior: Flickable.StopAtBounds
+                        clip: true
 
-                        // Category sidebar.
-                        Rectangle {
-                            width: 190
-                            height: parent.height
-                            color: Theme.base
+                        delegate: Rectangle {
+                            required property string modelData
+                            required property int index
+                            width: 190; height: 34
+                            color: index === root.catIndex ? "#11111b" : "transparent"
 
-                            ListView {
+                            MouseArea {
                                 anchors.fill: parent
-                                anchors.topMargin: 8
-                                model: root.cats
-                                boundsBehavior: Flickable.StopAtBounds
-                                clip: true
+                                onClicked: { root.setCat(index); keys.forceActiveFocus(); }
+                            }
 
-                                delegate: Rectangle {
-                                    required property string modelData
-                                    required property int index
-                                    width: 190; height: 34
-                                    color: index === root.catIndex ? "#11111b" : "transparent"
+                            Txt {
+                                anchors.fill: parent
+                                anchors.leftMargin: 14; anchors.rightMargin: 10
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                text: modelData
+                                font.pixelSize: 15
+                                color: index === root.catIndex ? Theme.mauve : Theme.subtext0
+                            }
+                        }
+                    }
+                }
 
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        onClicked: { root.setCat(index); keys.forceActiveFocus(); }
-                                    }
+                Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
 
-                                    Txt {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 14; anchors.rightMargin: 10
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
-                                        text: modelData
-                                        font.pixelSize: 15
-                                        color: index === root.catIndex ? Theme.mauve : Theme.subtext0
-                                    }
+                Column {
+                    width: parent.width - 191
+                    height: parent.height
+                    spacing: 0
+
+                    Item {
+                        width: parent.width
+                        height: parent.height - 34
+
+                    GridView {
+                        id: grid
+                        anchors.fill: parent
+                        clip: true
+                        model: root.results
+                        currentIndex: root.selected
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        // ~250px tiles, whole number of columns, 16:9.
+                        readonly property int cols: Math.max(1, Math.floor(width / 250))
+                        cellWidth: Math.floor(width / cols)
+                        cellHeight: Math.round(cellWidth * 9 / 16)
+                        onColsChanged: root.columns = cols
+                        Component.onCompleted: root.columns = cols
+
+                        // Four extra rows kept alive around the viewport -- enough
+                        // that a fast wheel scroll never outruns the decoders,
+                        // still a bounded number of 400x225 pixmaps.
+                        cacheBuffer: cellHeight * 4
+
+                        flickDeceleration: 3000
+                        maximumFlickVelocity: 6000
+
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
+
+                        delegate: Item {
+                            required property var modelData
+                            required property int index
+                            width: grid.cellWidth
+                            height: grid.cellHeight
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 3
+                                color: Theme.surface0
+                                border.width: 2
+                                border.color: index === root.selected ? Theme.mauve : "transparent"
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    source: "file://" + modelData.thumb
+                                    // Thumbs are natively 400x225, so this is a 1:1
+                                    // decode with no rescale. Deliberately NOT
+                                    // Wallpaper.decodeSize -- that value is the
+                                    // full-screen shared-buffer size and pointing
+                                    // tiles at it would decode originals-sized
+                                    // pixmaps and blow up the wallpaper layer.
+                                    sourceSize.width: 400
+                                    sourceSize.height: 225
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true   // never block the UI thread on scroll
+                                    cache: true
+                                    clip: true
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: root.selected = index
+                                    onClicked: { root.selected = index; root.apply(true); }
                                 }
                             }
                         }
+                    }
 
-                        Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
+                    // Flickable's default wheel step is a few pixels (barely moves
+                    // on a 250px tile grid); a full row per notch overshoots. Half a
+                    // row sits between. NoButton so clicks/hover still reach tiles.
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.NoButton
+                        onWheel: function (w) {
+                            var step = grid.cellHeight * ((w.modifiers & Qt.ShiftModifier) ? 2 : 0.5);
+                            var max = Math.max(0, grid.contentHeight - grid.height);
+                            grid.contentY = Math.max(0, Math.min(max,
+                                grid.contentY + (w.angleDelta.y > 0 ? -step : step)));
+                        }
+                    }
+                    }
 
-                        Column {
-                            width: parent.width - 191
-                            height: parent.height
-                            spacing: 0
+                    // Footer: what's selected, where you are, and the keys.
+                    Rectangle {
+                        width: parent.width
+                        height: 34
+                        color: Theme.base
 
-                            Item {
-                                width: parent.width
-                                height: parent.height - 34
+                        Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
 
-                            GridView {
-                                id: grid
-                                anchors.fill: parent
-                                clip: true
-                                model: root.results
-                                currentIndex: root.selected
-                                boundsBehavior: Flickable.StopAtBounds
+                        Row {
+                            id: info
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, hints.x - info.x - 16)
+                            spacing: 10
 
-                                // ~250px tiles, whole number of columns, 16:9.
-                                readonly property int cols: Math.max(1, Math.floor(width / 250))
-                                cellWidth: Math.floor(width / cols)
-                                cellHeight: Math.round(cellWidth * 9 / 16)
-                                onColsChanged: root.columns = cols
-                                Component.onCompleted: root.columns = cols
-
-                                // Four extra rows kept alive around the viewport -- enough
-                                // that a fast wheel scroll never outruns the decoders,
-                                // still a bounded number of 400x225 pixmaps.
-                                cacheBuffer: cellHeight * 4
-
-                                flickDeceleration: 3000
-                                maximumFlickVelocity: 6000
-
-                                onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
-
-                                delegate: Item {
-                                    required property var modelData
-                                    required property int index
-                                    width: grid.cellWidth
-                                    height: grid.cellHeight
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        anchors.margins: 3
-                                        color: Theme.surface0
-                                        border.width: 2
-                                        border.color: index === root.selected ? Theme.mauve : "transparent"
-
-                                        Image {
-                                            anchors.fill: parent
-                                            anchors.margins: 2
-                                            source: "file://" + modelData.thumb
-                                            // Thumbs are natively 400x225, so this is a 1:1
-                                            // decode with no rescale. Deliberately NOT
-                                            // Wallpaper.decodeSize -- that value is the
-                                            // full-screen shared-buffer size and pointing
-                                            // tiles at it would decode originals-sized
-                                            // pixmaps and blow up the wallpaper layer.
-                                            sourceSize.width: 400
-                                            sourceSize.height: 225
-                                            fillMode: Image.PreserveAspectCrop
-                                            asynchronous: true   // never block the UI thread on scroll
-                                            cache: true
-                                            clip: true
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            onEntered: root.selected = index
-                                            onClicked: { root.selected = index; root.apply(true); }
-                                        }
-                                    }
+                            Txt {
+                                // Yields to the dimensions label, which never elides.
+                                width: Math.max(0, info.width - dim.width - info.spacing)
+                                elide: Text.ElideMiddle
+                                font.pixelSize: 13
+                                color: Theme.subtext0
+                                text: {
+                                    var p = root.curPath();
+                                    return p === "" ? "" : p.substring(p.lastIndexOf("/") + 1);
                                 }
                             }
 
-                            // Flickable's default wheel step is a few pixels (barely moves
-                            // on a 250px tile grid); a full row per notch overshoots. Half a
-                            // row sits between. NoButton so clicks/hover still reach tiles.
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.NoButton
-                                onWheel: function (w) {
-                                    var step = grid.cellHeight * ((w.modifiers & Qt.ShiftModifier) ? 2 : 0.5);
-                                    var max = Math.max(0, grid.contentHeight - grid.height);
-                                    grid.contentY = Math.max(0, Math.min(max,
-                                        grid.contentY + (w.angleDelta.y > 0 ? -step : step)));
-                                }
+                            Txt {
+                                id: dim
+                                font.pixelSize: 13
+                                color: Theme.surface1
+                                text: root.curDim
                             }
-                            }
+                        }
 
-                            // Footer: what's selected, where you are, and the keys.
-                            Rectangle {
-                                width: parent.width
-                                height: 34
-                                color: Theme.base
-
-                                Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
-
-                                Row {
-                                    id: info
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 12
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: Math.max(0, hints.x - info.x - 16)
-                                    spacing: 10
-
-                                    Txt {
-                                        // Yields to the dimensions label, which never elides.
-                                        width: Math.max(0, info.width - dim.width - info.spacing)
-                                        elide: Text.ElideMiddle
-                                        font.pixelSize: 13
-                                        color: Theme.subtext0
-                                        text: {
-                                            var p = root.curPath();
-                                            return p === "" ? "" : p.substring(p.lastIndexOf("/") + 1);
-                                        }
-                                    }
-
-                                    Txt {
-                                        id: dim
-                                        font.pixelSize: 13
-                                        color: Theme.surface1
-                                        text: root.curDim
-                                    }
-                                }
-
-                                Txt {
-                                    id: hints
-                                    anchors.right: parent.right
-                                    anchors.rightMargin: 12
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    font.pixelSize: 13
-                                    color: Theme.surface1
-                                    text: (root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0")
-                                          + "   ⏎ set   ␣ preview   ⇥ category"
-                                }
-                            }
+                        Txt {
+                            id: hints
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.pixelSize: 13
+                            color: Theme.surface1
+                            text: (root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0")
+                                  + "   ⏎ set   ␣ preview   ⇥ category"
                         }
                     }
                 }

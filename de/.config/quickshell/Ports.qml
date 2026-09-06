@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 
 // eww `ports` window. Bottom-left, y=300, 210 wide.
@@ -13,14 +12,11 @@ Widget {
 
     property var ports: []   // [{ proto, port, process }]
 
-    Process {
-        id: proc
+    Poll {
         command: [Quickshell.env("HOME") + "/.config/quickshell/scripts/ports.sh"]
-        stdout: StdioCollector {
-            onStreamFinished: { try { root.ports = JSON.parse(text) || []; } catch (e) { root.ports = []; } }
-        }
+        interval: 5000
+        onData: function (text) { try { root.ports = JSON.parse(text) || []; } catch (e) { root.ports = []; } }
     }
-    Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: proc.running = true }
 
     Column {
         anchors.fill: parent

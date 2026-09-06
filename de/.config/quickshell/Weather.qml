@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 
 // eww `weather` window. Bottom-left, y=600, 140 wide.
@@ -16,18 +15,15 @@ Widget {
     property string humidity: ""
     property string wind: ""
 
-    Process {
-        id: proc
+    Poll {
         command: ["sh", "-c", "curl -s 'wttr.in/?format=%c%t|%C|%h|%w' 2>/dev/null"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var p = text.replace(/\x1b\[[0-9;]*m/g, "").trim().split("|");  // strip ANSI colour codes
-                if (p.length < 4) return;
-                root.temp = p[0]; root.condition = p[1]; root.humidity = p[2]; root.wind = p[3];
-            }
+        interval: 600000
+        onData: function (text) {
+            var p = text.replace(/\x1b\[[0-9;]*m/g, "").trim().split("|");  // strip ANSI colour codes
+            if (p.length < 4) return;
+            root.temp = p[0]; root.condition = p[1]; root.humidity = p[2]; root.wind = p[3];
         }
     }
-    Timer { interval: 600000; running: true; repeat: true; triggeredOnStart: true; onTriggered: proc.running = true }
 
     Column {
         anchors.fill: parent

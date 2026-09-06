@@ -32,7 +32,7 @@ PanelWindow {
         spacing: win.s(10)
 
         Repeater {
-            model: Notifs.live
+            model: NotificationService.live
 
             delegate: Rectangle {
                 id: card

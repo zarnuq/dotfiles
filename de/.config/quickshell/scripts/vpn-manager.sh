@@ -13,7 +13,7 @@ PID_FILE="/tmp/eww-openvpn.pid"
 STATUS_FILE="/tmp/eww-openvpn.status"
 LOG_FILE="/tmp/eww-openvpn.log"
 
-# Escalation command: prefer doas (this box symlinks sudo->doas), fall back to
+# Escalation command: prefer doas (the only one installed here), fall back to
 # sudo so the script stays portable to sudoers systems.
 if command -v doas >/dev/null 2>&1; then
     ESC=doas

@@ -2,7 +2,7 @@ import Quickshell
 import QtQuick
 
 // eww `notifications` window. Bottom-left, x=140 y=600, 280 wide.
-// History + DND now come from the in-process Notifs server (was makoctl).
+// History + DND now come from the in-process notification server (was makoctl).
 Widget {
     id: root
     anchors { bottom: true; left: true }
@@ -26,14 +26,14 @@ Widget {
             HeaderBtn {
                 id: dnd
                 leftMargin: root.s(8)
-                icon: Notifs.paused ? "󰂛" : "󰂚"; size: root.s(14)
-                onClicked: Notifs.toggleDnd()
+                icon: NotificationService.paused ? "󰂛" : "󰂚"; size: root.s(14)
+                onClicked: NotificationService.toggleDnd()
             }
             HeaderBtn {
                 id: clear
                 leftMargin: root.s(8)
                 icon: "󰆴"; size: root.s(14)
-                onClicked: Notifs.clear()
+                onClicked: NotificationService.clear()
             }
         }
 
@@ -42,7 +42,7 @@ Widget {
             height: parent.height - header.height - parent.spacing
             clip: true
             spacing: root.s(5)
-            model: Notifs.history.slice(0, 5)
+            model: NotificationService.history.slice(0, 5)
 
             delegate: Rectangle {
                 id: notif

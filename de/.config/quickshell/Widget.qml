@@ -5,8 +5,8 @@ import QtQuick
 // Base window for every eww-style widget.
 //
 // Handles the boilerplate that was identical across all eww `defwindow`s:
-//   - pin to DP-2 (eww :monitor 1)
-//   - per-screen scale + s() helper (mirrors the runit service: DP-2 -> 1.0, else 0.85)
+//   - pin to Config.mainScreen (eww :monitor 1)
+//   - per-machine scale + s() helper (laptop panel -> 0.85, main PC -> 1.0)
 //   - background layer + no exclusive zone
 //   - the flat card chrome (base bg, surface0 border, radius 0, padded)
 //
@@ -22,18 +22,19 @@ PanelWindow {
     property int stackLayer: WlrLayer.Bottom // eww "bottom"; tray overrides to Overlay
 
     // When set (e.g. one instance per output via Variants), pin to this screen
-    // instead of the DP-2 default. Lets a widget be cloned onto every monitor.
+    // instead of the main-screen default. Lets a widget be cloned onto every monitor.
     property var forceScreen: null
 
-    // Pin to forceScreen if given, else DP-2, falling back to the first screen.
+    // Pin to forceScreen if given, else the main screen, falling back to the
+    // first output — which on the laptop is the only one there is.
     Component.onCompleted: {
         if (win.forceScreen) { win.screen = win.forceScreen; return; }
         for (var i = 0; i < Quickshell.screens.length; i++)
-            if (Quickshell.screens[i].name === "DP-2") { win.screen = Quickshell.screens[i]; return; }
+            if (Quickshell.screens[i].name === Config.mainScreen) { win.screen = Quickshell.screens[i]; return; }
         if (Quickshell.screens.length > 0)
             win.screen = Quickshell.screens[0];
     }
-    property real scale: (screen && screen.name === "DP-2") ? 1.0 : 0.85
+    property real scale: Config.onLaptop ? 0.85 : 1.0
     function s(n) { return Math.round(n * scale); }
 
     color: "transparent"

@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 
 // Top of the left bar's lower stack: sits directly under the clock (14 + 150),
@@ -15,12 +14,11 @@ Widget {
     readonly property string script: Quickshell.env("HOME") + "/.local/bin/brightness.sh"
     property int level: 100
 
-    Process {
-        id: getProc
+    Poll {
         command: [root.script, "get"]
-        stdout: StdioCollector { onStreamFinished: if (!drag.pressed) root.level = Number(text.trim()) || root.level }
+        interval: 2000
+        onData: function (text) { if (!drag.pressed) root.level = Number(text.trim()) || root.level; }
     }
-    Timer { interval: 2000; running: true; repeat: true; triggeredOnStart: true; onTriggered: getProc.running = true }
 
     function apply(px, w) {
         root.level = Math.round(Math.max(10, Math.min(100, 10 + (px / w) * 90)));

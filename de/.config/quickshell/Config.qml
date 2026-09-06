@@ -9,6 +9,17 @@ import Quickshell.Io
 //  costs zero RAM and starts no daemons.  After editing: sv restart quickshell.
 // ─────────────────────────────────────────────────────────────────────────
 Singleton {
+    // Which machine are we on? These dotfiles are shared between the desktop
+    // (multi-monitor; mainScreen is its middle one) and the laptop (eDP-1 only),
+    // so every "where do widgets go / how big are they" decision keys off
+    // whether mainScreen is actually connected.
+    property string mainScreen: "DP-2"
+    readonly property bool onLaptop: {
+        for (var i = 0; i < Quickshell.screens.length; i++)
+            if (Quickshell.screens[i].name === mainScreen) return false;
+        return true;
+    }
+
     // Background
     property bool wallpaper: true            // per-screen wallpaper (replaces awww)
     property bool wallpaperPicker: true      // thumbnail grid picker (`qs ipc call wallpaperpicker toggle`)
@@ -17,11 +28,15 @@ Singleton {
     property bool notificationPopups: true   // toast daemon / D-Bus server (replaces mako)
     property bool notificationHistory: true  // history panel + DND toggle widget
 
+    // Feedback
+    property bool osd: true                  // transient volume/mic/brightness/sink indicator
+
     // Session
     property bool lock: true // idle-lock + lock screen (replaces swayidle/swaylock)
     property bool clipboard: true            // cliphist text+image watchers (replaces the cliphist service)
     property bool launcher: true             // drun app launcher (replaces rofi; `qs ipc call launcher toggle`)
     property bool calendarWeek: true         // Outlook-style week grid overlay (`qs ipc call calendar toggle`)
+    property bool powerMenu: true            // lock/logout/reboot/poweroff (`qs ipc call power toggle`)
 
     // Ambient widgets (the DP-2 panel)
     property bool clock: true

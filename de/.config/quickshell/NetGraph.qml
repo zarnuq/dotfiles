@@ -40,15 +40,12 @@ Widget {
     Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.sample() }
 
     // IP list: real NICs + tunnels that have a carrier and an address.
-    Process {
-        id: ipProc
+    Poll {
         command: ["sh", "-c",
             "ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname | test(\"^(eth|en|wl|tun|tap|wg)\")) | select(.flags | index(\"LOWER_UP\")) | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'"]
-        stdout: StdioCollector {
-            onStreamFinished: { try { root.ips = JSON.parse(text) || []; } catch (e) { root.ips = []; } }
-        }
+        interval: 10000
+        onData: function (text) { try { root.ips = JSON.parse(text) || []; } catch (e) { root.ips = []; } }
     }
-    Timer { interval: 10000; running: true; repeat: true; triggeredOnStart: true; onTriggered: ipProc.running = true }
 
     Column {
         anchors.fill: parent
