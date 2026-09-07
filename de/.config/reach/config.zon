@@ -108,7 +108,6 @@
         .{ .key = "Super+d", .action = .{ .spawn = "GDK_BACKEND=wayland emacs" } },
         .{ .key = "Super+space", .action = .{ .spawn = "qs ipc call launcher toggle" } },
         .{ .key = "Super+c", .action = .{ .spawn = "qs ipc call calendar toggle" } },
-        .{ .key = "Super+Escape", .action = .{ .spawn = "qs ipc call power toggle" } },
         .{ .key = "Super+BackSpace", .action = .{ .spawn = "kitty --class float" } },
         .{ .key = "Super+v", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/clipfzf" } },
         .{ .key = "Super+x", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/killfzf" } },
@@ -123,7 +122,7 @@
         .{ .key = "Super+r", .chord = .{
             .{ .key = "d", .action = .{ .spawn = "legcord" } },
             .{ .key = "b", .action = .{ .spawn = "brave" } },
-            .{ .key = "a", .action = .{ .spawn = "kitty --class float -e pulsemixer" } },
+            .{ .key = "a", .action = .{ .spawn = "qs ipc call audio toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },
 
@@ -145,7 +144,7 @@
         .{ .key = "Alt+Left", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ -5% && kill -36 $(pidof reach)" } },
         .{ .key = "Alt+Right", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ +5% && kill -36 $(pidof reach)" } },
         .{ .key = "Alt+End", .action = .{ .spawn = "pactl set-source-mute @DEFAULT_SOURCE@ toggle && kill -36 $(pidof reach)" } },
-        .{ .key = "Alt+bracketleft", .action = .{ .spawn = "$HOME/.local/bin/flip.sh && touch /tmp/update_audio && kill -35 $(pidof reach)" } },
+        .{ .key = "Alt+bracketleft", .action = .{ .spawn = "$HOME/.local/bin/flip.sh" } },
 
         // brightness / redshift
         .{ .key = "Super+Alt+Left", .action = .{ .spawn = "$HOME/.local/bin/brightness.sh down" } },

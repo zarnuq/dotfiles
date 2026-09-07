@@ -32,11 +32,11 @@ Singleton {
     property bool osd: true                  // transient volume/mic/brightness/sink indicator
 
     // Session
-    property bool lock: true // idle-lock + lock screen (replaces swayidle/swaylock)
+    property bool session: true              // idle-lock + lock screen + session menu (`qs ipc call power toggle`)
     property bool clipboard: true            // cliphist text+image watchers (replaces the cliphist service)
     property bool launcher: true             // drun app launcher (replaces rofi; `qs ipc call launcher toggle`)
     property bool calendarWeek: true         // Outlook-style week grid overlay (`qs ipc call calendar toggle`)
-    property bool powerMenu: true            // lock/logout/reboot/poweroff (`qs ipc call power toggle`)
+    property bool audio: true                // sink/source + per-app volume mixer (`qs ipc call audio toggle`)
 
     // Ambient widgets (the DP-2 panel)
     property bool clock: true
