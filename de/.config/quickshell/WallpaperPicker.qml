@@ -264,10 +264,15 @@ Picker {
                                     clip: true
                                 }
 
+                                // hoverMoved, not entered: arrowing through the
+                                // grid scrolls it, sliding a different tile under
+                                // a motionless cursor — which used to hand the
+                                // selection straight back to whatever landed there.
                                 MouseArea {
+                                    id: hover
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onEntered: root.selected = index
+                                    onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = index; }
                                     onClicked: { root.selected = index; root.apply(true); }
                                 }
                             }

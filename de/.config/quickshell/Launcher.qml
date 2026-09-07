@@ -38,23 +38,6 @@ Picker {
     }
     onQueryChanged: root.selected = 0
 
-    // Hover must not fight the keyboard. Qt delivers a hover move whenever the
-    // row *under* the cursor changes — including when arrowing down scrolls the
-    // list past a motionless pointer — so neither `entered` nor `positionChanged`
-    // is evidence that the user pointed at anything. Compare window-space
-    // coordinates and only take the selection when they actually moved. The
-    // first event after opening merely records the baseline, so a launcher
-    // mapped under the cursor doesn't preselect the row it happened to land on
-    // (Super+Space Return would have launched it).
-    property point lastPointer: Qt.point(-1, -1)
-    property bool pointerSeen: false
-
-    function hoverSelect(p, i) {
-        if (!root.pointerSeen) { root.pointerSeen = true; root.lastPointer = p; return; }
-        if (Math.abs(p.x - root.lastPointer.x) < 1 && Math.abs(p.y - root.lastPointer.y) < 1) return;
-        root.lastPointer = p;
-        root.selected = i;
-    }
     function launch() {
         if (root.selected < 0 || root.selected >= root.results.length) return;
         root.results[root.selected].execute();
@@ -69,7 +52,6 @@ Picker {
             // Called by Picker every time the box appears on an output.
             function reset() {
                 field.text = ""; root.query = ""; root.selected = 0;
-                root.pointerSeen = false;
                 field.forceActiveFocus();
             }
 
@@ -143,9 +125,10 @@ Picker {
                         // whatever the pointer happened to sit on. Only real
                         // pointer movement should steal it.
                         MouseArea {
+                            id: hover
                             anchors.fill: parent
                             hoverEnabled: true
-                            onPositionChanged: function (e) { root.hoverSelect(mapToItem(null, e.x, e.y), index); }
+                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = index; }
                             onClicked: { root.selected = index; root.launch(); }
                         }
 

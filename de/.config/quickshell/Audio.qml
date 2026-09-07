@@ -211,11 +211,16 @@ Picker {
                             font.pixelSize: root.s(13)
                         }
 
+                        // The rows don't scroll, so hover can't fight the
+                        // keyboard here — but the menu still maps under wherever
+                        // the cursor already is, and Return on a preselected
+                        // device row would switch the default sink unasked.
                         MouseArea {
+                            id: hover
                             anchors.fill: parent
                             visible: !rowItem.isHeader
                             hoverEnabled: true
-                            onEntered: root.selected = rowItem.index
+                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = rowItem.index; }
                             onClicked: { root.selected = rowItem.index; root.activate(rowItem.index); }
                         }
 

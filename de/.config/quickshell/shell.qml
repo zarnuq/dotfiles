@@ -2,30 +2,37 @@ import Quickshell
 
 // Entry point. quickshell loads ~/.config/quickshell/shell.qml by default.
 //
-// One line per feature. Each is gated by a flag in Config.qml (the switchboard):
-// LazyLoader.active = Config.<flag>, so a feature toggled off is never built and
-// costs zero RAM. To enable/disable a part, edit Config.qml — not this file.
+// One line per feature, gated by the catalogue in Config.qml (the switchboard):
+// LazyLoader.active = Config.on("<key>"), so a feature toggled off is never built
+// and costs zero RAM — and toggling one at runtime builds or tears it down live.
+// To enable/disable a part, use the settings menu (Super+Shift+Escape), which writes
+// ~/.local/state/quickshell/features.json — don't edit this file or Config.qml.
 // (active: is synchronous, so it loads at startup without needing a window first.)
+//
+// Settings is the one thing with no flag: it must always be built, or turning it
+// off would leave no way to turn anything back on.
 ShellRoot {
-    LazyLoader { active: Config.wallpaper;           WallpaperView {} }
-    LazyLoader { active: Config.wallpaperPicker;     WallpaperPicker {} }
-    LazyLoader { active: Config.notificationPopups;  NotificationPopups {} }
-    LazyLoader { active: Config.clipboard;           Clipboard {} }
-    LazyLoader { active: Config.launcher;            Launcher {} }
-    LazyLoader { active: Config.calendarWeek;        CalendarWeek {} }
-    LazyLoader { active: Config.session;             Session {} }
-    LazyLoader { active: Config.audio;               Audio {} }
-    LazyLoader { active: Config.clock;               Clock {} }
-    LazyLoader { active: Config.cpuGraph;            CpuGraph {} }
-    LazyLoader { active: Config.netGraph;            NetGraph {} }
-    LazyLoader { active: Config.ports;               Ports {} }
-    LazyLoader { active: Config.vpn;                 Vpn {} }
-    LazyLoader { active: Config.mpd;                 Mpd {} }
-    LazyLoader { active: Config.weather;             Weather {} }
-    LazyLoader { active: Config.notificationHistory; Notifications {} }
-    LazyLoader { active: Config.calendar;            Calendar {} }
-    LazyLoader { active: Config.brightness;          Brightness {} }
-    LazyLoader { active: Config.battery && Config.batteryPresent; Battery {} }
-    LazyLoader { active: Config.tray;                Tray {} }
-    LazyLoader { active: Config.osd;                 Osd {} }
+    Settings {}
+
+    LazyLoader { active: Config.on("wallpaper");           WallpaperView {} }
+    LazyLoader { active: Config.on("wallpaperPicker");     WallpaperPicker {} }
+    LazyLoader { active: Config.on("notificationPopups");  NotificationPopups {} }
+    LazyLoader { active: Config.on("clipboard");           Clipboard {} }
+    LazyLoader { active: Config.on("launcher");            Launcher {} }
+    LazyLoader { active: Config.on("calendarWeek");        CalendarWeek {} }
+    LazyLoader { active: Config.on("session");             Session {} }
+    LazyLoader { active: Config.on("audio");               Audio {} }
+    LazyLoader { active: Config.on("clock");               Clock {} }
+    LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
+    LazyLoader { active: Config.on("netGraph");            NetGraph {} }
+    LazyLoader { active: Config.on("ports");               Ports {} }
+    LazyLoader { active: Config.on("vpn");                 Vpn {} }
+    LazyLoader { active: Config.on("mpd");                 Mpd {} }
+    LazyLoader { active: Config.on("weather");             Weather {} }
+    LazyLoader { active: Config.on("notificationHistory"); Notifications {} }
+    LazyLoader { active: Config.on("calendar");            Calendar {} }
+    LazyLoader { active: Config.on("brightness");          Brightness {} }
+    LazyLoader { active: Config.on("battery") && Config.batteryPresent; Battery {} }
+    LazyLoader { active: Config.on("tray");                Tray {} }
+    LazyLoader { active: Config.on("osd");                 Osd {} }
 }

@@ -45,7 +45,30 @@ Scope {
     function hide()   { root.open = false; }
     function toggle() { root.open = !root.open; }
 
-    onOpenChanged: if (open) { activeScreen = ""; fallback.restart(); root.opened(); }
+    onOpenChanged: if (open) { activeScreen = ""; pointerSeen = false; fallback.restart(); root.opened(); }
+
+    // Hover must not fight the keyboard. Qt delivers a hover move whenever the
+    // row *under* the cursor changes — including when arrowing through a list
+    // scrolls it past a motionless pointer — so neither `entered` nor
+    // `positionChanged` is evidence that the user pointed at anything. A picker
+    // asks this before letting hover take the selection: true only when the
+    // pointer physically moved in window space since the last hover event.
+    //
+    // The first event after opening only records the baseline (pointerSeen is
+    // cleared on open), so an overlay mapped under the cursor never preselects
+    // the row it happened to land on — Return would otherwise launch or switch
+    // to something nobody pointed at.
+    property point lastPointer: Qt.point(-1, -1)
+    property bool pointerSeen: false
+
+    function hoverMoved(item, e) {
+        var p = item.mapToItem(null, e.x, e.y);
+        var moved = root.pointerSeen
+                    && (Math.abs(p.x - root.lastPointer.x) >= 1 || Math.abs(p.y - root.lastPointer.y) >= 1);
+        root.pointerSeen = true;
+        root.lastPointer = p;
+        return moved;
+    }
 
     Timer {
         id: fallback
