@@ -22,6 +22,7 @@ alias nixup='nix flake update --flake ~/.config/home-manager && home-manager swi
 alias nixgc='nix-collect-garbage -d && nix store optimise'
 alias pyserver='python -m http.server'
 alias c='claude'
+alias cs='claude --dangerously-skip-permissions'
 alias x='codex'
 alias :q='exit'
 function y() {
