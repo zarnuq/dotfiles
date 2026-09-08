@@ -152,6 +152,7 @@ in
     thc-hydra
     swaks
     websocat
+    qFlipper
 
   ];
 }
