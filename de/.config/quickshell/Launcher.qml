@@ -16,7 +16,6 @@ Picker {
     heightFraction: 0.5
 
     property string query: ""
-    property int selected: 0
 
     // A live binding, NOT a snapshot. DesktopEntries scans asynchronously —
     // `applications.values` is empty at load and fills ~50ms later — so a list
@@ -116,7 +115,7 @@ Picker {
                         required property var modelData
                         required property int index
                         width: list.width; height: 38
-                        color: index === root.selected ? "#11111b" : "transparent"
+                        color: index === root.selected ? Theme.rowSelectBg : "transparent"
 
                         // positionChanged, NOT entered: arrowing down scrolls
                         // the view, which slides a different row under a
@@ -147,7 +146,7 @@ Picker {
                             Txt {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.name
-                                color: index === root.selected ? "#bac2de" : Theme.text
+                                color: index === root.selected ? Theme.rowSelectFg : Theme.text
                                 font.pixelSize: 19
                             }
                         }

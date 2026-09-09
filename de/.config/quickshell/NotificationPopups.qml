@@ -8,14 +8,16 @@ import QtQuick
 PanelWindow {
     id: win
 
-    // Show on DP-2 (where the widgets live).
+    // Show on the main screen (where the widgets live), as Widget does — this
+    // had its own copy of the pin and of the scale rule, with "DP-2" written
+    // out rather than read from Config.
     Component.onCompleted: {
-        for (var i = 0; i < Quickshell.screens.length; i++)
-            if (Quickshell.screens[i].name === "DP-2") { win.screen = Quickshell.screens[i]; return; }
-        if (Quickshell.screens.length > 0) win.screen = Quickshell.screens[0];
+        var target = Config.screen(Config.mainScreen)
+                     || (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        if (target) win.screen = target;
     }
-    property real scale: (screen && screen.name === "DP-2") ? 1.0 : 0.85
-    function s(n) { return Math.round(n * scale); }
+    property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-notifications"

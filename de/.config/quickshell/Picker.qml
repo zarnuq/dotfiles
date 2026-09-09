@@ -39,6 +39,30 @@ Scope {
     property bool open: false
     property string activeScreen: ""
 
+    // ── the selection ────────────────────────────────────────────────────
+    // Every picker has one, and the two menu-shaped ones (Settings, Audio)
+    // additionally lay their content out as a flat `rows` list in which some
+    // entries are non-selectable group headers. Both carried verbatim copies of
+    // all three helpers below; a picker that doesn't use `rows` just leaves it
+    // empty and drives `selected` itself, as Launcher and WallpaperPicker do.
+    property var rows: []
+    property int selected: 0
+
+    function selectable(i) { return i >= 0 && i < root.rows.length && root.rows[i].kind !== "header"; }
+
+    function firstSelectable() {
+        for (var i = 0; i < root.rows.length; i++)
+            if (root.rows[i].kind !== "header") return i;
+        return 0;
+    }
+
+    // Headers aren't stops on the way down the list; step over them.
+    function move(delta) {
+        var i = root.selected + delta;
+        while (i >= 0 && i < root.rows.length && root.rows[i].kind === "header") i += delta;
+        if (root.selectable(i)) root.selected = i;
+    }
+
     signal opened()
 
     function show()   { root.open = true; }
@@ -80,10 +104,10 @@ Scope {
     // laptop there is no DP-2, and latching a name that matches no output would
     // leave the picker mapped but invisible on every monitor.
     function defaultScreen() {
-        var s = Quickshell.screens;
-        for (var i = 0; i < s.length; i++)
-            if (s[i].name === Config.mainScreen) return s[i].name;
-        return s.length > 0 ? s[0].name : "";
+        var m = Config.screen(Config.mainScreen);
+        if (m) return m.name;
+        var all = Quickshell.screens;
+        return all.length > 0 ? all[0].name : "";
     }
 
     IpcHandler {

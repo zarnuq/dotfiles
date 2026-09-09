@@ -28,14 +28,15 @@ PanelWindow {
     // Pin to forceScreen if given, else the main screen, falling back to the
     // first output — which on the laptop is the only one there is.
     Component.onCompleted: {
-        if (win.forceScreen) { win.screen = win.forceScreen; return; }
-        for (var i = 0; i < Quickshell.screens.length; i++)
-            if (Quickshell.screens[i].name === Config.mainScreen) { win.screen = Quickshell.screens[i]; return; }
-        if (Quickshell.screens.length > 0)
-            win.screen = Quickshell.screens[0];
+        var target = win.forceScreen || Config.screen(Config.mainScreen)
+                     || (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        if (target) win.screen = target;
     }
-    property real scale: Config.onLaptop ? 0.85 : 1.0
-    function s(n) { return Math.round(n * scale); }
+
+    // Scale lives on Config so the surfaces that aren't cards share it; s() is
+    // kept here as a forwarder because every Widget calls it unqualified.
+    property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     color: "transparent"
     exclusiveZone: 0

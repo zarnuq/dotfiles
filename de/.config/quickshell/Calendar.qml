@@ -17,7 +17,7 @@ Widget {
         id: poll
         command: [root.script, "events"]
         interval: 60000
-        onData: function (text) { try { root.events = JSON.parse(text) || []; } catch (e) { root.events = []; } }
+        onJsonData: v => root.events = v || []
     }
 
     Column {

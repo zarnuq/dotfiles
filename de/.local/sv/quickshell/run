@@ -63,4 +63,17 @@ export XDG_CONFIG_HOME="$HOME/.config"
 # QML with explicit Theme colours/fonts, so this only affects icon resolution.
 export QT_QPA_PLATFORMTHEME=gtk3
 
+# Render with QPainter instead of a GL/Vulkan scenegraph. The shell is flat
+# rectangles, text and one wallpaper blit — nothing that needs a GPU — but the
+# scenegraph gives EVERY visible window its own render thread and its own Mesa
+# context, and there are ~15 of them (a wallpaper and a bar per output, plus one
+# per ambient card). On the AMD laptop that measured 589 MB RSS across 135
+# threads; software rendering is the same shell at 260 MB across 22, with no
+# visible difference. The cost is that GPU-only QML types stop working, so don't
+# reach for ShaderEffect / layer.effect / MultiEffect in here (TrayMenu tints its
+# icons with Controls.impl ColorImage, which recolours on the CPU, for this
+# reason). If a wallpaper crossfade ever stutters on the 3x3440x1440 desktop,
+# this line is the one to drop.
+export QT_QUICK_BACKEND=software
+
 exec qs 2>&1

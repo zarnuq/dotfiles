@@ -16,6 +16,14 @@ Singleton {
     readonly property color red:      "#f38ba8"
     readonly property color mauve:    "#cba6f7"
     readonly property color yellow:   "#f9e2af"
+    readonly property color crust:    "#11111b"
+    readonly property color subtext1: "#bac2de"
+
+    // The selected row in a picker list: a flat dark band, and a label lifted
+    // just off the normal text colour. Named because four pickers were each
+    // spelling the same two hex values out by hand.
+    readonly property color rowSelectBg: crust
+    readonly property color rowSelectFg: subtext1
 
     readonly property string font: "JetBrains Mono Nerd Font"
     readonly property int borderRadius: 0   // flat/sharp everywhere

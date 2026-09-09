@@ -17,12 +17,25 @@ Scope {
 
     signal data(string text)
 
+    // Most of these commands print JSON, and every one of their consumers wrote
+    // the same try/catch to turn stdout into a list. `jsonData` carries the
+    // parsed value, or null when the command failed or printed something that
+    // isn't JSON — so a handler is `v => root.items = v || []`.
+    signal jsonData(var value)
+
     function refresh() { proc.running = true; }
 
     Process {
         id: proc
         command: root.command
-        stdout: StdioCollector { onStreamFinished: root.data(text) }
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.data(text);
+                var parsed = null;
+                try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+                root.jsonData(parsed);
+            }
+        }
     }
 
     Timer {

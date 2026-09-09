@@ -44,7 +44,7 @@ Widget {
         command: ["sh", "-c",
             "ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname | test(\"^(eth|en|wl|tun|tap|wg)\")) | select(.flags | index(\"LOWER_UP\")) | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'"]
         interval: 10000
-        onData: function (text) { try { root.ips = JSON.parse(text) || []; } catch (e) { root.ips = []; } }
+        onJsonData: v => root.ips = v || []
     }
 
     Column {

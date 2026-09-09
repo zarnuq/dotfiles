@@ -14,10 +14,15 @@
     .cursor = .{
         .theme = "default",
         .size = 24,
+        // A shake no longer grows the cursor — it runs this. reach detects the
+        // gesture (raw evdev deltas; it has no cursor position to draw at) and
+        // quickshell dims the screen with a clear circle around the pointer.
+        // NOTE: `.command` needs a reach that knows the field — an unknown key
+        // fails the whole ZON parse and drops reach to compiled-in defaults.
         .shake = .{
             .enabled = true,
             .delay = 150,
-            .speed = 600.0,
+            .command = "qs ipc call spotlight flash",
         },
     },
 
@@ -52,8 +57,14 @@
         .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
         .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
         .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
-        .{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000},
-        .{ .name = "eDP-1", .w = 1920, .h = 1200 },
+        // Laptop pair. Both need explicit x/y: with x/y left at the (-1,-1)
+        // default reach never sends set_position, so river leaves every head at
+        // 0,0 and they stack on top of each other. HDMI sits above the laptop
+        // panel, which is centred under it (3840/2 - 1920/2 = 960 in from the
+        // external's left edge). The whole pair is parked past x=4520 so it
+        // stays clear of the desktop's DP block if they are ever live together.
+        .{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
+        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 5960, .y = 2160 },
     },
 
     // --- window rules (dwl rules) ------------------------------------------
@@ -70,27 +81,16 @@
     },
 
     // --- the baked-in status bar -------------------------------------------
-    .bar = .{
-        .font = "JetBrainsMono Nerd Font:size=15",
-        .top = true,
-        .normal_fg = 0x7f849cff,
-        .normal_bg = 0x1e1e2eff,
-        .select_fg = 0xffffffff,
-        .select_bg = 0xcba6f7ff,
-        .status_fg = 0x7f849cff,
-        .status_bg = 0x1e1e2eff,
-        .delim = "|",
-        // someblocks, in-process. Each block = icon ++ first line of command
-        // stdout; re-run every `interval` s and/or on SIGRTMIN+`signal`.
-        .blocks = .{
-            .{ .icon = "", .command = "$HOME/.config/reach/blocks/ip.sh", .interval = 30, .signal = 0 },
-            .{ .icon = "", .command = "$HOME/.config/reach/blocks/audio.sh", .interval = 60, .signal = 1 },
-            .{ .icon = "", .command = "pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | grep -o '[0-9]\\+%' | head -1", .interval = 1, .signal = 1 },
-            .{ .icon = "", .command = "$HOME/.config/reach/blocks/mic.sh", .interval = 1, .signal = 2 },
-            .{ .icon = "", .command = "date '+%a %m/%d %I:%M %p'", .interval = 1, .signal = 0 },
-            .{ .icon = "", .command = "$HOME/.config/reach/blocks/battery.sh", .interval = 30, .signal = 0 },
-        },
-    },
+    // Off: the bar is quickshell's now (Bar.qml), drawn as a layer surface whose
+    // exclusive zone reserves the strip — so reach no longer has to subtract it
+    // from the layout by hand. reach still publishes the desktop/focus/title
+    // state it used to draw, over the socket in its src/ipc.zig; with the bar
+    // off, that socket is the only way any of it leaves the window manager.
+    //
+    // `enabled` needs a reach new enough to KNOW the field: an unknown key fails
+    // the whole parse and reach falls back to its compiled-in defaults — no
+    // binds, no monitor layout. Install the binary before this file.
+    .bar = .{ .enabled = false },
 
     // --- keybindings -------------------------------------------------------
     // Providing `binds` REPLACES the entire default action/spawn/chord keymap
@@ -108,7 +108,6 @@
         .{ .key = "Super+d", .action = .{ .spawn = "GDK_BACKEND=wayland emacs" } },
         .{ .key = "Super+space", .action = .{ .spawn = "qs ipc call launcher toggle" } },
         .{ .key = "Super+Shift+Escape", .action = .{ .spawn = "qs ipc call settings toggle" } },
-        .{ .key = "Super+c", .action = .{ .spawn = "qs ipc call calendar toggle" } },
         .{ .key = "Super+BackSpace", .action = .{ .spawn = "kitty --class float" } },
         .{ .key = "Super+v", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/clipfzf" } },
         .{ .key = "Super+x", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/killfzf" } },
@@ -140,11 +139,11 @@
         .{ .key = "XF86AudioPlay", .action = .{ .spawn = "qs ipc call media playpause" } },
         .{ .key = "XF86AudioPrev", .action = .{ .spawn = "qs ipc call media previous" } },
         .{ .key = "XF86AudioNext", .action = .{ .spawn = "qs ipc call media next" } },
-        .{ .key = "Alt+Up", .action = .{ .spawn = "pactl set-sink-volume @DEFAULT_SINK@ +5% && kill -35 $(pidof reach)" } },
-        .{ .key = "Alt+Down", .action = .{ .spawn = "pactl set-sink-volume @DEFAULT_SINK@ -5% && kill -35 $(pidof reach)" } },
-        .{ .key = "Alt+Left", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ -5% && kill -36 $(pidof reach)" } },
-        .{ .key = "Alt+Right", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ +5% && kill -36 $(pidof reach)" } },
-        .{ .key = "Alt+End", .action = .{ .spawn = "pactl set-source-mute @DEFAULT_SOURCE@ toggle && kill -36 $(pidof reach)" } },
+        .{ .key = "Alt+Up", .action = .{ .spawn = "pactl set-sink-volume @DEFAULT_SINK@ +5%" } },
+        .{ .key = "Alt+Down", .action = .{ .spawn = "pactl set-sink-volume @DEFAULT_SINK@ -5%" } },
+        .{ .key = "Alt+Left", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ -5%" } },
+        .{ .key = "Alt+Right", .action = .{ .spawn = "pactl set-source-volume @DEFAULT_SOURCE@ +5%" } },
+        .{ .key = "Alt+End", .action = .{ .spawn = "pactl set-source-mute @DEFAULT_SOURCE@ toggle" } },
         .{ .key = "Alt+bracketleft", .action = .{ .spawn = "$HOME/.local/bin/flip.sh" } },
 
         // brightness / redshift

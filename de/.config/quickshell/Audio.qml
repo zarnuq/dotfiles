@@ -15,8 +15,8 @@ Picker {
     ipcTarget: "audio"
     allScreens: false
 
-    readonly property real scale: Config.onLaptop ? 0.85 : 1.0
-    function s(n) { return Math.round(n * scale); }
+    readonly property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     // Nodes only publish `.audio` (and their properties) while something holds
     // a binding on them, and the menu has to be correct in the frame it opens —
@@ -30,7 +30,7 @@ Picker {
     // media.class rather than isSink/isStream: a playback stream reports
     // isSink true as well (it feeds one), so the flags alone can't tell an
     // output device from an app playing to it.
-    readonly property var rows: {
+    rows: {
         var all = Pipewire.nodes.values;
         var sinks = [], sources = [], streams = [];
         for (var i = 0; i < all.length; i++) {
@@ -80,21 +80,6 @@ Picker {
         for (var i = 0; i < rows.length; i++)
             h += rows[i].kind === "header" ? headerHeight : rowHeight;
         return Math.max(h, s(120));
-    }
-
-    property int selected: 0
-
-    function selectable(i) { return i >= 0 && i < rows.length && rows[i].kind !== "header"; }
-
-    // Headers aren't stops on the way down the list; step over them.
-    function move(delta) {
-        var i = selected + delta;
-        while (i >= 0 && i < rows.length && rows[i].kind === "header") i += delta;
-        if (selectable(i)) selected = i;
-    }
-    function firstSelectable() {
-        for (var i = 0; i < rows.length; i++) if (rows[i].kind !== "header") return i;
-        return 0;
     }
 
     function setVolume(row, v) {
@@ -187,7 +172,7 @@ Picker {
                             visible: rowItem.sel || rowItem.isDefault
                             color: rowItem.isDefault
                                    ? Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, rowItem.sel ? 0.22 : 0.12)
-                                   : "#11111b"
+                                   : Theme.rowSelectBg
                         }
 
                         Rectangle {
@@ -251,7 +236,7 @@ Picker {
                                 width: parent.width - root.s(24) - root.s(150) - root.s(46) - parent.spacing * 3
                                 elide: Text.ElideRight
                                 text: rowItem.isHeader ? "" : root.label(rowItem.modelData)
-                                color: rowItem.sel ? "#bac2de" : Theme.text
+                                color: rowItem.sel ? Theme.rowSelectFg : Theme.text
                                 font.pixelSize: root.s(15)
                             }
 

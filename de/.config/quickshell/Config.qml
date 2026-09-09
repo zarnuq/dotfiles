@@ -29,11 +29,26 @@ Singleton {
     // so every "where do widgets go / how big are they" decision keys off
     // whether mainScreen is actually connected.
     property string mainScreen: "DP-2"
-    readonly property bool onLaptop: {
-        for (var i = 0; i < Quickshell.screens.length; i++)
-            if (Quickshell.screens[i].name === mainScreen) return false;
-        return true;
+
+    /// The output with this name, or null if it isn't connected.
+    // "Which monitor?" was asked from four places — the widget card's pin, the
+    // picker's fallback, the notification popups' pin, and onLaptop itself —
+    // and every one of them walked Quickshell.screens with its own loop.
+    function screen(name) {
+        var all = Quickshell.screens;
+        for (var i = 0; i < all.length; i++)
+            if (all[i].name === name) return all[i];
+        return null;
     }
+
+    readonly property bool onLaptop: root.screen(mainScreen) === null
+
+    // The shell's one scale factor: the laptop's smaller panel gets everything
+    // at 0.85, the desktop at 1.0. Widget applies it to its own children, and
+    // the surfaces that aren't Widgets (bar, OSD, pickers) each used to carry a
+    // private copy of exactly these two lines.
+    readonly property real scale: root.onLaptop ? 0.85 : 1.0
+    function s(n) { return Math.round(n * root.scale); }
 
     // The catalogue, in menu order. `group` only sets the headings.
     // The settings menu itself is deliberately absent: it is always built, or
@@ -46,13 +61,14 @@ Singleton {
         { key: "notificationHistory", group: "Notifications", label: "History panel + DND" },
 
         { key: "osd",                 group: "Feedback",    label: "OSD (volume/mic/brightness)" },
+        { key: "spotlight",           group: "Feedback",    label: "Cursor spotlight (shake)" },
 
         { key: "session",             group: "Session",     label: "Lock screen + idle lock" },
         { key: "clipboard",           group: "Session",     label: "Clipboard watchers" },
         { key: "launcher",            group: "Session",     label: "App launcher" },
         { key: "audio",               group: "Session",     label: "Audio mixer" },
-        { key: "calendarWeek",        group: "Session",     label: "Week calendar overlay" },
 
+        { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "clock",               group: "Panel",       label: "Clock" },
         { key: "cpuGraph",            group: "Panel",       label: "CPU / GPU / RAM / disk" },
         { key: "netGraph",            group: "Panel",       label: "Network" },

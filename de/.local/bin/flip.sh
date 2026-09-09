@@ -52,9 +52,6 @@ switch_to() {
             pactl move-sink-input "$input_id" "$next_sink" 2>/dev/null
         done
 
-    # Nudge reach's audio block (RTMIN+1) so the bar names the new sink at once.
-    kill -35 "$(pidof reach)" 2>/dev/null
-
     echo "Switched to: $next_sink"
 }
 

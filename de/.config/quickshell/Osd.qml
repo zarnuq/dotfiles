@@ -1,7 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
-import Quickshell.Services.Pipewire
 import QtQuick
 
 // Transient indicator for volume / mic / brightness / default-sink changes.
@@ -18,14 +17,14 @@ import QtQuick
 // Each window here is only as big as the indicator and only mapped while shown,
 // so it never eats input.
 //
-// Nothing polls: volume/mic ride Pipewire's own property signals, brightness
-// tails wl-gammarelay's PropertiesChanged, and the sink label falls out of
-// Pipewire.defaultAudioSink changing identity.
+// Nothing polls: volume/mic ride the Volume singleton's properties (Pipewire's
+// own signals underneath), brightness tails wl-gammarelay's PropertiesChanged,
+// and the sink label falls out of Volume.sink changing identity.
 Scope {
     id: root
 
-    readonly property real scale: Config.onLaptop ? 0.85 : 1.0
-    function s(n) { return Math.round(n * scale); }
+    readonly property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     property string icon: ""
     property string label: ""      // sink mode: shown instead of the bar
@@ -62,37 +61,34 @@ Scope {
     }
 
     // ---- audio ------------------------------------------------------------
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var source: Pipewire.defaultAudioSource
-    PwObjectTracker { objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource] }
-
-    onSinkChanged: {
-        if (!root.sink) return;
-        root.sinkGuard = true;
-        guard.restart();
-        root.flashText("󰓃", root.sink.description || root.sink.nickname || root.sink.name);
-    }
-
+    // The devices and their numbers come from the Volume singleton, which is
+    // also what keeps them bound; this file only decides when to flash. Watching
+    // the singleton's plain properties rather than each node's audio object also
+    // means there is no target to re-bind when the default device changes.
     function volumeFlash() {
-        if (root.sinkGuard || !root.sink || !root.sink.audio) return;
-        var a = root.sink.audio;
-        root.flash(a.muted ? "󰖁" : "󰕾", Math.round(a.volume * 100), a.muted);
+        if (root.sinkGuard || !Volume.sink) return;
+        root.flash(Volume.muted ? "󰖁" : "󰕾", Volume.volume, Volume.muted);
     }
     function micFlash() {
-        if (!root.source || !root.source.audio) return;
-        var a = root.source.audio;
-        root.flash(a.muted ? "󰍭" : "󰍬", Math.round(a.volume * 100), a.muted);
+        if (!Volume.source) return;
+        root.flash(Volume.micMuted ? "󰍭" : "󰍬", Volume.micVolume, Volume.micMuted);
     }
 
     Connections {
-        target: (root.sink && root.sink.audio) ? root.sink.audio : null
+        target: Volume
+        // A new default sink names itself instead of showing a level: switching
+        // sinks changes the volume too, and sinkGuard is what stops the level
+        // OSD from painting over the name in the same frame.
+        function onSinkChanged() {
+            if (!Volume.sink) return;
+            root.sinkGuard = true;
+            guard.restart();
+            root.flashText("󰓃", Volume.sinkName);
+        }
         function onVolumeChanged() { root.volumeFlash(); }
         function onMutedChanged() { root.volumeFlash(); }
-    }
-    Connections {
-        target: (root.source && root.source.audio) ? root.source.audio : null
-        function onVolumeChanged() { root.micFlash(); }
-        function onMutedChanged() { root.micFlash(); }
+        function onMicVolumeChanged() { root.micFlash(); }
+        function onMicMutedChanged() { root.micFlash(); }
     }
 
     // ---- brightness -------------------------------------------------------

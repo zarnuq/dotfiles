@@ -22,7 +22,6 @@ Picker {
     property var cats: ["All"]  // sidebar entries
     property int catIndex: 0
     property var results: []    // `all` filtered to the selected category
-    property int selected: 0
     property int columns: 1     // set by the grid; j/k step by this
 
     property var dims: ({})     // path -> "WxH", memoized so revisits never re-probe
@@ -177,7 +176,7 @@ Picker {
                             required property string modelData
                             required property int index
                             width: 190; height: 34
-                            color: index === root.catIndex ? "#11111b" : "transparent"
+                            color: index === root.catIndex ? Theme.rowSelectBg : "transparent"
 
                             MouseArea {
                                 anchors.fill: parent

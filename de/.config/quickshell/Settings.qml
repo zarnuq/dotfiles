@@ -15,8 +15,8 @@ Picker {
     ipcTarget: "settings"
     allScreens: false
 
-    readonly property real scale: Config.onLaptop ? 0.85 : 1.0
-    function s(n) { return Math.round(n * scale); }
+    readonly property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     readonly property int headerHeight: s(28)
     readonly property int rowHeight: s(34)
@@ -24,7 +24,7 @@ Picker {
 
     // Headers are inserted where the group changes, so the catalogue stays a
     // flat list and the menu structure falls out of its order.
-    readonly property var rows: {
+    rows: {
         var r = [];
         var group = "";
         for (var i = 0; i < Config.features.length; i++) {
@@ -43,18 +43,6 @@ Picker {
         return h;
     }
 
-    property int selected: 0
-
-    function selectable(i) { return i >= 0 && i < rows.length && rows[i].kind !== "header"; }
-    function firstSelectable() {
-        for (var i = 0; i < rows.length; i++) if (rows[i].kind !== "header") return i;
-        return 0;
-    }
-    function move(delta) {
-        var i = selected + delta;
-        while (i >= 0 && i < rows.length && rows[i].kind === "header") i += delta;
-        if (selectable(i)) selected = i;
-    }
     function toggleRow(i) {
         if (!selectable(i)) return;
         Config.toggle(rows[i].key);
@@ -102,7 +90,7 @@ Picker {
                         Rectangle {
                             anchors.fill: parent
                             visible: rowItem.sel
-                            color: "#11111b"
+                            color: Theme.rowSelectBg
                         }
 
                         Txt {
@@ -143,7 +131,7 @@ Picker {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: rowItem.isHeader ? "" : rowItem.modelData.label
                                 color: !rowItem.enabled_ ? Theme.surface1
-                                       : rowItem.sel ? "#bac2de" : Theme.text
+                                       : rowItem.sel ? Theme.rowSelectFg : Theme.text
                                 font.pixelSize: root.s(15)
                             }
                         }

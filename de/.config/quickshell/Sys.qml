@@ -45,6 +45,40 @@ Singleton {
         root.ram = (1 - avail / total) * 100;
     }
 
+    // ---- battery ---------------------------------------------------------
+    // upowerd isn't running on this box, so Quickshell.Services.UPower reports
+    // nothing and the two sysfs files are the only source. The bar block and the
+    // bottom-right card each kept their own FileView pair, their own timer and
+    // their own copy of this parse, at two different intervals.
+    property bool batteryPresent: false
+    property int batteryLevel: 100
+    property string batteryStatus: "Unknown"
+    readonly property bool charging: batteryStatus === "Charging" || batteryStatus === "Full"
+
+    FileView { id: capFile;  path: "/sys/class/power_supply/BAT0/capacity"; blockLoading: true; printErrors: false }
+    FileView { id: battFile; path: "/sys/class/power_supply/BAT0/status";   blockLoading: true; printErrors: false }
+
+    function readBattery() {
+        capFile.reload();
+        battFile.reload();
+        // A missing or unreadable battery reads back empty; treat that as "no
+        // battery" rather than letting Number("") land on a fake 0%.
+        var cap = capFile.text().trim();
+        if (cap.length === 0 || isNaN(Number(cap))) { root.batteryPresent = false; return; }
+        root.batteryPresent = true;
+        root.batteryLevel = Number(cap);
+        root.batteryStatus = battFile.text().trim();
+    }
+
+    // Its own tick: charge doesn't move on the 2s beat the graphs need.
+    Timer {
+        interval: 10000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.readBattery()
+    }
+
     // ---- external tools (need the binary; run as short-lived processes) ---
     Process {
         id: gpuProc

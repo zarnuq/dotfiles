@@ -15,7 +15,7 @@ Widget {
     Poll {
         command: [Quickshell.env("HOME") + "/.config/quickshell/scripts/ports.sh"]
         interval: 5000
-        onData: function (text) { try { root.ports = JSON.parse(text) || []; } catch (e) { root.ports = []; } }
+        onJsonData: v => root.ports = v || []
     }
 
     Column {

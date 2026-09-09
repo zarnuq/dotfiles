@@ -1,11 +1,9 @@
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
 
-// Bottom-right: charge level + state. Reads /sys/class/power_supply/BAT0
-// directly on a 10s timer — upowerd is not running on this box, so
-// Quickshell.Services.UPower would report nothing.
+// Bottom-right: charge level + state, read from Sys (which owns the BAT0 sysfs
+// poll, since the bar's battery block needs the same two files).
 //
 // Below `lowAt` while discharging the readout turns red and one critical
 // notification is raised. The warning is latched and only re-arms once the
@@ -31,35 +29,24 @@ Widget {
     borderColor: low ? Theme.red : Theme.surface0
     stackLayer: low ? WlrLayer.Overlay : WlrLayer.Bottom
 
-    readonly property string dir: "/sys/class/power_supply/BAT0"
     readonly property int lowAt: 20      // warn below this
     readonly property int clearAt: 25    // re-arm the warning above this
 
-    property bool present: false
-    property int level: 100
-    property string status: "Unknown"
-    property bool warned: false
-
-    readonly property bool charging: status === "Charging" || status === "Full"
+    // The reading is Sys's — the bar's battery block wants the same two sysfs
+    // files. What stays here is the part that is this card's: the tint, and the
+    // latch that keeps one toast from firing over and over on the threshold.
+    readonly property bool present: Sys.batteryPresent
+    readonly property int level: Sys.batteryLevel
+    readonly property bool charging: Sys.charging
     readonly property bool low: present && !charging && level < lowAt
     readonly property color tint: low ? Theme.red : charging ? Theme.green : Theme.text
 
-    FileView { id: capFile;  path: root.dir + "/capacity"; blockLoading: true }
-    FileView { id: statFile; path: root.dir + "/status";   blockLoading: true }
+    property bool warned: false
 
-    function poll() {
-        capFile.reload();
-        statFile.reload();
+    onLowChanged: root.warn()
+    onChargingChanged: root.warn()
 
-        // Missing/unreadable battery reads back empty — treat as "no battery"
-        // rather than letting Number("") land us on a fake 0%.
-        var cap = capFile.text().trim();
-        if (cap.length === 0 || isNaN(Number(cap))) { root.present = false; return; }
-
-        root.present = true;
-        root.level = Number(cap);
-        root.status = statFile.text().trim();
-
+    function warn() {
         if (root.low && !root.warned) {
             root.warned = true;
             Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "battery",
@@ -69,8 +56,6 @@ Widget {
             root.warned = false;
         }
     }
-
-    Timer { interval: 10000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.poll() }
 
     Column {
         anchors.fill: parent

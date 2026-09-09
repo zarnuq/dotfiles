@@ -1,6 +1,6 @@
 import Quickshell
 import QtQuick
-import QtQuick.Effects
+import QtQuick.Controls.impl
 
 // Catppuccin-themed SNI context menu. Replaces QsMenuAnchor's native Qt
 // platform menu (which ignored the theme and rendered icons as magenta/black
@@ -122,20 +122,19 @@ PopupWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 16; height: 16
                                 visible: row.modelData.icon !== ""
-                                Image {
-                                    id: img
+                                // ColorImage rather than MultiEffect: it
+                                // recolours the QImage on the CPU, so it still
+                                // works under QT_QUICK_BACKEND=software (see the
+                                // quickshell run script) — MultiEffect needs the
+                                // GPU scenegraph and would leave a blank square.
+                                // A transparent colour means "don't tint".
+                                ColorImage {
                                     anchors.fill: parent
                                     source: row.modelData.icon
                                     sourceSize.width: 16
                                     sourceSize.height: 16
                                     fillMode: Image.PreserveAspectFit
-                                    visible: false
-                                }
-                                MultiEffect {
-                                    anchors.fill: parent
-                                    source: img
-                                    colorization: (row.modelData.icon.indexOf("symbolic") >= 0) ? 1.0 : 0.0
-                                    colorizationColor: Theme.text
+                                    color: row.modelData.icon.indexOf("symbolic") >= 0 ? Theme.text : "transparent"
                                 }
                             }
 

@@ -1,19 +1,5 @@
 { pkgs, lib, ... }:
 
-let
-  # OWASP ZAP (Java/Swing) renders a blank grey canvas under non-reparenting
-  # Wayland WMs (reach/dwl). _JAVA_AWT_WM_NONREPARENTING=1 makes AWT draw
-  # correctly; wrap the binary so the fix ships with the package.
-  zap-wayland = pkgs.symlinkJoin {
-    name = "zap-wayland";
-    paths = [ pkgs.zap ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram $out/bin/zap \
-        --set _JAVA_AWT_WM_NONREPARENTING 1
-    '';
-  };
-in
 {
   # Merged into home.nix's python3.withPackages (one env avoids a bin/python3 collision).
   options.my.cyberPythonLibs = lib.mkOption {
@@ -76,7 +62,6 @@ in
     # SCANNING & ENUMERATION
     nmap                      # network scanner
     onesixtyone               # fast SNMP scanner
-    nikto                     # web server scanner
     snmpcheck                 # Detailed SNMP enumeration
     nuclei
 
@@ -89,24 +74,19 @@ in
     whatweb                   # web technology identifier
     wpscan                    # WordPress scanner (unfree — needs allowUnfree)
     rustscan
-    zap-wayland               # OWASP ZAP intercepting proxy/scanner (wrapped for non-reparenting WM; was zaproxy)
 
     # EXPLOITATION
     metasploit                # exploitation framework
-    exploitdb                 # searchsploit local exploit database
 
     # PASSWORD ATTACKS
     #john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
-    medusa                    # parallel login brute-forcer
     crunch                    # wordlist generator
     chntpw                    # Windows password/registry editor
 
     # WIRELESS
     aircrack-ng               # wireless WEP/WPA cracking suite
-    kismet                    # wireless network detector/sniffer
     macchanger                # MAC address spoofer
-    iw                        # wireless configuration tool
     bluez                     # bluetooth stack and tools
 
     # SNIFFING & MITM
@@ -133,7 +113,17 @@ in
     inetutils                 # provides telnet, ftp, etc.
     exiftool                  # Metadata analysis
     responder                 # LLMNR/NBT-NS/mDNS poisoner
-    netexec                   # Modern network exploitation (Successor to CME)
+    # nixpkgs pairs netexec 1.5.1 with an impacket whose LDAPConnection has no
+    # `signing` param, so every `nxc ldap` dies in check_ldap_signing with
+    # TypeError. Drop the kwarg (pre-signing behavior); impacket still falls
+    # back to LDAPS if a DC enforces signing. Remove once nixpkgs realigns them.
+    (netexec.overrideAttrs (old: {   # Modern network exploitation (Successor to CME)
+      postPatch = (old.postPatch or "") + ''
+        substituteInPlace nxc/protocols/ldap.py \
+          --replace-fail ', signing=False)' ')' \
+          --replace-fail ', signing=self.auth_choice != "simple")' ')'
+      '';
+    }))
     smbclient-ng              # Enhanced SMB client
     nfs-utils
     zip

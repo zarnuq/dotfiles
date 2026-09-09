@@ -19,7 +19,7 @@ Widget {
     Poll {
         command: [root.script, "list"]
         interval: 5000
-        onData: function (text) { try { root.vpns = JSON.parse(text) || []; } catch (e) { root.vpns = []; } }
+        onJsonData: v => root.vpns = v || []
     }
     Poll {
         command: [root.script, "status"]

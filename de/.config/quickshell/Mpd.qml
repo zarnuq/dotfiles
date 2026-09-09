@@ -1,7 +1,6 @@
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
-import Quickshell.Services.Pipewire
 import QtQuick
 
 // Now-playing + volume widget. Bottom-left, y=450, 420x150.
@@ -60,15 +59,7 @@ Widget {
             ? Math.min(100, Math.max(0, player.position / player.length * 100)) : 0;
     }
 
-    // ── Audio: default sink/source, kept live by the tracker below. ──
-    readonly property var sink: Pipewire.defaultAudioSink
-    readonly property var source: Pipewire.defaultAudioSource
-    PwObjectTracker { objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource] }
-
-    readonly property int volOut: (sink && sink.audio) ? Math.round(sink.audio.volume * 100) : 0
-    readonly property int volMic: (source && source.audio) ? Math.round(source.audio.volume * 100) : 0
-    readonly property bool outMuted: (sink && sink.audio) ? sink.audio.muted : false
-    readonly property bool micMuted: (source && source.audio) ? source.audio.muted : false
+    // ── Audio: the default sink/source, from the Volume singleton. ──
 
     Row {
         anchors.fill: parent
@@ -113,13 +104,13 @@ Widget {
                 topPadding: root.s(8)
                 VolBtn {
                     width: parent.width / 2
-                    icon: root.outMuted ? "󰖁" : "󰕾"; muted: root.outMuted; value: root.volOut
-                    onClicked: if (root.sink && root.sink.audio) root.sink.audio.muted = !root.sink.audio.muted
+                    icon: Volume.muted ? "󰖁" : "󰕾"; muted: Volume.muted; value: Volume.volume
+                    onClicked: Volume.toggleMute()
                 }
                 VolBtn {
                     width: parent.width / 2
-                    icon: root.micMuted ? "󰍭" : "󰍬"; muted: root.micMuted; value: root.volMic
-                    onClicked: if (root.source && root.source.audio) root.source.audio.muted = !root.source.audio.muted
+                    icon: Volume.micMuted ? "󰍭" : "󰍬"; muted: Volume.micMuted; value: Volume.micVolume
+                    onClicked: Volume.toggleMicMute()
                 }
             }
         }
