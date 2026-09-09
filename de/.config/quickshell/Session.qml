@@ -57,7 +57,7 @@ Scope {
             // Nothing to fall back to: `doas` wants a password on a tty, and
             // the lock surface is above every window, so the floating-kitty
             // prompt the old unlocked menu used would be invisible here.
-            root.status = "add a doas nopass rule for /usr/bin/" + powerProc.act;
+            root.status = powerProc.act + " failed — check the doas rule for it";
         }
     }
 
@@ -73,12 +73,20 @@ Scope {
             return;
         }
 
-        // No polkit or logind on this runit box, so poweroff/reboot need doas.
-        // -n so it fails fast instead of blocking on a password prompt no one
-        // can reach; the absolute path is what a `permit nopass ... cmd` rule
-        // matches, since doas compares the command as typed.
+        // No polkit or logind on this runit box, and /usr/bin/poweroff (a
+        // symlink to the runit-shutdown dispatcher) self-elevates with doas
+        // anyway — so ask doas directly. -n makes it fail fast rather than
+        // block on a password prompt no one can reach: the lock surface is
+        // above every window, so there is no tty to type into.
+        //
+        // The command is the BARE name because doas matches what was typed,
+        // and /etc/doas.conf here says `permit nopass :wheel cmd poweroff`.
+        // Passing /usr/bin/poweroff misses that rule and falls through to
+        // `permit persist :wheel`, which wants a password — verify any change
+        // with `doas -C /etc/doas.conf <cmd>`, which prints the verdict and
+        // runs nothing.
         powerProc.act = act;
-        powerProc.command = ["doas", "-n", "/usr/bin/" + act];
+        powerProc.command = ["doas", "-n", act];
         powerProc.running = true;
     }
 
