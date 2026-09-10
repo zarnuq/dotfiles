@@ -67,6 +67,7 @@ Singleton {
         { key: "clipboard",           group: "Session",     label: "Clipboard watchers" },
         { key: "launcher",            group: "Session",     label: "App launcher" },
         { key: "audio",               group: "Session",     label: "Audio mixer" },
+        { key: "network",             group: "Session",     label: "Network menu" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "clock",               group: "Panel",       label: "Clock" },

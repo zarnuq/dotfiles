@@ -10,7 +10,6 @@
 
 VPN_DIR="$HOME/VPNs"
 PID_FILE="/tmp/eww-openvpn.pid"
-STATUS_FILE="/tmp/eww-openvpn.status"
 LOG_FILE="/tmp/eww-openvpn.log"
 
 # Escalation command: prefer doas (the only one installed here), fall back to
@@ -51,18 +50,41 @@ list_vpns() {
     echo "$vpns"
 }
 
+# Every pid running an openvpn whose --config lives in $VPN_DIR. Scoped to that
+# directory on purpose: NetworkManager's own openvpn plugin runs configs out of
+# /var/run/NetworkManager and must never be caught by this.
+vpn_pids() {
+    local pid args
+    for pid in $(pgrep -x openvpn 2>/dev/null); do
+        args=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) || continue
+        case "$args" in
+            *"--config $VPN_DIR/"*) printf '%s\n' "$pid" ;;
+        esac
+    done
+}
+
+# The profile name of the running tunnel, or "".
+#
+# Ground truth is the PROCESS TABLE, not a marker file. It used to be
+# /tmp/eww-openvpn.status, which connect() wrote only `if [ -f "$PID_FILE" ]` — but
+# openvpn is started with --daemon and forks immediately, so the pid file it
+# writes with --writepid usually isn't there yet when connect() looks. The
+# status file therefore never got written, this function always printed "", and
+# every UI showed a live tunnel as disconnected — which is how Enter on an
+# already-connected profile started a SECOND daemon for the same config and
+# left an orphaned tun device the pid file no longer tracked.
+#
+# /proc/<pid>/cmdline is world-readable even though openvpn runs as root, so
+# this needs no elevation (`kill -0` would only give EPERM).
 get_status() {
-    if [ -f "$STATUS_FILE" ] && [ -f "$PID_FILE" ]; then
-        local pid=$(cat "$PID_FILE" 2>/dev/null)
-        # Rootless liveness check: openvpn runs as root, so `kill -0` from a
-        # normal user gets EPERM (not proof of death); /proc is world-readable.
-        if [ -n "$pid" ] && [ -d "/proc/$pid" ] \
-           && grep -qi openvpn "/proc/$pid/comm" 2>/dev/null; then
-            cat "$STATUS_FILE"
-            return
-        fi
-    fi
-    echo ""
+    local pid args name
+    for pid in $(vpn_pids); do
+        args=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) || continue
+        name=${args#*--config $VPN_DIR/}
+        name=${name%% *}
+        printf '%s\n' "${name%.ovpn}"
+        return
+    done
 }
 
 connect() {
@@ -73,43 +95,62 @@ connect() {
         exit 1
     fi
     
-    # Disconnect existing connection first
-    disconnect 2>/dev/null
-    
     local vpn_name=$(basename "$config_file" .ovpn)
+
+    # Never stack a second daemon on a config that already has one. This is the
+    # guard, not the caller's: the UI can only ask for what it last polled, and
+    # anything that made get_status lie (as the status file did) turned a
+    # connect into a duplicate tunnel.
+    if [ "$(get_status)" = "$vpn_name" ]; then
+        notify-send "VPN" "$vpn_name is already connected" -u normal
+        return 0
+    fi
+
+    # Only then drop whatever else is up — one lab tunnel at a time.
+    disconnect 2>/dev/null
     
     # Run openvpn elevated (passwordless rule required)
     $ESC "$OPENVPN_BIN" --config "$config_file" --daemon --log "$LOG_FILE" --writepid "$PID_FILE"
 
-    if [ -f "$PID_FILE" ]; then
-        local pid=$(cat "$PID_FILE")
-        if [ -d "/proc/$pid" ]; then
-            echo "$vpn_name" > "$STATUS_FILE"
-            notify-send "VPN Connected" "Connected to $vpn_name" -u normal
-        else
-            notify-send "VPN Error" "Failed to connect. Check $LOG_FILE" -u critical
-        fi
+    # Wait for the PROCESS, not the pid file — same fork race as above, which
+    # is why this used to announce a failure for a tunnel that had just come up.
+    local i=0
+    while [ $i -lt 20 ] && [ "$(get_status)" != "$vpn_name" ]; do
+        sleep 0.1
+        i=$((i + 1))
+    done
+
+    if [ "$(get_status)" = "$vpn_name" ]; then
+        notify-send "VPN Connected" "Connected to $vpn_name" -u normal
     else
         notify-send "VPN Error" "Failed to start OpenVPN. Check $LOG_FILE" -u critical
     fi
 }
 
 disconnect() {
-    if [ -f "$PID_FILE" ]; then
-        local pid=$(cat "$PID_FILE" 2>/dev/null)
-        if [ -n "$pid" ]; then
-            $ESC "$KILL_BIN" "$pid" 2>/dev/null
-            sleep 1
-            $ESC "$KILL_BIN" -9 "$pid" 2>/dev/null
-        fi
-        rm -f "$PID_FILE"
+    local was=$(get_status)
+
+    # Every matching daemon, not just the pid file's: the file tracks only the
+    # most recent one, so an earlier failed kill left an orphan that nothing
+    # could stop afterwards. This is also what cleans such an orphan up.
+    local pids=$(vpn_pids) pid failed=""
+    for pid in $pids; do
+        if ! $ESC "$KILL_BIN" "$pid" 2>/dev/null; then failed="$failed $pid"; fi
+    done
+    if [ -n "$pids" ]; then
+        sleep 1
+        for pid in $(vpn_pids); do $ESC "$KILL_BIN" -9 "$pid" 2>/dev/null; done
+    fi
+    rm -f "$PID_FILE"
+
+    # A kill that silently failed is why the duplicate could exist at all: the
+    # rule is matched as typed, so this needs `permit nopass miles cmd /usr/bin/kill`.
+    if [ -n "$failed" ]; then
+        notify-send "VPN Error" "could not stop openvpn (pid$failed) — needs a doas nopass rule for $KILL_BIN" -u critical
     fi
     
-    if [ -f "$STATUS_FILE" ]; then
-        local old_name=$(cat "$STATUS_FILE")
-        rm -f "$STATUS_FILE"
-        notify-send "VPN Disconnected" "Disconnected from $old_name" -u normal
-    fi
+    [ -n "$was" ] && notify-send "VPN Disconnected" "Disconnected from $was" -u normal
+    return 0
 }
 
 toggle() {

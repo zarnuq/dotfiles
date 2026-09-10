@@ -24,6 +24,7 @@ ShellRoot {
     LazyLoader { active: Config.on("launcher");            Launcher {} }
     LazyLoader { active: Config.on("session");             Session {} }
     LazyLoader { active: Config.on("audio");               Audio {} }
+    LazyLoader { active: Config.on("network");             Network {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }

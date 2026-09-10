@@ -143,6 +143,7 @@
     swaks
     websocat
     qFlipper
+    yt-dlp
 
   ];
 }

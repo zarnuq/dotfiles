@@ -123,6 +123,7 @@
             .{ .key = "d", .action = .{ .spawn = "legcord" } },
             .{ .key = "b", .action = .{ .spawn = "brave" } },
             .{ .key = "a", .action = .{ .spawn = "qs ipc call audio toggle" } },
+            .{ .key = "n", .action = .{ .spawn = "qs ipc call network toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },
 
