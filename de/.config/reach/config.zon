@@ -21,7 +21,11 @@
         // fails the whole ZON parse and drops reach to compiled-in defaults.
         .shake = .{
             .enabled = true,
-            .delay = 150,
+            // How long the shake has to keep looking like a shake before the
+            // command runs. This is the sensitivity knob (the ratio/speed
+            // thresholds in shake.zig aren't exposed); 150 fired on an
+            // overshoot-and-correct, 450 wants a deliberate shake.
+            .delay = 450,
             .command = "qs ipc call spotlight flash",
         },
     },
