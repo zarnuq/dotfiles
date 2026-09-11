@@ -60,7 +60,7 @@
     .monitors = .{
         .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
         .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
-        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
+        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440},
         // Laptop pair. Both need explicit x/y: with x/y left at the (-1,-1)
         // default reach never sends set_position, so river leaves every head at
         // 0,0 and they stack on top of each other. HDMI sits above the laptop

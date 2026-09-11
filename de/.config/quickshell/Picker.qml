@@ -3,11 +3,10 @@ import Quickshell.Wayland
 import Quickshell.Io
 import QtQuick
 
-// Base for the full-screen pickers (Launcher, WallpaperPicker).
+// Base for the full-screen pickers and menus.
 //
-// Everything here is the scaffolding both of them need and neither of them is
-// really about: IPC toggle, one overlay per output, and the trick that decides
-// WHICH output to draw on.
+// Owns IPC toggle, one overlay per output, shared scale and list navigation,
+// and the logic that decides which output draws the content.
 //
 // That trick: reach exposes no IPC to ask which monitor is focused, and it hands
 // keyboard focus to every layer surface, so a surface is mapped on every output
@@ -22,6 +21,9 @@ import QtQuick
 // becomes visible — where a picker clears its query and takes focus.
 Scope {
     id: root
+
+    readonly property real scale: Config.scale
+    function s(n) { return Config.s(n); }
 
     property string ipcTarget: ""
     property Component box: null
@@ -40,11 +42,9 @@ Scope {
     property string activeScreen: ""
 
     // ── the selection ────────────────────────────────────────────────────
-    // Every picker has one, and the two menu-shaped ones (Settings, Audio)
-    // additionally lay their content out as a flat `rows` list in which some
-    // entries are non-selectable group headers. Both carried verbatim copies of
-    // all three helpers below; a picker that doesn't use `rows` just leaves it
-    // empty and drives `selected` itself, as Launcher and WallpaperPicker do.
+    // Settings, Audio and Network use a flat `rows` list containing optional
+    // non-selectable group headers. Launcher and WallpaperPicker leave it
+    // empty and drive `selected` against their own results instead.
     property var rows: []
     property int selected: 0
 

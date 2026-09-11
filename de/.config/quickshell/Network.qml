@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "NetworkData.js" as NetworkData
 
 // Wi-Fi + VPN menu (Super+R N / `qs ipc call network toggle`), replacing the
 // floating kitty running nmtui.
@@ -25,9 +26,6 @@ Picker {
     ipcTarget: "network"
     allScreens: false
 
-    readonly property real scale: Config.scale
-    function s(n) { return Config.s(n); }
-
     readonly property string vpnScript: Quickshell.env("HOME") + "/.config/quickshell/scripts/vpn-manager.sh"
 
     // The homelab tunnel is meant to be up all the time; the ~/VPNs/*.ovpn ones
@@ -43,7 +41,7 @@ Picker {
     function isAlwaysOn(name) { return root.alwaysOn.indexOf(name) !== -1; }
 
     // ── state, polled only while the menu is open ────────────────────────
-    property var conns: []          // [{ name, type, device, state }]
+    property var conns: []          // [{ name, uuid, type, device, state }]
     property var aps: []            // [{ ssid, signal, security, inUse }]
     property string wifiDev: ""     // "" when this machine has no Wi-Fi at all
     property var eths: []           // [{ dev, state }] — ethernet, cable or not
@@ -119,90 +117,22 @@ Picker {
     }
 
     function parseOvpn(text) {
-        var lines = text.split("\n");
-        var active = "", list = null;
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if (line.substring(0, 2) === "S:") active = line.substring(2).trim();
-            else if (line.substring(0, 2) === "L:") {
-                try { list = JSON.parse(line.substring(2)); } catch (e) { list = null; }
-            }
-        }
-        root.ovpnActive = active;
-        if (list) root.ovpns = list;     // a failed parse keeps the last good list
-    }
-
-    // nmcli's terse output escapes a literal ':' as '\:' and '\' as '\\', so
-    // splitting on ':' alone corrupts any SSID or profile name containing one.
-    function tsplit(line) {
-        var out = [], cur = "";
-        for (var i = 0; i < line.length; i++) {
-            var c = line.charAt(i);
-            if (c === "\\" && i + 1 < line.length) cur += line.charAt(++i);
-            else if (c === ":") { out.push(cur); cur = ""; }
-            else cur += c;
-        }
-        out.push(cur);
-        return out;
+        var snapshot = NetworkData.parseOvpn(text);
+        root.ovpnActive = snapshot.active;
+        if (snapshot.list) root.ovpns = snapshot.list; // keep the last good list
     }
 
     function parseState(text) {
-        var lines = text.split("\n");
-        var conns = [], dev = "", radio = false, eths = [], devStates = {};
-
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            if (line.length < 2) continue;
-            var tag = line.substring(0, 2);
-            var f = root.tsplit(line.substring(2));
-
-            if (tag === "C:") {
-                // UUID and not name is the identity: NM happily keeps several
-                // connections with the same name, and `con up id <name>` then
-                // acts on whichever it finds first.
-                conns.push({ name: f[0], uuid: f[1], type: f[2], device: f[3], state: f[4] });
-            } else if (tag === "D:") {
-                devStates[f[0]] = f[2];
-                if (f[1] === "wifi" && dev === "") dev = f[0];
-                // Kept even when "unavailable" — that IS the answer when the
-                // wired link isn't working, and a hidden row can't say "no cable".
-                else if (f[1] === "ethernet") eths.push({ dev: f[0], state: f[2] });
-            } else if (tag === "R:") {
-                radio = line.substring(2) === "enabled";
-            }
-        }
-
-        root.conns = conns;
-        root.wifiDev = dev;
-        root.eths = eths;
-        root.devStates = devStates;
-        root.radioOn = radio;
+        var snapshot = NetworkData.parseState(text);
+        root.conns = snapshot.conns;
+        root.wifiDev = snapshot.wifiDev;
+        root.eths = snapshot.eths;
+        root.devStates = snapshot.devStates;
+        root.radioOn = snapshot.radioOn;
     }
 
     function parseAps(text) {
-        var lines = text.split("\n");
-        var aps = {};
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i] === "") continue;
-            var f = root.tsplit(lines[i]);
-            var ssid = f[3];
-            if (!ssid) continue;              // hidden network: nothing to click
-            var sig = parseInt(f[1]) || 0;
-            // The same SSID comes back once per band/AP; keep the strongest,
-            // and never let a weak duplicate hide that we're on it.
-            var prev = aps[ssid];
-            if (!prev || sig > prev.signal)
-                aps[ssid] = { ssid: ssid, signal: sig, security: f[2],
-                              inUse: (f[0] === "*") || (prev ? prev.inUse : false) };
-            else if (f[0] === "*") prev.inUse = true;
-        }
-
-        var list = [];
-        for (var k in aps) list.push(aps[k]);
-        list.sort(function (a, b) {
-            if (a.inUse !== b.inUse) return a.inUse ? -1 : 1;
-            return b.signal - a.signal;
-        });
+        var list = NetworkData.parseAps(text);
         root.aps = list;
         // Only a list with something in it ends the "scanning…" state: the
         // first tick after a rescan request usually lands before NM has any
@@ -210,99 +140,22 @@ Picker {
         if (list.length > 0) root.scanning = false;
     }
 
-    /// Name of the connection currently active on `device`, or "".
-    function connOn(device) {
-        for (var i = 0; i < root.conns.length; i++) {
-            var c = root.conns[i];
-            if (c.device === device && c.state === "activated") return c.name;
-        }
-        return "";
-    }
+    readonly property var vpnConns: NetworkData.vpnConnections(root.conns, root.devStates)
 
-    /// True when NM didn't bring this device up and is only describing it.
-    //
-    // `wg-quick up wireguard` creates the interface behind NM's back; NM then
-    // *assumes* it and generates a volatile profile in /run to represent it —
-    // which is why an NM profile you never activated can appear twice, once as
-    // your saved connection and once as NM's account of wg-quick's link. NM
-    // reports it on the DEVICE ("connected (externally)"), not the connection.
-    function isExternal(device) {
-        var st = root.devStates[device];
-        return st !== undefined && st.indexOf("external") !== -1;
-    }
-
-    readonly property var vpnConns: {
-        var out = [];
-        for (var i = 0; i < root.conns.length; i++) {
-            var c = root.conns[i];
-            if (c.type === "vpn" || c.type === "wireguard")
-                out.push({ name: c.name, uuid: c.uuid, active: c.state === "activated",
-                           external: root.isExternal(c.device) });
-        }
-        return out;
-    }
-
-    rows: {
-        var r = [];
-        if (root.eths.length > 0) {
-            r.push({ kind: "header", label: "Wired" });
-            for (var e = 0; e < root.eths.length; e++) {
-                var d = root.eths[e];
-                var on = root.connOn(d.dev);
-                r.push({ kind: "eth", dev: d.dev, state: d.state,
-                         name: on !== "" ? on : d.dev, active: on !== "" });
-            }
-        }
-        if (root.wifiDev !== "") {
-            r.push({ kind: "header", label: "Wi-Fi — " + root.wifiDev });
-            r.push({ kind: "radio" });
-            if (root.radioOn)
-                for (var i = 0; i < root.aps.length; i++)
-                    r.push({ kind: "ap", ap: root.aps[i] });
-        }
-        // Both VPN kinds, split by what they're for rather than by how they're
-        // implemented — which of the two toggles a row uses is an implementation
-        // detail, but "is this the one that should be up right now" isn't.
-        var all = [];
-        var v = root.vpnConns;
-        for (var j = 0; j < v.length; j++)
-            all.push({ kind: "nmvpn", name: v[j].name, uuid: v[j].uuid, active: v[j].active,
-                       external: v[j].external });
-        for (var m = 0; m < root.ovpns.length; m++)
-            all.push({ kind: "ovpn", name: root.ovpns[m].name, file: root.ovpns[m].file,
-                       active: root.ovpns[m].name === root.ovpnActive });
-
-        function section(title, pick) {
-            var any = false;
-            for (var i = 0; i < all.length; i++) {
-                if (pick(all[i].name) !== true) continue;
-                if (!any) { r.push({ kind: "header", label: title }); any = true; }
-                r.push(all[i]);
-            }
-        }
-        section("Homelab", function (n) { return root.isAlwaysOn(n); });
-        section("Labs",    function (n) { return !root.isAlwaysOn(n); });
-        return r;
-    }
+    rows: NetworkData.buildRows({
+        conns: root.conns,
+        eths: root.eths,
+        wifiDev: root.wifiDev,
+        radioOn: root.radioOn,
+        aps: root.aps,
+        vpnConns: root.vpnConns,
+        ovpns: root.ovpns,
+        ovpnActive: root.ovpnActive
+    }, root.alwaysOn)
 
     // Empty unless something that should be up isn't. Shown in the bottom bar
     // whenever there's no action status competing for it.
-    readonly property string warning: {
-        for (var a = 0; a < root.alwaysOn.length; a++) {
-            var name = root.alwaysOn[a], seen = false, up = false;
-            for (var i = 0; i < root.rows.length; i++) {
-                var row = root.rows[i];
-                if (row.kind === "header" || row.name !== name) continue;
-                seen = true;
-                if (row.active === true) up = true;
-            }
-            // Duplicate profiles share a name, so ANY of them being up is the
-            // tunnel being up. Warning off the first idle row said "wireguard is
-            // down" while wireguard was, in fact, connected on the row above.
-            if (seen && !up) return name + " is down — enter to reconnect";
-        }
-        return "";
-    }
+    readonly property string warning: NetworkData.warning(root.rows, root.alwaysOn)
 
     function rowActive(row) {
         if (row.kind === "ap")    return row.ap.inUse;
@@ -487,55 +340,16 @@ Picker {
                 Repeater {
                     model: root.rows
 
-                    Item {
+                    PickerRow {
                         id: rowItem
-                        required property var modelData
-                        required property int index
-                        readonly property bool isHeader: modelData.kind === "header"
-                        readonly property bool sel: index === root.selected
+                        picker: root
                         readonly property bool active: !isHeader && root.rowActive(modelData)
 
                         width: content.width
-                        height: isHeader ? root.headerHeight : root.rowHeight
-
-                        // Same two-layer treatment as the mixer: what's connected
-                        // keeps a mauve wash of its own so it stays readable while
-                        // the cursor sits elsewhere, and brightens under selection
-                        // instead of being covered by it.
-                        Rectangle {
-                            anchors.fill: parent
-                            visible: rowItem.sel || rowItem.active
-                            color: rowItem.active
-                                   ? Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, rowItem.sel ? 0.22 : 0.12)
-                                   : Theme.rowSelectBg
-                        }
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: rowItem.active
-                            width: root.s(3); height: parent.height
-                            color: Theme.mauve
-                        }
-
-                        Txt {
-                            visible: rowItem.isHeader
-                            anchors.left: parent.left
-                            anchors.leftMargin: root.s(18)
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: root.s(4)
-                            text: rowItem.isHeader ? rowItem.modelData.label : ""
-                            color: Theme.surface1
-                            font.pixelSize: root.s(13)
-                        }
-
-                        MouseArea {
-                            id: hover
-                            anchors.fill: parent
-                            visible: !rowItem.isHeader
-                            hoverEnabled: true
-                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = rowItem.index; }
-                            onClicked: { root.selected = rowItem.index; root.activate(rowItem.index); }
-                        }
+                        headerHeight: root.headerHeight
+                        rowHeight: root.rowHeight
+                        current: rowItem.active
+                        onActivated: root.activate(rowItem.index)
 
                         Row {
                             visible: !rowItem.isHeader

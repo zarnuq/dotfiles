@@ -15,9 +15,6 @@ Picker {
     ipcTarget: "audio"
     allScreens: false
 
-    readonly property real scale: Config.scale
-    function s(n) { return Config.s(n); }
-
     // Nodes only publish `.audio` (and their properties) while something holds
     // a binding on them, and the menu has to be correct in the frame it opens —
     // so the tracker stays armed rather than being gated on `open`. It's ~16
@@ -148,66 +145,19 @@ Picker {
                 Repeater {
                     model: root.rows
 
-                    Item {
+                    PickerRow {
                         id: rowItem
-                        required property var modelData
-                        required property int index
-                        readonly property bool isHeader: modelData.kind === "header"
+                        picker: root
                         readonly property var audio: isHeader ? null : modelData.node.audio
                         readonly property bool muted: audio ? audio.muted : false
                         readonly property int pct: audio ? Math.round(audio.volume * 100) : 0
-                        readonly property bool sel: index === root.selected
                         readonly property bool isDefault: !isHeader && root.isDefault(modelData)
 
                         width: content.width
-                        height: isHeader ? root.headerHeight : root.rowHeight
-
-                        // The default sink/source keeps a mauve wash of its own,
-                        // so which device is live stays readable even while the
-                        // cursor sits on some other row. Selection is a flat dark
-                        // band; on the default row the two combine into a brighter
-                        // wash rather than the selection hiding it.
-                        Rectangle {
-                            anchors.fill: parent
-                            visible: rowItem.sel || rowItem.isDefault
-                            color: rowItem.isDefault
-                                   ? Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, rowItem.sel ? 0.22 : 0.12)
-                                   : Theme.rowSelectBg
-                        }
-
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: rowItem.isDefault
-                            width: root.s(3)
-                            height: parent.height
-                            color: Theme.mauve
-                        }
-
-                        // Section label.
-                        Txt {
-                            visible: rowItem.isHeader
-                            anchors.left: parent.left
-                            anchors.leftMargin: root.s(18)
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: root.s(4)
-                            text: rowItem.isHeader ? rowItem.modelData.label : ""
-                            color: Theme.surface1
-                            font.pixelSize: root.s(13)
-                        }
-
-                        // The rows don't scroll, so hover can't fight the
-                        // keyboard here — but the menu still maps under wherever
-                        // the cursor already is, and Return on a preselected
-                        // device row would switch the default sink unasked.
-                        MouseArea {
-                            id: hover
-                            anchors.fill: parent
-                            visible: !rowItem.isHeader
-                            hoverEnabled: true
-                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = rowItem.index; }
-                            onClicked: { root.selected = rowItem.index; root.activate(rowItem.index); }
-                        }
+                        headerHeight: root.headerHeight
+                        rowHeight: root.rowHeight
+                        current: rowItem.isDefault
+                        onActivated: root.activate(rowItem.index)
 
                         Row {
                             visible: !rowItem.isHeader
@@ -226,7 +176,7 @@ Picker {
                                     return rowItem.muted ? "󰖁" : "󰕾";
                                 }
                                 color: rowItem.muted ? Theme.red
-                                       : (!rowItem.isHeader && root.isDefault(rowItem.modelData)) ? Theme.mauve
+                                       : rowItem.isDefault ? Theme.mauve
                                        : rowItem.sel ? Theme.mauve : Theme.subtext0
                                 font.pixelSize: root.s(18)
                             }

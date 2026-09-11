@@ -15,9 +15,6 @@ Picker {
     ipcTarget: "settings"
     allScreens: false
 
-    readonly property real scale: Config.scale
-    function s(n) { return Config.s(n); }
-
     readonly property int headerHeight: s(28)
     readonly property int rowHeight: s(34)
     readonly property int footerHeight: s(30)
@@ -76,42 +73,15 @@ Picker {
                 Repeater {
                     model: root.rows
 
-                    Item {
+                    PickerRow {
                         id: rowItem
-                        required property var modelData
-                        required property int index
-                        readonly property bool isHeader: modelData.kind === "header"
+                        picker: root
                         readonly property bool enabled_: !isHeader && Config.on(modelData.key)
-                        readonly property bool sel: index === root.selected
 
                         width: content.width
-                        height: isHeader ? root.headerHeight : root.rowHeight
-
-                        Rectangle {
-                            anchors.fill: parent
-                            visible: rowItem.sel
-                            color: Theme.rowSelectBg
-                        }
-
-                        Txt {
-                            visible: rowItem.isHeader
-                            anchors.left: parent.left
-                            anchors.leftMargin: root.s(18)
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: root.s(4)
-                            text: rowItem.isHeader ? rowItem.modelData.label : ""
-                            color: Theme.surface1
-                            font.pixelSize: root.s(13)
-                        }
-
-                        MouseArea {
-                            id: hover
-                            anchors.fill: parent
-                            visible: !rowItem.isHeader
-                            hoverEnabled: true
-                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = rowItem.index; }
-                            onClicked: { root.selected = rowItem.index; root.toggleRow(rowItem.index); }
-                        }
+                        headerHeight: root.headerHeight
+                        rowHeight: root.rowHeight
+                        onActivated: root.toggleRow(rowItem.index)
 
                         Row {
                             visible: !rowItem.isHeader
