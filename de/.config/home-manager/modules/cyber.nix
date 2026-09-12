@@ -79,7 +79,7 @@
     metasploit                # exploitation framework
 
     # PASSWORD ATTACKS
-    #john                      # password cracker (john the ripper)
+    john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
     crunch                    # wordlist generator
     chntpw                    # Windows password/registry editor
