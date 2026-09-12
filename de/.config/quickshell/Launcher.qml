@@ -71,6 +71,14 @@ Picker {
     }
     onQueryChanged: root.selected = 0
 
+    // yazi is run *inside* an interactive zsh rather than as kitty's command,
+    // so quitting it (`q`) drops into a shell in the directory it was left in
+    // instead of taking the window down with it. `y` is the zshrc wrapper that
+    // does the --cwd-file dance; `exec zsh` replaces it with a clean prompt.
+    function yaziCmd(path) {
+        return ["kitty", "-e", "zsh", "-ic", 'y "$1"; exec zsh', "zsh", path];
+    }
+
     // Enter edits: nvim for a file, yazi for a directory (nvim on a directory
     // lands in netrw, which nvim-tree disables). Shift+Enter always opens yazi
     // — on a file that means yazi in its parent with the file selected, which
@@ -89,14 +97,16 @@ Picker {
         } else if (action === "xdg") {
             Quickshell.execDetached(["xdg-open", hit.path]);
         } else if (action === "yazi") {
-            Quickshell.execDetached(["kitty", "-e", "yazi", hit.path]);
+            Quickshell.execDetached(root.yaziCmd(hit.path));
         } else if (action === "term") {
             // hit.dir is the ~-abbreviated label the row draws; cut the real
             // parent off the path instead. A directory hit is its own cwd.
             var cwd = hit.isDir ? hit.path : hit.path.slice(0, hit.path.lastIndexOf("/"));
             Quickshell.execDetached(["kitty", "--directory", cwd]);
+        } else if (hit.isDir) {
+            Quickshell.execDetached(root.yaziCmd(hit.path));
         } else {
-            Quickshell.execDetached(["kitty", "-e", hit.isDir ? "yazi" : "nvim", hit.path]);
+            Quickshell.execDetached(["kitty", "-e", "nvim", hit.path]);
         }
         root.hide();
     }
