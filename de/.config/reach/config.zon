@@ -14,17 +14,8 @@
     .cursor = .{
         .theme = "default",
         .size = 24,
-        // A shake no longer grows the cursor — it runs this. reach detects the
-        // gesture (raw evdev deltas; it has no cursor position to draw at) and
-        // quickshell dims the screen with a clear circle around the pointer.
-        // NOTE: `.command` needs a reach that knows the field — an unknown key
-        // fails the whole ZON parse and drops reach to compiled-in defaults.
         .shake = .{
             .enabled = true,
-            // How long the shake has to keep looking like a shake before the
-            // command runs. This is the sensitivity knob (the ratio/speed
-            // thresholds in shake.zig aren't exposed); 150 fired on an
-            // overshoot-and-correct, 450 wants a deliberate shake.
             .delay = 450,
             .command = "qs ipc call spotlight flash",
         },
@@ -52,29 +43,16 @@
     .autostart = .{
         "$HOME/.config/reach/autostart.sh",
     },
-
-    // --- monitors (dwl monrules) -------------------------------------------
-    // Matched by connector name. Array ORDER defines monitor numbering for
-    // focusmon/sendmon and window-rule .monitor indices. transform is one of
-    // .normal .rotate_90 .rotate_180 .rotate_270 .flipped .flipped_90/180/270.
     .monitors = .{
         .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
         .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
-        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440},
-        // Laptop pair. Both need explicit x/y: with x/y left at the (-1,-1)
-        // default reach never sends set_position, so river leaves every head at
-        // 0,0 and they stack on top of each other. HDMI sits above the laptop
-        // panel, which is centred under it (3840/2 - 1920/2 = 960 in from the
-        // external's left edge). The whole pair is parked past x=4520 so it
-        // stays clear of the desktop's DP block if they are ever live together.
+        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
+        //.{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440 },
         .{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
         .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 5960, .y = 2160 },
     },
 
-    // --- window rules (dwl rules) ------------------------------------------
-    // Match app_id/title: "^foo" = starts-with, "foo" = contains. desktop is a
-    // 1-based desktop number (0/absent = leave it where it opened). monitor is an
-    // index into .monitors above.
+    // --- window rules ------------------------------------------
     .rules = .{
         .{ .app_id = "rmpc", .desktop = 1, .monitor = 2 },
         .{ .app_id = "zen", .desktop = 3, .switchto = true },
@@ -83,18 +61,6 @@
         .{ .app_id = "^float", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
         .{ .app_id = "pavucontrol", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
     },
-
-    // --- the baked-in status bar -------------------------------------------
-    // Off: the bar is quickshell's now (Bar.qml), drawn as a layer surface whose
-    // exclusive zone reserves the strip — so reach no longer has to subtract it
-    // from the layout by hand. reach still publishes the desktop/focus/title
-    // state it used to draw, over the socket in its src/ipc.zig; with the bar
-    // off, that socket is the only way any of it leaves the window manager.
-    //
-    // `enabled` needs a reach new enough to KNOW the field: an unknown key fails
-    // the whole parse and reach falls back to its compiled-in defaults — no
-    // binds, no monitor layout. Install the binary before this file.
-    .bar = .{ .enabled = false },
 
     // --- keybindings -------------------------------------------------------
     // Providing `binds` REPLACES the entire default action/spawn/chord keymap

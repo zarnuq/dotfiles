@@ -53,7 +53,7 @@ zstyle ':zhimmer:*' prompt yes
 # menu-style is gone: zhimmer draws the drop-down itself and complist is no
 # longer a backend for it, so this setting no longer exists (2026-08-30).
 # zstyle ':zhimmer:*' menu-style zle
-zplug "/home/miles/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
+zplug "$HOME/Projects/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
 zplug "zsh-users/zsh-syntax-highlighting"
 if ! zplug check --verbose; then
     zplug install
