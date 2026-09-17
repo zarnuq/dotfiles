@@ -34,6 +34,8 @@
     chromaprint
     caligula
     codex
+    ansible
+    obsidian
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

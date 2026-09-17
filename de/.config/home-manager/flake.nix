@@ -31,6 +31,27 @@
             evil-winrm = prev.evil-winrm.override {
               bundlerEnv = args: prev.bundlerEnv (args // { ruby = final.ruby_3_3; });
             };
+
+            # nixpkgs pins the hash of GitHub's generated tarball for
+            # playwright-python 1.63.0, and GitHub regenerated that archive, so
+            # the fixed-output fetch fails. It takes theharvester -> home-manager-path
+            # -> the whole generation down with it, which is why a switch after a
+            # flake update dies with "hash mismatch in fixed-output derivation".
+            # theharvester resolves playwright through python3.pkgs, not the
+            # top-level python3Packages, so the override has to go in
+            # pythonPackagesExtensions to reach every python package set.
+            pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+              (pyfinal: pyprev: {
+                playwright = pyprev.playwright.overrideAttrs (old: {
+                  src = prev.fetchFromGitHub {
+                    owner = "microsoft";
+                    repo = "playwright-python";
+                    tag = "v${old.version}";
+                    hash = "sha256-RwIn+0EcHnStjORVFmT7gp4bGjl+qer1FgtI3+aPF2w=";
+                  };
+                });
+              })
+            ];
           })
         ];
       };
