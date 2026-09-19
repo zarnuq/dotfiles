@@ -13,7 +13,6 @@ Picker {
     id: root
 
     ipcTarget: "audio"
-    allScreens: false
 
     // Nodes only publish `.audio` (and their properties) while something holds
     // a binding on them, and the menu has to be correct in the frame it opens —
@@ -69,15 +68,9 @@ Picker {
         return false;
     }
 
-    readonly property int headerHeight: s(28)
-    readonly property int rowHeight: s(40)
+    rowHeight: s(40)
+    minBoxHeight: s(120)
     boxWidth: s(560)
-    boxHeight: {
-        var h = s(12) * 2;
-        for (var i = 0; i < rows.length; i++)
-            h += rows[i].kind === "header" ? headerHeight : rowHeight;
-        return Math.max(h, s(120));
-    }
 
     function setVolume(row, v) {
         if (!row.node || !row.node.audio) return;
@@ -117,18 +110,11 @@ Picker {
             id: content
             focus: true
 
-            function reset() { root.selected = root.firstSelectable(); content.forceActiveFocus(); }
-
             Keys.onPressed: function (e) {
+                if (root.navKey(e)) return;
                 var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
-                if (e.key === Qt.Key_Escape) { root.hide(); }
-                else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) { root.activate(root.selected); }
-                else if (e.key === Qt.Key_M && plain) { root.toggleMute(root.selected); }
-                else if (e.key === Qt.Key_Down || (e.key === Qt.Key_J && (plain || (e.modifiers & Qt.ControlModifier)))) {
-                    root.move(1);
-                } else if (e.key === Qt.Key_Up || (e.key === Qt.Key_K && (plain || (e.modifiers & Qt.ControlModifier)))) {
-                    root.move(-1);
-                } else if (e.key === Qt.Key_Right || (e.key === Qt.Key_L && plain)) {
+                if (e.key === Qt.Key_M && plain) { root.toggleMute(root.selected); }
+                else if (e.key === Qt.Key_Right || (e.key === Qt.Key_L && plain)) {
                     root.nudge(root.selected, 0.05);
                 } else if (e.key === Qt.Key_Left || (e.key === Qt.Key_H && plain)) {
                     root.nudge(root.selected, -0.05);

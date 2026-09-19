@@ -1,13 +1,13 @@
 import Quickshell
 import QtQuick
 
-// Top of the left bar's lower stack: sits directly under the clock (14 + 150),
+// Top of the left bar's lower stack: sits directly under the clock (150 tall),
 // so the calendar below it can stretch into whatever is left. 420x75.
 // Software gamma via brightness.sh (wl-gammarelay-rs, all outputs). Range 10..100.
 Widget {
     id: root
     anchors { top: true; left: true }
-    margins { top: s(164) }
+    margins { top: s(150) }
     implicitWidth: s(420)
     implicitHeight: s(75)
 

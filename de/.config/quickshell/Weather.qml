@@ -1,13 +1,12 @@
 import Quickshell
 import QtQuick
 
-// eww `weather` window. Bottom-left, y=600, 140 wide.
 // One wttr.in request (10 min) split into temp / condition / humidity / wind.
 Widget {
     id: root
     anchors { bottom: true; left: true }
-    margins { bottom: s(600) }
-    implicitWidth: s(140)
+    margins { bottom: s(450) }
+    implicitWidth: s(420)
     implicitHeight: s(150)
 
     property string temp: "N/A"
@@ -25,11 +24,24 @@ Widget {
         }
     }
 
-    Column {
+    // Temperature carries the card; the three details stack beside it rather
+    // than under it, so a full-width card isn't mostly blank.
+    Row {
         anchors.fill: parent
-        Txt { text: root.temp;      font.pixelSize: root.s(24) }
-        Txt { text: root.condition; color: Theme.subtext0; font.pixelSize: root.s(20) }
-        Txt { text: "💧" + root.humidity; color: Theme.subtext0; font.pixelSize: root.s(20) }
-        Txt { text: "  💨" + root.wind;   color: Theme.subtext0; font.pixelSize: root.s(20) }
+        spacing: root.s(18)
+
+        Txt {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.temp
+            font.pixelSize: root.s(44)
+        }
+
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: root.s(4)
+            Txt { text: root.condition; font.pixelSize: root.s(20) }
+            Txt { text: "💧 " + root.humidity; color: Theme.subtext0; font.pixelSize: root.s(18) }
+            Txt { text: "💨 " + root.wind;   color: Theme.subtext0; font.pixelSize: root.s(18) }
+        }
     }
 }

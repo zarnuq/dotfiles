@@ -50,7 +50,13 @@ Singleton {
     // nothing and the two sysfs files are the only source. The bar block and the
     // bottom-right card each kept their own FileView pair, their own timer and
     // their own copy of this parse, at two different intervals.
-    property bool batteryPresent: false
+    // Whether there IS a battery is Config's one-shot probe of the same file,
+    // asked once at startup where it cannot flap. Deriving it from each read is
+    // what made the card and the bar block disappear mid-session: reload() is a
+    // refresh, text() can come back empty while one is in flight, and a single
+    // empty read set present=false — which, with the timer's `running` bound to
+    // it, stopped the only thing that could ever set it back.
+    readonly property bool batteryPresent: Config.batteryPresent
     property int batteryLevel: 100
     property string batteryStatus: "Unknown"
     readonly property bool charging: batteryStatus === "Charging" || batteryStatus === "Full"
@@ -61,25 +67,33 @@ Singleton {
     function readBattery() {
         capFile.reload();
         battFile.reload();
-        // A missing or unreadable battery reads back empty; treat that as "no
-        // battery" rather than letting Number("") land on a fake 0%.
+        // An empty or non-numeric read is a read that didn't land, not a battery
+        // that vanished: keep the last good values rather than letting Number("")
+        // report a fake 0%.
         var cap = capFile.text().trim();
-        if (cap.length === 0 || isNaN(Number(cap))) { root.batteryPresent = false; return; }
-        root.batteryPresent = true;
+        if (cap.length === 0 || isNaN(Number(cap))) return;
         root.batteryLevel = Number(cap);
         root.batteryStatus = battFile.text().trim();
     }
 
-    // Its own tick: charge doesn't move on the 2s beat the graphs need.
+    // Its own tick: charge doesn't move on the 2s beat the graphs need. Gated
+    // on the startup probe, so the desktop never runs it at all and the laptop
+    // never stops — the gate and the value it reads must not be the same thing.
+    Component.onCompleted: root.readBattery()
     Timer {
         interval: 10000
-        running: true
+        running: root.batteryPresent
         repeat: true
-        triggeredOnStart: true
         onTriggered: root.readBattery()
     }
 
     // ---- external tools (need the binary; run as short-lived processes) ---
+    // No nvidia, no nvidia-smi: without this the tick forks a process that can
+    // only fail, every 2s for the life of the session (~43k times a day on the
+    // laptop). Same trick as Config's BAT0 probe — ask the kernel once.
+    FileView { id: nvidiaProbe; path: "/proc/driver/nvidia/version"; blockLoading: true; printErrors: false }
+    readonly property bool gpuPresent: nvidiaProbe.text().length > 0
+
     Process {
         id: gpuProc
         command: ["nvidia-smi",
@@ -115,7 +129,7 @@ Singleton {
         onTriggered: {
             root.readCpu();
             root.readRam();
-            gpuProc.running = true;
+            if (root.gpuPresent) gpuProc.running = true;
             diskProc.running = true;
             cpuTempProc.running = true;
         }

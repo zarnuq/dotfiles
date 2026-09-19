@@ -1,13 +1,14 @@
 import Quickshell
 import QtQuick
 
-// Left bar, 420 wide, y=750 up to the bottom of the brightness widget (164+75):
+// Left bar, 420 wide: stretches from under the brightness widget (150+75) down
+// to the top of the weather card, so it absorbs whatever height is left over:
 // anchoring top+bottom stretches it over the bar's leftover space.
 // ICS calendar via calendar.sh (Python icalendar), polled 60s.
 Widget {
     id: root
     anchors { top: true; bottom: true; left: true }
-    margins { top: s(239); bottom: s(750) }
+    margins { top: s(225); bottom: s(600) }
     implicitWidth: s(420)
 
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"
@@ -16,7 +17,10 @@ Widget {
     Poll {
         id: poll
         command: [root.script, "events"]
-        interval: 60000
+        // calendar.sh caches for 300s, so a shorter interval can only pay for
+        // python + icalendar + a reparse of the ICS to print the same bytes.
+        // The header's refresh button calls refresh() for the impatient case.
+        interval: 300000
         onJsonData: v => root.events = v || []
     }
 

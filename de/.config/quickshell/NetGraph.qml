@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// eww `net-graph` window. Bottom-left, above cpu (y=150).
+// Sits directly above the cpu card in the bottom-left stack.
 // Down/up MB/s from /proc/net/dev deltas (native), plus an IP footer.
 Widget {
     id: root

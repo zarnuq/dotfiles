@@ -11,12 +11,7 @@ PanelWindow {
     // Show on the main screen (where the widgets live), as Widget does — this
     // had its own copy of the pin and of the scale rule, with "DP-2" written
     // out rather than read from Config.
-    Component.onCompleted: {
-        var target = Config.screen(Config.mainScreen)
-                     || (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
-        if (target) win.screen = target;
-    }
-    property real scale: Config.scale
+    Component.onCompleted: if (Config.pinScreen) win.screen = Config.pinScreen;
     function s(n) { return Config.s(n); }
 
     WlrLayershell.layer: WlrLayer.Overlay

@@ -23,7 +23,6 @@ import QtQuick
 Scope {
     id: root
 
-    readonly property real scale: Config.scale
     function s(n) { return Config.s(n); }
 
     property string icon: ""

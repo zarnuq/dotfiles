@@ -5,8 +5,8 @@ import QtQuick
 
 // Base for the full-screen pickers and menus.
 //
-// Owns IPC toggle, one overlay per output, shared scale and list navigation,
-// and the logic that decides which output draws the content.
+// Owns IPC toggle, one overlay per output, the box's size, list navigation and
+// its keys, and the logic that decides which output draws the content.
 //
 // That trick: reach exposes no IPC to ask which monitor is focused, and it hands
 // keyboard focus to every layer surface, so a surface is mapped on every output
@@ -16,13 +16,13 @@ import QtQuick
 // by the first pointer-enter; if the cursor is dead still as the surfaces map,
 // the fallback timer picks the main screen.
 //
-// A picker supplies `box` (its content, instantiated per output) and its own
-// state/keys. If the content defines `reset()`, it's called each time the box
-// becomes visible — where a picker clears its query and takes focus.
+// A picker supplies `box` (its content, built when the box appears) and its own
+// rows, actions and extra keys. Focus and the initial selection are handled
+// here; a `reset()` on the content is called after them, for the picker's own
+// state (a query to clear, a password field to drop).
 Scope {
     id: root
 
-    readonly property real scale: Config.scale
     function s(n) { return Config.s(n); }
 
     property string ipcTarget: ""
@@ -30,7 +30,21 @@ Scope {
     property real widthFraction: 0.35    // box size as a fraction of the output
     property real heightFraction: 0.5
     property int boxWidth: 0             // px; overrides widthFraction when > 0
-    property int boxHeight: 0
+
+    // A list picker is as tall as its rows — the same sum was written out in
+    // four files. A picker that drives its own list leaves `rows` empty and
+    // falls back to heightFraction, which is what 0 means here.
+    property int headerHeight: s(28)
+    property int rowHeight: s(34)
+    property int barHeight: 0            // bottom status bar, when the picker draws one
+    property int minBoxHeight: 0
+    property int boxHeight: {
+        if (rows.length === 0) return 0;
+        var h = s(12) * 2 + barHeight;
+        for (var i = 0; i < rows.length; i++)
+            h += rows[i].kind === "header" ? headerHeight : rowHeight;
+        return Math.max(h, minBoxHeight);
+    }
 
     // Draw the box on every output instead of just the pointer's. Keyboard
     // focus still goes to exactly one surface — reach hands it to every layer
@@ -42,9 +56,10 @@ Scope {
     property string activeScreen: ""
 
     // ── the selection ────────────────────────────────────────────────────
-    // Settings, Audio and Network use a flat `rows` list containing optional
-    // non-selectable group headers. Launcher and WallpaperPicker leave it
-    // empty and drive `selected` against their own results instead.
+    // The list pickers (Settings, Audio, the two Network instances) use a flat
+    // `rows` list containing optional non-selectable group headers. Launcher
+    // and WallpaperPicker leave it empty and drive `selected` against their own
+    // results instead.
     property var rows: []
     property int selected: 0
 
@@ -56,11 +71,36 @@ Scope {
         return 0;
     }
 
+    // A list that shrinks under the selection — an AP fading out of a scan, an
+    // app stream ending — would otherwise leave `selected` past the end, where
+    // Return does nothing. Picker owns both, so it owns the invariant; the two
+    // menus that remembered to do this for themselves had the same six lines.
+    onRowsChanged: if (!selectable(selected)) selected = firstSelectable();
+
     // Headers aren't stops on the way down the list; step over them.
     function move(delta) {
         var i = root.selected + delta;
         while (i >= 0 && i < root.rows.length && root.rows[i].kind === "header") i += delta;
         if (root.selectable(i)) root.selected = i;
+    }
+
+    // Escape, Return and j/k/arrows are the picker's contract, not any one
+    // menu's — four files opened with the identical `plain` dance and the
+    // identical triple condition. A picker calls this first and handles only
+    // its own extra keys. `activate(i)` is the subclass's; a picker without
+    // one (Launcher, WallpaperPicker drive their own lists) just won't see
+    // Return here.
+    function navKey(e) {
+        // j/k bare, or Ctrl+j/k for a picker whose box has a text field.
+        var vim = !(e.modifiers & Qt.AltModifier) || (e.modifiers & Qt.ControlModifier);
+        if (e.key === Qt.Key_Escape) root.hide();
+        else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+            if (root.activate) root.activate(root.selected);
+        } else if (e.key === Qt.Key_Down || (e.key === Qt.Key_J && vim)) root.move(1);
+        else if (e.key === Qt.Key_Up || (e.key === Qt.Key_K && vim)) root.move(-1);
+        else return false;
+        e.accepted = true;
+        return true;
     }
 
     signal opened()
@@ -100,20 +140,18 @@ Scope {
         onTriggered: if (root.open && root.activeScreen === "") root.activeScreen = root.defaultScreen();
     }
 
-    // The main screen when it's there, else whatever the first output is — on the
-    // laptop there is no DP-2, and latching a name that matches no output would
-    // leave the picker mapped but invisible on every monitor.
-    function defaultScreen() {
-        var m = Config.screen(Config.mainScreen);
-        if (m) return m.name;
-        var all = Quickshell.screens;
-        return all.length > 0 ? all[0].name : "";
-    }
+    // Latching a name that matches no output would leave the picker mapped but
+    // invisible on every monitor, so this is Config's pin — the main screen
+    // when it's there, else the first one (on the laptop there is no DP-2).
+    function defaultScreen() { return Config.pinScreen ? Config.pinScreen.name : ""; }
 
+    // No `show` here on purpose: `qs ipc call <target> show` collides with the
+    // `qs ipc show` subcommand — the CLI prints the target listing, exits 0 and
+    // never reaches the handler, so the function only looked like API. `hide`
+    // and `toggle` both arrive normally.
     IpcHandler {
         target: root.ipcTarget
         function toggle(): void { root.toggle(); }
-        function show(): void   { root.show(); }
         function hide(): void   { root.hide(); }
     }
 
@@ -148,7 +186,6 @@ Scope {
             Rectangle {
                 id: boxFrame
                 visible: root.open && (root.allScreens || win.modelData.name === root.activeScreen)
-                onVisibleChanged: if (visible && loader.item && loader.item.reset) loader.item.reset();
                 width: root.boxWidth > 0 ? root.boxWidth : Math.round(win.width * root.widthFraction)
                 height: root.boxHeight > 0 ? root.boxHeight : Math.round(win.height * root.heightFraction)
                 anchors.centerIn: parent
@@ -159,11 +196,26 @@ Scope {
 
                 MouseArea { anchors.fill: parent }   // swallow clicks so they don't close
 
+                // Built when the box appears on this output, destroyed when it
+                // goes. Ungated, every picker's content existed on every output
+                // for the whole session — eighteen trees for the one that can be
+                // on screen, and the wallpaper grid held its decoded thumbnails
+                // in all three of them.
+                //
+                // Taking focus and putting the selection on the first row happen
+                // here because a picker that forgets either is simply a dead
+                // keyboard; `reset()` is left to mean "my own extra state".
                 Loader {
                     id: loader
+                    active: boxFrame.visible
                     anchors.fill: parent
                     anchors.margins: boxFrame.border.width
                     sourceComponent: root.box
+                    onLoaded: {
+                        root.selected = root.firstSelectable();
+                        item.forceActiveFocus();
+                        if (item.reset) item.reset();
+                    }
                 }
             }
         }

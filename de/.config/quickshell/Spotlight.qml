@@ -82,8 +82,6 @@ Scope {
         closing.stop();
         root.curR = root.radius;
     }
-    function toggle() { if (root.shown) root.hide(); else root.show(); }
-
     // `flash`/`dismiss`, not show/hide: `qs ipc call <target> show` collides
     // with the `qs ipc show` subcommand and never reaches the handler — the CLI
     // just prints the target listing and exits 0.
@@ -91,7 +89,6 @@ Scope {
         target: "spotlight"
         function flash(): void   { root.show(); }
         function dismiss(): void { root.hide(); }
-        function toggle(): void  { root.toggle(); }
     }
 
     // Dismissing on pointer movement can't start immediately: the gesture that

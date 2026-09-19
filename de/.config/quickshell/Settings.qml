@@ -13,10 +13,7 @@ Picker {
     id: root
 
     ipcTarget: "settings"
-    allScreens: false
 
-    readonly property int headerHeight: s(28)
-    readonly property int rowHeight: s(34)
     readonly property int footerHeight: s(30)
 
     // Headers are inserted where the group changes, so the catalogue stays a
@@ -33,14 +30,9 @@ Picker {
     }
 
     boxWidth: s(420)
-    boxHeight: {
-        var h = s(12) * 2 + footerHeight;
-        for (var i = 0; i < rows.length; i++)
-            h += rows[i].kind === "header" ? headerHeight : rowHeight;
-        return h;
-    }
+    barHeight: footerHeight
 
-    function toggleRow(i) {
+    function activate(i) {
         if (!selectable(i)) return;
         Config.toggle(rows[i].key);
     }
@@ -50,18 +42,10 @@ Picker {
             id: content
             focus: true
 
-            function reset() { root.selected = root.firstSelectable(); content.forceActiveFocus(); }
-
             Keys.onPressed: function (e) {
-                var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
-                if (e.key === Qt.Key_Escape) { root.hide(); }
-                else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter || e.key === Qt.Key_Space) {
-                    root.toggleRow(root.selected);
-                } else if (e.key === Qt.Key_Down || (e.key === Qt.Key_J && (plain || (e.modifiers & Qt.ControlModifier)))) {
-                    root.move(1);
-                } else if (e.key === Qt.Key_Up || (e.key === Qt.Key_K && (plain || (e.modifiers & Qt.ControlModifier)))) {
-                    root.move(-1);
-                } else { return; }
+                if (root.navKey(e)) return;
+                if (e.key !== Qt.Key_Space) return;
+                root.activate(root.selected);      // space is this menu's Return
                 e.accepted = true;
             }
 
@@ -81,7 +65,7 @@ Picker {
                         width: content.width
                         headerHeight: root.headerHeight
                         rowHeight: root.rowHeight
-                        onActivated: root.toggleRow(rowItem.index)
+                        onActivated: root.activate(rowItem.index)
 
                         Row {
                             visible: !rowItem.isHeader

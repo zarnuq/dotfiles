@@ -29,8 +29,6 @@ ShellRoot {
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
     LazyLoader { active: Config.on("netGraph");            NetGraph {} }
-    LazyLoader { active: Config.on("ports");               Ports {} }
-    LazyLoader { active: Config.on("vpn");                 Vpn {} }
     LazyLoader { active: Config.on("mpd");                 Mpd {} }
     LazyLoader { active: Config.on("weather");             Weather {} }
     LazyLoader { active: Config.on("notificationHistory"); Notifications {} }

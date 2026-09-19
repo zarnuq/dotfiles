@@ -48,6 +48,7 @@
       # output / TUI
       rich
       colorama
+      pymongo
     ];
   };
 
@@ -82,7 +83,6 @@
     john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
     crunch                    # wordlist generator
-    chntpw                    # Windows password/registry editor
 
     # WIRELESS
     aircrack-ng               # wireless WEP/WPA cracking suite
@@ -108,8 +108,6 @@
     stegseek                  # fast steghide cracker
 
     # UTILITIES
-    unrar                     # RAR archive extractor
-    dos2unix                  # Fix line endings between OS transfers
     inetutils                 # provides telnet, ftp, etc.
     exiftool                  # Metadata analysis
     responder                 # LLMNR/NBT-NS/mDNS poisoner
@@ -133,10 +131,7 @@
     samba
     #ilspycmd
     openldap
-    #apache-directory-studio
-    #bloodhound
-    #bloodhound-py
-    #neo4j
+    remmina
     adalanche
     dig
     thc-hydra
@@ -144,6 +139,6 @@
     websocat
     qFlipper
     yt-dlp
-
+    postgresql
   ];
 }

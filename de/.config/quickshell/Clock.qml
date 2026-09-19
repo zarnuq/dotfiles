@@ -1,12 +1,11 @@
 import QtQuick
 
-// eww `clock` window. Top-left, y=14 clears reach's status bar.
+// Top-left, flush under the bar.
 // Time/date computed natively (was `date` polled at 1s/60s).
 Widget {
     id: root
     pad: 15
     anchors { top: true; left: true }
-    margins { top: s(14) }
     implicitWidth: s(420)
     implicitHeight: s(150)
 

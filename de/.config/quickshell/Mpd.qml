@@ -3,7 +3,7 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import QtQuick
 
-// Now-playing + volume widget. Bottom-left, y=450, 420x150.
+// Now-playing + volume widget, bottom-left stack (above the two graphs).
 //
 // Native throughout — no subprocess polling:
 //   - transport/metadata/art/progress via Quickshell.Services.Mpris (was `mpc`,
@@ -13,7 +13,7 @@ import QtQuick
 Widget {
     id: root
     anchors { bottom: true; left: true }
-    margins { bottom: s(450) }
+    margins { bottom: s(300) }
     implicitWidth: s(420)
     implicitHeight: s(150)
 

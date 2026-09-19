@@ -1,6 +1,5 @@
 import QtQuick
 
-// eww `cpu` window + `cpu-gpu-graph` widget. Bottom-left, 420x150.
 // Four overlaid rolling graphs: cpu / gpu / ram / disk.
 Widget {
     id: root

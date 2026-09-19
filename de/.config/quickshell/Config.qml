@@ -41,6 +41,11 @@ Singleton {
         return null;
     }
 
+    /// The output widgets pin themselves to: the main screen when it's there,
+    /// else whatever the first one is. Three files spelled this chain out.
+    readonly property var pinScreen: root.screen(root.mainScreen)
+                                     || (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
+
     readonly property bool onLaptop: root.screen(mainScreen) === null
 
     // The shell's one scale factor: the laptop's smaller panel gets everything
@@ -73,8 +78,6 @@ Singleton {
         { key: "clock",               group: "Panel",       label: "Clock" },
         { key: "cpuGraph",            group: "Panel",       label: "CPU / GPU / RAM / disk" },
         { key: "netGraph",            group: "Panel",       label: "Network" },
-        { key: "ports",               group: "Panel",       label: "Listening ports" },
-        { key: "vpn",                 group: "Panel",       label: "VPN" },
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
         { key: "weather",             group: "Panel",       label: "Weather" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
