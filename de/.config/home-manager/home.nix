@@ -26,7 +26,6 @@
     tree-sitter # nvim-treesitter (main branch) needs the CLI to compile parsers
     termius
     nwg-look
-    wl-gammarelay-rs
     firefox-bin
     signal-desktop
     tealdeer

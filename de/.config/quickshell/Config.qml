@@ -70,6 +70,7 @@ Singleton {
 
         { key: "session",             group: "Session",     label: "Lock screen + idle lock" },
         { key: "clipboard",           group: "Session",     label: "Clipboard watchers" },
+        { key: "clipboardPicker",     group: "Session",     label: "Clipboard picker" },
         { key: "launcher",            group: "Session",     label: "App launcher" },
         { key: "audio",               group: "Session",     label: "Audio mixer" },
         { key: "network",             group: "Session",     label: "Network menu" },

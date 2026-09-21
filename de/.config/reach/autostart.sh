@@ -8,7 +8,6 @@ pgrep -f "runsvdir $HOME/.local/sv" >/dev/null || \
 bus="$runtime/bus"
 while [ ! -S "$bus" ]; do sleep 0.05; done
 
-( sleep 2; $HOME/.local/bin/redshift.sh 4000 ) &
 kitty --class rmpc rmpc &
 
 dconf load /org/gnome/desktop/interface/ < "$HOME/.config/dconf/interface.dconf"

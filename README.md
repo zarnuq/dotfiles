@@ -3,24 +3,30 @@
 ## Gallery
 
 ![Alt text](./screenshots/rice1.png)
-![Alt text](./screenshots/rice2.png) ![Alt text](./screenshots/rice3.png) # configured applications
+![Alt text](./screenshots/rice2.png)
+![Alt text](./screenshots/rice3.png)
+
+## Configured applications
+
+- beets (music library)
 - btop
-- doom emacs
 - fastfetch
 - gtk themes
 - kitty
 - kvantum
 - mpd
 - nvim
-- pipewire settings
+- pipewire + wireplumber (16-band EQ sinks)
 - qt themes
-- reach(personal wm)
+- quickshell (bar, widgets, launcher, clipboard, lock screen, notifications, wallpaper)
+- reach (personal wm)
 - rmpc
 - rofi
 - tmux
+- xdg-desktop-portal
 - yazi
 - zen-browser theme
-- zsh (spaceship, zplug)
+- zsh (zplug, zhimmer, vi-mode)
 
 ## Install
 
@@ -29,8 +35,12 @@ cd ~
 git clone https://github.com/zarnuq/dotfiles.git
 cd dotfiles
 stow de
-home-manager switch
+home-manager switch --flake ~/.config/home-manager#miles
 ```
+
+`stow -D de` removes the symlinks. The home-manager config is a flake, so plain
+`home-manager switch` has nothing to find — the `nixup` alias does a flake
+update plus a switch.
 
 ### reach (window manager)
 
@@ -46,4 +56,8 @@ emerge -av gui-wm/reach
 Config: `~/.config/reach/config.zon` (this repo, stowed); the ebuild also
 installs a system default at `/etc/reach/config.zon`.
 
+### Monitors
 
+`config.zon`'s `.monitors` block holds both machines' layouts — the desktop's
+three heads are live and the laptop's are commented out directly above them.
+Swap the comments and hit `Super+Shift+r` to reload.

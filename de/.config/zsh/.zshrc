@@ -6,7 +6,6 @@ alias gac='git add .; git commit -m'
 alias gp='git push'
 alias gl='git pull'
 alias ip='ip -c'
-alias vim='emacs -nw'
 alias ls='ls --color=auto'
 alias ll='ls -l --color=auto'
 alias grep='grep --color=auto'
@@ -14,7 +13,6 @@ alias pickcolor='grim -g "$(slurp -p)" -t ppm - | convert - -format "%[pixel:p{0
 alias zshrc='nvim $ZDOTDIR/.zshrc'
 alias ff='fastfetch'
 alias larp='fastfetch'
-alias doomsync='~/.config/emacs/bin/doom sync'
 alias ta='tmux attach-session -t'
 alias esync='doas emaint sync -A'
 alias eworld='doas emerge -avuDN @world'
@@ -63,10 +61,6 @@ zplug load
 HISTORY_IGNORE='(ls|cd|pwd|exit)'
 RPROMPT='%F{#6c7086}%D{%H:%M:%S}%f'
 export MANPAGER="nvim +Man!"
-# fzf binds Ctrl+R in four keymaps, so removing it from the current one alone
-# left it reachable: Esc to cancel a search drops into vi normal mode, where
-# vicmd still had fzf's widget. zhimmer takes over emacs and viins itself;
-# vicmd goes back to `redo`, which is what fzf took it from.
 bindkey -r '^R'
 bindkey -M emacs -r '^R'
 bindkey -M viins -r '^R'

@@ -1,6 +1,5 @@
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Io
 import QtQuick
 
 // Transient indicator for volume / mic / brightness / default-sink changes.
@@ -32,9 +31,9 @@ Scope {
     property bool showBar: true
     property bool shown: false
 
-    // Pipewire delivers initial values as it binds the nodes, and gdbus prints a
-    // banner line on connect; without this the shell would flash an OSD every
-    // start and every config reload.
+    // Pipewire delivers initial values as it binds the nodes, and reach's socket
+    // hands us the current brightness the moment we connect; without this the
+    // shell would flash an OSD every start and every config reload.
     property bool ready: false
     Timer { interval: 1500; running: true; onTriggered: root.ready = true }
 
@@ -91,19 +90,14 @@ Scope {
     }
 
     // ---- brightness -------------------------------------------------------
-    // brightness.sh drives wl-gammarelay's Brightness property; tailing the
-    // bus means the OSD tracks it however it was set (keybind, widget slider),
-    // with none of the 2s lag Brightness.qml's poll would give a keypress.
-    Process {
-        running: true
-        command: ["gdbus", "monitor", "--session", "--dest", "rs.wl-gammarelay"]
-        stdout: SplitParser {
-            onRead: function (data) {
-                var m = /'Brightness': <([0-9.]+)>/.exec(data);
-                if (m) root.flash("󰃟", Math.round(Number(m[1]) * 100), false);
-            }
-        }
-        onExited: running = true
+    // reach owns gamma now (gamma.zig) and publishes the level on its state
+    // socket, so this is a property change rather than a `gdbus monitor`
+    // subprocess tailing a daemon's bus. The `ready` gate above already swallows
+    // the value that arrives with the connection, which is only telling us where
+    // brightness already was.
+    Connections {
+        target: Reach
+        function onBrightnessChanged() { root.flash("󰃟", Reach.brightness, false); }
     }
 
     // ---- surface ----------------------------------------------------------

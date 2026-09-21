@@ -38,20 +38,30 @@
         .{ "PROTON_ENABLE_WAYLAND", "1" },
     },
 
+    // --- gamma (dimming + colour temperature) ------------------------------
+    // Held by reach itself for the life of the session; replaced wl-gammarelay-rs
+    // and the two scripts that drove it. 6500 = neutral, lower = warmer; a reload
+    // (Super+Shift+r) is the night-light switch. Brightness is a keybind below,
+    // deliberately not a field here.
+    .gamma = .{
+        .temperature = 4000,
+    },
+
     // --- startup programs (dwl autostart) ----------------------------------
     // Each is run via /bin/sh -c, so $HOME / pipes / & all work.
     .autostart = .{
         "$HOME/.config/reach/autostart.sh",
     },
     .monitors = .{
-        //.{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
-        .{ .name = "DP-3", .transform = .rotate_270 },
-        .{ .name = "DP-5" },
+        //.{ .name = "DP-5" },
+        //.{ .name = "DP-1", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .refresh = 60000 },
+        //.{ .name = "DP-3", .transform = .rotate_0 },
+        //.{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
+        //.{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 0},
+
+        .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
         .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
-        //.{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
-        .{ .name = "DP-1", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .refresh = 60000 },
-        .{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
-        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 0},
+        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
     },
 
     // --- window rules ------------------------------------------
@@ -80,7 +90,7 @@
         .{ .key = "Super+space", .action = .{ .spawn = "qs ipc call launcher toggle" } },
         .{ .key = "Super+Shift+Escape", .action = .{ .spawn = "qs ipc call settings toggle" } },
         .{ .key = "Super+BackSpace", .action = .{ .spawn = "kitty --class float" } },
-        .{ .key = "Super+v", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/clipfzf" } },
+        .{ .key = "Super+v", .action = .{ .spawn = "qs ipc call clipboard toggle" } },
         .{ .key = "Super+x", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/killfzf" } },
         .{ .key = "Super+z", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/svfzf" } },
         .{ .key = "Super+Shift+z", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/ssvfzf" } },
@@ -118,10 +128,9 @@
         .{ .key = "Alt+End", .action = .{ .spawn = "pactl set-source-mute @DEFAULT_SOURCE@ toggle" } },
         .{ .key = "Alt+bracketleft", .action = .{ .spawn = "$HOME/.local/bin/flip.sh" } },
 
-        // brightness / redshift
-        .{ .key = "Super+Alt+Left", .action = .{ .spawn = "$HOME/.local/bin/brightness.sh down" } },
-        .{ .key = "Super+Alt+Right", .action = .{ .spawn = "$HOME/.local/bin/brightness.sh up" } },
-        .{ .key = "Super+Alt+Up", .action = .{ .spawn = "$HOME/.local/bin/redshift.sh" } },
+        // brightness — in-process gamma dimming, all outputs, floored at 10%.
+        .{ .key = "Super+Alt+Left", .action = .{ .brightness = -5 } },
+        .{ .key = "Super+Alt+Right", .action = .{ .brightness = 5 } },
 
         // window management
         .{ .key = "Super+Shift+r", .action = .reload },

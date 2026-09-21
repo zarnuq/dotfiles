@@ -1,4 +1,0 @@
-#!/bin/sh
-d="$HOME/.local/state/sv/wl-gammarelay-rs"
-mkdir -p "$d"
-exec svlogd -tt "$d"

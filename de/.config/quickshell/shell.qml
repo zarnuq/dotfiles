@@ -21,6 +21,7 @@ ShellRoot {
     LazyLoader { active: Config.on("wallpaperPicker");     WallpaperPicker {} }
     LazyLoader { active: Config.on("notificationPopups");  NotificationPopups {} }
     LazyLoader { active: Config.on("clipboard");           Clipboard {} }
+    LazyLoader { active: Config.on("clipboardPicker");     ClipboardPicker {} }
     LazyLoader { active: Config.on("launcher");            Launcher {} }
     LazyLoader { active: Config.on("session");             Session {} }
     LazyLoader { active: Config.on("audio");               Audio {} }

@@ -25,6 +25,14 @@ Singleton {
     property var outputs: ({})
     property int desktops: 9
 
+    // Gamma, which reach owns (its gamma.zig) since it replaced wl-gammarelay-rs.
+    // It rides this snapshot rather than a bus subscription of our own: brightness
+    // only moves inside a keybind, and river guarantees a manage cycle after one,
+    // so a dim reaches us in the same beat a focus change would. This is what
+    // retired the `gdbus monitor` subprocess and Brightness.qml's 2s poll.
+    property int brightness: 100
+    property int temperature: 6500
+
     readonly property bool connected: sock.connected
 
     /// State for one output, or null if reach hasn't mentioned it (or isn't up).
@@ -78,6 +86,12 @@ Singleton {
             byName[data.outputs[i].name] = data.outputs[i];
 
         root.desktops = data.desktops;
+        // Guarded: a reach too old to publish these leaves the defaults standing
+        // rather than writing undefined into a binding.
+        if (data.brightness !== undefined)
+            root.brightness = data.brightness;
+        if (data.temperature !== undefined)
+            root.temperature = data.temperature;
         // Assigned, never mutated: QML only notifies on assignment, and every
         // bar's cells are bound to this.
         root.outputs = byName;

@@ -78,11 +78,11 @@
 
     # EXPLOITATION
     metasploit                # exploitation framework
+    exploitdb
 
     # PASSWORD ATTACKS
     john                      # password cracker (john the ripper)
     hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
-    crunch                    # wordlist generator
 
     # WIRELESS
     aircrack-ng               # wireless WEP/WPA cracking suite
@@ -111,10 +111,7 @@
     inetutils                 # provides telnet, ftp, etc.
     exiftool                  # Metadata analysis
     responder                 # LLMNR/NBT-NS/mDNS poisoner
-    # nixpkgs pairs netexec 1.5.1 with an impacket whose LDAPConnection has no
-    # `signing` param, so every `nxc ldap` dies in check_ldap_signing with
-    # TypeError. Drop the kwarg (pre-signing behavior); impacket still falls
-    # back to LDAPS if a DC enforces signing. Remove once nixpkgs realigns them.
+
     (netexec.overrideAttrs (old: {   # Modern network exploitation (Successor to CME)
       postPatch = (old.postPatch or "") + ''
         substituteInPlace nxc/protocols/ldap.py \
@@ -123,13 +120,12 @@
       '';
     }))
     smbclient-ng              # Enhanced SMB client
+
     nfs-utils
     zip
     penelope
-    metasploit
     httpie
     samba
-    #ilspycmd
     openldap
     remmina
     adalanche

@@ -3,7 +3,13 @@ import QtQuick
 
 // Top of the left bar's lower stack: sits directly under the clock (150 tall),
 // so the calendar below it can stretch into whatever is left. 420x75.
-// Software gamma via brightness.sh (wl-gammarelay-rs, all outputs). Range 10..100.
+//
+// A READOUT, not a control. reach owns gamma now (its gamma.zig holds the
+// wlr-gamma-control objects for the whole session) and publishes the level on
+// its state socket, so the value arrives through the Reach singleton — no
+// `brightness.sh get` poll every 2s, and no subprocess at all. Setting it is
+// Super+Alt+Left/Right, which runs inside reach with no round trip; the socket
+// is deliberately write-only, so there is nothing for a drag here to call.
 Widget {
     id: root
     anchors { top: true; left: true }
@@ -11,19 +17,9 @@ Widget {
     implicitWidth: s(420)
     implicitHeight: s(75)
 
-    readonly property string script: Quickshell.env("HOME") + "/.local/bin/brightness.sh"
-    property int level: 100
-
-    Poll {
-        command: [root.script, "get"]
-        interval: 2000
-        onData: function (text) { if (!drag.pressed) root.level = Number(text.trim()) || root.level; }
-    }
-
-    function apply(px, w) {
-        root.level = Math.round(Math.max(10, Math.min(100, 10 + (px / w) * 90)));
-        Quickshell.execDetached([root.script, "set", "" + root.level]);
-    }
+    // 10 is reach's floor (a keybind must never be able to black the screen out),
+    // so the bar measures the 10..100 range rather than 0..100.
+    readonly property int level: Reach.brightness
 
     Column {
         anchors.fill: parent
@@ -40,7 +36,7 @@ Widget {
             Txt { id: value; text: root.level + "%"; font.pixelSize: root.s(14) }
         }
 
-        // Flat slider: surface0 track, yellow fill, text-coloured handle.
+        // Flat gauge: surface0 track, yellow fill.
         Item {
             width: parent.width
             height: root.s(16)
@@ -54,19 +50,8 @@ Widget {
                     height: parent.height
                     width: parent.width * (root.level - 10) / 90
                     color: Theme.yellow
+                    Behavior on width { NumberAnimation { duration: 90 } }
                 }
-            }
-            Rectangle {
-                width: root.s(16); height: root.s(16); radius: 0
-                color: Theme.text
-                y: (parent.height - height) / 2
-                x: Math.max(0, Math.min(track.width - width, track.width * (root.level - 10) / 90 - width / 2))
-            }
-            MouseArea {
-                id: drag
-                anchors.fill: parent
-                onPressed: (m) => root.apply(m.x, width)
-                onPositionChanged: (m) => { if (pressed) root.apply(m.x, width); }
             }
         }
     }
