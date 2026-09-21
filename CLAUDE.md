@@ -16,7 +16,7 @@ System package manager is **Portage** (`emerge`). Elevation is **`doas`** (`app-
 
 ```
 de/                  # Stowed to $HOME
-├── .config/         # App configs (incl. reach/, dconf/, quickshell/music/)
+├── .config/         # App configs (incl. reach/, dconf/, quickshell/{cards,music}/)
 ├── .local/bin/      # Custom scripts
 ├── .local/sv/       # Per-user runit service definitions
 ├── .local/share/    # Shared data (icons, rofi themes)
@@ -130,6 +130,12 @@ past x=5000 so it never collides with the desktop's DP block.
 **Service:** `~/.local/sv/quickshell/run` — waits for dbus+wayland sockets, sets `QT_QPA_PLATFORM=wayland`, `exec qs`. It also sets `QT_QUICK_BACKEND=software` (see **Rendering** below). Unlike eww, no monitor/scale detection in the shell script — that logic lives in `Config.qml` (`DP-2` present → scale 1.0, else 0.85).
 
 **Components (shell.qml, gated by Config flags):** `WallpaperView` (per-screen wallpaper, replaces awww), `WallpaperPicker` (thumbnail grid, `Super+Shift+b`), `NotificationPopups` (toasts, replaces mako popups), `Session` (idle+lock screen, session actions on it; replaces swaylock+swayidle), `Clipboard` (cliphist text+image watchers, replaces the runit cliphist service), `ClipboardPicker` (history picker, `Super+V`, replaces clipfzf), `Clock`, `CpuGraph`, `NetGraph`, `Mpd`, `Weather`, `Notifications` (history panel + DND, top-right, height follows its content), `Calendar`, `Brightness`, `Battery` (laptop low-charge warning), `Osd` (transient volume/mic/brightness/sink indicator), `Spotlight` (shake-to-find cursor), `Launcher` (drun app launcher, replaces rofi), `Network` (Wi-Fi + VPN menu, replaces nmtui — and the VPN half replaced the old bottom-left `Vpn` card; there is deliberately no separate VPN menu, since this one already lists the tunnels), `Bar` (the status bar, replaces reach's baked-in one), `Audio` (sink/source + per-app mixer, replaces pulsemixer), `Music` (MPD client in a tiled **window** rather than an overlay — see its own section), `Settings` (feature switchboard — the one component with no flag, since disabling it would leave no way back). The `tray` flag has no component of its own: the system tray is a section of `Bar.qml`.
+
+**Layout on disk.** The config root holds the surfaces that are not desktop cards (bar, pickers, lock, OSD, wallpaper) plus the shared singletons. Two subdirectories group the big clusters:
+- **`cards/`** — the nine ambient desktop cards (`Clock`, `Brightness`, `Calendar`, `Weather`, `Mpd`, `NetGraph`, `CpuGraph`, `Notifications`, `Battery`) and the three pieces used only by them: `Widget.qml` (the card chrome), `Graph.qml`, `HeaderBtn.qml`. `Poll.qml` stays at the root because `Network` and `BarStatusData` use it too. **No `qmldir`** — none of these is a singleton, so the implicit directory import is enough, and adding one would create the must-list-every-file trap that `music/` has.
+- **`music/`** — the music player (see its own section). It *does* need a `qmldir`, for the `MpdClient` singleton.
+
+Both are reached with a directory import in `shell.qml` (`import "cards"`, `import "music"`), and each file inside carries `import ".."` for the root-level `Theme`/`Config`/`Txt` and the data singletons.
 
 **Shared pieces** (what a new widget should reach for before writing its own):
 - `Config.qml` — besides the feature catalogue: `Config.scale` / `Config.s(n)` (the one 0.85-on-laptop factor; `Widget` forwards `s()` so cards call it unqualified) and `Config.screen(name)` (the output or null — the "which monitor" loop used to be open-coded in four places).
