@@ -1,4 +1,8 @@
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,
+// Volume, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // Blocks in reach's config.zon order, joined by the same "|" delimiter.
 Row {

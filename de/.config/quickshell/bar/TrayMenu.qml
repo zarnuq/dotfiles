@@ -1,6 +1,10 @@
 import Quickshell
 import QtQuick
 import QtQuick.Controls.impl
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,
+// Volume, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // Catppuccin-themed SNI context menu. Replaces QsMenuAnchor's native Qt
 // platform menu (which ignored the theme and rendered icons as magenta/black

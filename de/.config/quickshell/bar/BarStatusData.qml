@@ -1,5 +1,9 @@
 import Quickshell
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,
+// Volume, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // One set of status readings for all outputs, owned by Bar's feature loader.
 Scope {

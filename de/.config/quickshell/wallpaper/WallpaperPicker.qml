@@ -1,6 +1,9 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+// Parent import: Theme/Config/Txt and the shared Picker chrome live one
+// level up; a QML file does not see its parent directory implicitly.
+import ".."
 
 // Visual wallpaper picker: category sidebar + thumbnail grid.
 // Triggered by IPC so the reach keybind is `qs ipc call wallpaperpicker toggle`.

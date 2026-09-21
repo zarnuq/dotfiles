@@ -3,6 +3,9 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import "FileSearch.js" as FileSearch
+// Parent import: Theme/Config/Txt and the shared Picker chrome live one
+// level up; a QML file does not see its parent directory implicitly.
+import ".."
 
 // Lifecycle and fd enumeration behind the launcher's "/" mode.
 // FileSearch.js owns indexing, symlink deduplication, ranking and query caching.

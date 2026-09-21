@@ -1,5 +1,8 @@
 import Quickshell
 import QtQuick
+// Parent import: Theme/Config/Txt and the shared Picker chrome live one
+// level up; a QML file does not see its parent directory implicitly.
+import ".."
 
 // Minimal drun-style app launcher (replaces `rofi -show drun`), plus a file
 // mode: a query beginning with "/" searches $HOME instead of the app list and

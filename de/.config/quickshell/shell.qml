@@ -1,8 +1,11 @@
 import Quickshell
 // The music player is a subdirectory of its own; this makes `Music` resolve.
-// The desktop cards and the music player each live in their own folder.
+// The big clusters each live in their own folder.
+import "bar"
+import "launcher"
 import "cards"
 import "music"
+import "wallpaper"
 
 // Entry point. quickshell loads ~/.config/quickshell/shell.qml by default.
 //

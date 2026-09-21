@@ -1,0 +1,8 @@
+# Explicit module: adding a qmldir REPLACES the implicit directory listing,
+# so every component must be named here, including for sibling references.
+# It exists because Quickshell only auto-registers singletons found in the
+# config ROOT, not in a subdirectory.
+
+singleton FileIndex FileIndex.qml
+
+Launcher             Launcher.qml
