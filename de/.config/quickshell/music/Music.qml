@@ -21,7 +21,6 @@ Scope {
         target: "music"
         function toggle(): void { root.open = !root.open; }
         function hide(): void   { root.open = false; }
-        function collect(): void { gc(); }   // TEMPPROBE
     }
 
     FloatingWindow {

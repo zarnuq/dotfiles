@@ -17,6 +17,11 @@ TestCase {
             property bool connected: false
             property var calls: []
             function record(name, args) { calls = calls.concat([{ name: name, args: args || [] }]); }
+            // The controller calls this from announceAdded(); without it the
+            // banner path throws a TypeError that the suite swallows.
+            function songTitle(song) { return song ? (song.Title || song.file || "") : ""; }
+            // Added alongside queueWasBulk, which announceAdded() consults.
+            property bool queueWasBulk: false
             function toggle() { record("toggle"); }
             function stop() { record("stop"); }
             function next() { record("next"); }
@@ -47,7 +52,7 @@ TestCase {
     }
 
     function initTestCase() {
-        controllerComponent = Qt.createComponent("../../de/.config/quickshell/MusicController.qml");
+        controllerComponent = Qt.createComponent("../../de/.config/quickshell/music/MusicController.qml");
         compare(controllerComponent.status, Component.Ready, controllerComponent.errorString());
     }
 
@@ -223,7 +228,9 @@ TestCase {
         fakeClient.connected = true;
         controller.reset();
         compare(resetSpy.count, 1);
-        compare(fakeClient.calls, [{ name: "refreshQueue", args: [] }]);
+        // reset() no longer refetches: MpdClient.retainQueue() owns the initial
+        // load, so the window's Loader triggers it rather than the controller.
+        compare(fakeClient.calls, []);
         fakeClient.queue = songs([10, 20, 30, 40]);
         compare(controller.cursor, 0);
         compare(revealSpy.count, 0);

@@ -2,9 +2,6 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
-// Parent import: Theme/Config/Txt and the shared Picker chrome live one
-// level up; a QML file does not see its parent directory implicitly.
-import ".."
 
 // Wallpaper state + external control (replaces awww).
 // Rendered per-screen by WallpaperView. Switched via native IPC:

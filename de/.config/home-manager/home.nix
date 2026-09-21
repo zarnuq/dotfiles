@@ -35,6 +35,7 @@
     codex
     ansible
     obsidian
+    ydotool
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

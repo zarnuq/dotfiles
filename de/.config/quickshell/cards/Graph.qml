@@ -1,8 +1,4 @@
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
 
 // Rolling time-series line, analog of eww's (graph ...) widget.
 // Push a new value -> ring buffer -> repaint. maxSamples*interval = time window.

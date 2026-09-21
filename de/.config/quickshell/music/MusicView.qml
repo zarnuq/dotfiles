@@ -137,6 +137,13 @@ FocusScope {
     // Search owns the keyboard while its field has focus, so hand focus over
     // when that tab is shown and take it back on the way out.
     onActivePaneChanged: {
+        // Leaving the Search tab must release its field EXPLICITLY. A
+        // FocusScope delegates to whichever descendant holds focus, so
+        // forceActiveFocus() here cannot take it back from a TextInput that
+        // still has it — and hiding the pane's Loader does not clear it either.
+        // Without this, switching away (Tab is not consumed by a TextInput)
+        // left every subsequent key typing into an invisible search box.
+        if (searchPane.item && state.tab !== 4) searchPane.item.leaveField();
         if (state.tab === 4 && searchPane.item) searchPane.item.focusField();
         else root.forceActiveFocus();
     }

@@ -78,7 +78,7 @@ Item {
     signal focusReleased()
     function leaveField() {
         if (!root.typing) return;
-        root.typing = false;
+        root.typing = false;      // clears `focus:` on the field
         root.focusReleased();
     }
 

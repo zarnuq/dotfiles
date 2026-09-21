@@ -2,9 +2,6 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
-import ".."
 
 // The MPD client: the protocol itself, spoken over a socket from QML.
 //
@@ -248,6 +245,12 @@ Singleton {
         root.queue = [];
         root.queueVersion = -1;
         root.queueWasBulk = true;     // the refetch on reopen is not an "add"
+        // Dropping the reference is not the same as reclaiming it: the JS heap
+        // is collected lazily, so RSS stayed put after closing the window and
+        // only fell on some later unrelated collection. Measured on a 6k queue:
+        // 309 MB -> 281 MB the moment this runs. The window has just closed, so
+        // a full collection here costs a pause nobody is looking at.
+        Qt.callLater(gc);
     }
 
     /// True while the queue was replaced wholesale rather than edited. The

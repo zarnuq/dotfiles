@@ -1,6 +1,6 @@
 import QtQuick
 import QtTest
-import "../../de/.config/quickshell/FileSearch.js" as FileSearch
+import "../../de/.config/quickshell/launcher/FileSearch.js" as FileSearch
 
 TestCase {
     name: "FileSearch"

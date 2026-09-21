@@ -1,8 +1,9 @@
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
-import ".."
 
+// Pure state: imports nothing but QtQuick, and deliberately so — that is what
+// lets tests/quickshell/tst_music_controller.qml load it standalone under
+// qmltestrunner. Reaching for Config.s() or Theme here would pull in the root
+// directory, which imports Quickshell, and the suite would stop running.
 QtObject {
     id: root
 

@@ -1,9 +1,6 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-// Parent import: Theme/Config/Txt and the shared Picker chrome live one
-// level up; a QML file does not see its parent directory implicitly.
-import ".."
 
 // One background-layer surface per output, all showing Wallpaper.current.
 // Switching crossfades between two layers so it never flashes black: the new
