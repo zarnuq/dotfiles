@@ -16,12 +16,11 @@ System package manager is **Portage** (`emerge`). Elevation is **`doas`** (`app-
 
 ```
 de/                  # Stowed to $HOME
-├── .config/         # App configs (incl. reach/, dconf/)
+├── .config/         # App configs (incl. reach/, dconf/, quickshell/music/)
 ├── .local/bin/      # Custom scripts
 ├── .local/sv/       # Per-user runit service definitions
 ├── .local/share/    # Shared data (icons, rofi themes)
 └── .zen/            # Zen browser chrome/userChrome.css
-archive/             # Archived old configs
 screenshots/         # README screenshots
 ```
 
@@ -50,7 +49,7 @@ Runs alongside Portage for packages not easily/freshly available via emerge. It 
 
 ## Catppuccin Mocha Palette
 
-Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Text `#cdd6f4` · Subtext0 `#a6adc8` · **Mauve `#cba6f7` (accent: focus/active)** · Blue `#89b4fa` · Green `#a6e3a1` · Peach `#fab387` (warn) · Red `#f38ba8` · Teal `#94e2d5` · Yellow `#f9e2af` · Lavender `#b4befe`.
+Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Text `#cdd6f4` · Subtext0 `#a6adc8` · **Mauve `#cba6f7` (accent: focus/active)** · Overlay0 `#6c7086` (recessive text, a rank under Subtext0) · Blue `#89b4fa` · Green `#a6e3a1` · Peach `#fab387` (warn) · Red `#f38ba8` · Teal `#94e2d5` · Yellow `#f9e2af` · Lavender `#b4befe`.
 
 ## reach Window Manager
 
@@ -70,10 +69,24 @@ Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Tex
 | 1   | DP-2  | 3440x1440 | 0,1440    | normal     | Secondary UW (`mainScreen`) |
 | 2   | DP-1  | 1920x1080 | 3440,1440 | rotate_270 | Vertical, 165 Hz            |
 
-This is the **desktop** set. The laptop's heads (`HDMI-A-1` 4K, `eDP-1`, and a
-`DP-5`/`DP-1` dock variant) sit **commented out above it** in the same block — one
-repo serves both machines, so switching is uncommenting one group and commenting
-the other, then `Super+Shift+r`. A head that isn't connected is simply ignored,
+This table is the **desktop** group, which is currently **commented out** — the live
+set in `config.zon` is the laptop's, and the two groups swap by commenting one and
+uncommenting the other, then `Super+Shift+r`. The laptop group is:
+
+| Idx | Name  | Res       | Pos      | Transform  | Notes                        |
+|-----|-------|-----------|----------|------------|------------------------------|
+| 0   | DP-5  | 1920x1080 | 0,0      | normal     | On a stand above the laptop  |
+| 1   | eDP-1 | 1920x1200 | 0,1080   | normal     | Laptop panel                 |
+| 2   | DP-3  | 1920x1080 | 1920,0   | rotate_270 | Portrait, right of the stack |
+
+A head that isn't connected is simply ignored, but leaving both groups live would
+give the same name two entries (`DP-3` and `DP-1` appear in both).
+
+**A rotated head's `.w`/`.h` are its MODE; the transform swaps them.** `DP-3` is
+`1920x1080` in the config and occupies `1080x1920` on the desktop — which is why
+river's auto-placement once left an 840px dead gap beside it, having sized it as
+1920 wide. This is also why the `.monitor` index in a window rule means a different
+output on each machine. A head that isn't connected is simply ignored,
 but leaving both groups live would give the same name two entries.
 
 Every entry needs an explicit `.x`/`.y`. The defaults are `-1,-1`, which reach reads
@@ -91,7 +104,7 @@ past x=5000 so it never collides with the desktop's DP block.
 
 **State socket** (`src/ipc.zig`, new) — reach publishes what its bar used to draw, since nothing about desktops/focus/titles is reachable any other way: river is non-monolithic, reach *is* the WM, and there is no compositor-side workspace protocol for a panel to bind. A SOCK_STREAM unix socket at `$XDG_RUNTIME_DIR/reach.sock` emits one JSON line per **change**, each a *complete* snapshot (`{"desktops":9,"brightness":100,"temperature":4000,"outputs":[{name,desktop,focused,fullscreen,occupied[],title,appId}]}`; the two gamma fields are what let the panel drop its `gdbus monitor`) — whole snapshots, not deltas, so a reconnecting client needs no resync and can't apply anything out of order. Published from the render cycle, the same beat that redrew the internal bar; composing is skipped entirely when no client is connected. **Deliberately write-only**: client fds are read only to notice a disconnect. A `view <n>` command for clickable desktop cells would have to name the output too — `action.view` acts on `query.selectedOutput()`, so a click on an unfocused monitor's bar would switch the focused one — and moving the selection is a focus-semantics decision, not one a status socket should make.
 
-**Keybinds:** `Super`=Mod. A `.binds` block **replaces the entire** default action/spawn/chord keymap **except** the auto-generated per-tag digit binds (`Super`/`+Ctrl`/`+Shift` + `1`–`9` = view/toggle/move, never listed in config). See `config.zon` for the full map. Notable: launchers (`Super+Tab` kitty, `Super+BackSpace` floating kitty, `Super+Space` quickshell launcher (`qs ipc call launcher toggle`, replaced rofi), `Super+Shift+Escape` shell settings (`qs ipc call settings toggle`), `Super+t` zen, `Super+w` rmpc / `Super+Shift+w` rescan, `Super+V` clipboard history (`qs ipc call clipboard toggle`, replaced clipfzf), `Super+X` killfzf, `Super+Z` svfzf, `Super+Shift+Z` ssvfzf), two-key chords: `Super+r` = apps (`d` legcord, `b` brave, `s` steam, `a` audio mixer, `n` network menu — which is also where the VPNs are), `Super+s` = screenshots (`s` quick, `d` section, `0`–`3` a whole output each), `Alt+[` cycle EQ sink, `Alt+Up/Down` volume, `Alt+Left/Right` mic, `Alt+End` mic mute, `Super+Alt+Left/Right` brightness (in-process `.brightness` action, no script), night light via `.gamma.temperature` + reload rather than a key, `Super+P` lock (`qs ipc call lock lock`; the lock screen also carries poweroff/reboot/logout), `Super+b` random wallpaper (`qs ipc call wallpaper random`), `Super+Shift+b` wallpaper picker (`qs ipc call wallpaperpicker toggle`).
+**Keybinds:** `Super`=Mod. A `.binds` block **replaces the entire** default action/spawn/chord keymap **except** the auto-generated per-tag digit binds (`Super`/`+Ctrl`/`+Shift` + `1`–`9` = view/toggle/move, never listed in config). See `config.zon` for the full map. Notable: launchers (`Super+Tab` kitty, `Super+BackSpace` floating kitty, `Super+Space` quickshell launcher (`qs ipc call launcher toggle`, replaced rofi), `Super+Shift+Escape` shell settings (`qs ipc call settings toggle`), `Super+t` zen, `Super+w` rmpc / `Super+Shift+w` rescan, `Super+V` clipboard history (`qs ipc call clipboard toggle`, replaced clipfzf), `Super+X` killfzf, `Super+Z` svfzf, `Super+Shift+Z` ssvfzf), two-key chords: `Super+r` = apps (`d` legcord, `b` brave, `s` steam, `a` audio mixer, `n` network menu — which is also where the VPNs are), `Super+s` = screenshots (`s` quick, `d` section, `0`–`3` a whole output each), `Alt+[` cycle EQ sink, `Alt+Up/Down` volume, `Alt+Left/Right` mic, `Alt+End` mic mute, `Super+Alt+Left/Right` brightness (in-process `.brightness` action, no script), night light via `.gamma.temperature` + reload rather than a key, `Super+Shift+m` music player window (`qs ipc call music toggle`), `Super+P` lock (`qs ipc call lock lock`; the lock screen also carries poweroff/reboot/logout), `Super+b` random wallpaper (`qs ipc call wallpaper random`), `Super+Shift+b` wallpaper picker (`qs ipc call wallpaperpicker toggle`).
 
 ## Per-app configs (read the file for exact keys/values)
 
@@ -101,10 +114,10 @@ past x=5000 so it never collides with the desktop's DP block.
 - **kitty** — `de/.config/kitty/kitty.conf`. JetBrainsMono Nerd Font 12, 1M scrollback, decorations hidden, Catppuccin Mocha. Window classes used by reach binds: `float` (fzf pickers), `rmpc` (music).
 - **tmux** — `de/.config/tmux/tmux.conf`. Prefix `Ctrl+F`, base index 1, mouse on, zsh. Plugins via tpm: catppuccin, sensible, resurrect, continuum.
 - **Neovim** — `de/.config/nvim/`. lazy.nvim. Leader `Space`, tab=4 expandtab, system clipboard, nvim-tree (right, no netrw), telescope, treesitter, lspconfig+mason (lua_ls, pyright), nvim-cmp, catppuccin. Spell en_us for md/text.
-- **rofi** — `de/.config/rofi/config.rasi`, rofi-**wayland**, theme `spotlight-dark.rasi`. **Superseded** by the quickshell `Launcher.qml` for the `Super+Space` drun launcher; config kept for standalone `rofi` invocations.
+- **rofi** — **gone**. `de/.config/rofi/` and the `spotlight-dark.rasi` theme were both deleted (commit `4def71a2`); `Launcher.qml` owns `Super+Space`. `gui-apps/rofi-wayland` is still merged but nothing in this repo invokes it.
 - **yazi** — `de/.config/yazi/`. Hidden shown, vim nav. Openers: nvim/xdg-open/swayimg/zathura/mpv. Plugins: git, piper, mount, chmod. `setbg` opener uses `swww img` — **stale**, system uses `qs ipc call wallpaper set <path>`.
 - **btop** — `de/.config/btop/btop.conf`. mocha theme, GPU nvidia/amd/intel.
-- **Zen browser** — `de/.zen/` (userChrome.css + user.js, custom CSS enabled). `de/.config/mimeapps.list`: default browser zen, Discord→legcord.
+- **Zen browser** — `de/.zen/` (userChrome.css + user.js, custom CSS enabled). (`de/.config/mimeapps.list` is **gone** — default-application handling is the system's now.)
 - **beets** — `de/.config/beets/config.yaml`. Owns canonical MusicBrainz metadata **and** the on-disk layout of `~/Music` (`directory: ~/Music`, `import.move: yes`, incremental). Split of duties with the separate `~/mux` tool is written into the file's header and matters: **mux dedupes** (it hashes decoded audio — beets' `duplicates` plugin keys on tags/MBIDs, which is exactly what's inconsistent here) and owns `.lrc` sidecars; **beets** owns layout and the library db. Run `mux dedupe` **first**, and never `mux organize` — two owners of layout is how a library gets shredded. The unreleased/leaks `paths` rule must stay first or an import silently re-files what `mux unreleased` shelved.
 - **xdg portals** — `de/.config/xdg-desktop-portal/portals.conf` sets `default=wlr;gtk` (wlr first, so screencast/screenshot go to the wlroots backend and file dialogs fall through to gtk); `de/.config/xdg-desktop-portal-wlr/config` picks the output/region with `slurp -f %o -or`.
 
@@ -116,7 +129,7 @@ past x=5000 so it never collides with the desktop's DP block.
 
 **Service:** `~/.local/sv/quickshell/run` — waits for dbus+wayland sockets, sets `QT_QPA_PLATFORM=wayland`, `exec qs`. It also sets `QT_QUICK_BACKEND=software` (see **Rendering** below). Unlike eww, no monitor/scale detection in the shell script — that logic lives in `Config.qml` (`DP-2` present → scale 1.0, else 0.85).
 
-**Components (shell.qml, gated by Config flags):** `WallpaperView` (per-screen wallpaper, replaces awww), `WallpaperPicker` (thumbnail grid, `Super+Shift+b`), `NotificationPopups` (toasts, replaces mako popups), `Session` (idle+lock screen, session actions on it; replaces swaylock+swayidle), `Clipboard` (cliphist text+image watchers, replaces the runit cliphist service), `ClipboardPicker` (history picker, `Super+V`, replaces clipfzf), `Clock`, `CpuGraph`, `NetGraph`, `Mpd`, `Weather`, `Notifications` (history panel + DND, top-right, height follows its content), `Calendar`, `Brightness`, `Battery` (laptop low-charge warning), `Osd` (transient volume/mic/brightness/sink indicator), `Spotlight` (shake-to-find cursor), `Launcher` (drun app launcher, replaces rofi), `Network` (Wi-Fi + VPN menu, replaces nmtui — and the VPN half replaced the old bottom-left `Vpn` card; there is deliberately no separate VPN menu, since this one already lists the tunnels), `Bar` (the status bar, replaces reach's baked-in one), `Audio` (sink/source + per-app mixer, replaces pulsemixer), `Settings` (feature switchboard — the one component with no flag, since disabling it would leave no way back). The `tray` flag has no component of its own: the system tray is a section of `Bar.qml`.
+**Components (shell.qml, gated by Config flags):** `WallpaperView` (per-screen wallpaper, replaces awww), `WallpaperPicker` (thumbnail grid, `Super+Shift+b`), `NotificationPopups` (toasts, replaces mako popups), `Session` (idle+lock screen, session actions on it; replaces swaylock+swayidle), `Clipboard` (cliphist text+image watchers, replaces the runit cliphist service), `ClipboardPicker` (history picker, `Super+V`, replaces clipfzf), `Clock`, `CpuGraph`, `NetGraph`, `Mpd`, `Weather`, `Notifications` (history panel + DND, top-right, height follows its content), `Calendar`, `Brightness`, `Battery` (laptop low-charge warning), `Osd` (transient volume/mic/brightness/sink indicator), `Spotlight` (shake-to-find cursor), `Launcher` (drun app launcher, replaces rofi), `Network` (Wi-Fi + VPN menu, replaces nmtui — and the VPN half replaced the old bottom-left `Vpn` card; there is deliberately no separate VPN menu, since this one already lists the tunnels), `Bar` (the status bar, replaces reach's baked-in one), `Audio` (sink/source + per-app mixer, replaces pulsemixer), `Music` (MPD client in a tiled **window** rather than an overlay — see its own section), `Settings` (feature switchboard — the one component with no flag, since disabling it would leave no way back). The `tray` flag has no component of its own: the system tray is a section of `Bar.qml`.
 
 **Shared pieces** (what a new widget should reach for before writing its own):
 - `Config.qml` — besides the feature catalogue: `Config.scale` / `Config.s(n)` (the one 0.85-on-laptop factor; `Widget` forwards `s()` so cards call it unqualified) and `Config.screen(name)` (the output or null — the "which monitor" loop used to be open-coded in four places).
@@ -131,7 +144,7 @@ past x=5000 so it never collides with the desktop's DP block.
 - `Sys.qml` — CPU/RAM/disk/GPU **and the battery** (`batteryPresent`/`batteryLevel`/`batteryStatus`/`charging`). One 10s poll of the BAT0 sysfs pair serves both the bar block and the corner card, which used to poll it separately at 30s and 10s.
 - `Volume.qml` — the default sink/source and their volume/muted/name, with the one `PwObjectTracker` that keeps them bound. The bar, `Mpd.qml` and `Osd.qml` each carried a copy of that block; `Audio.qml` still talks to Pipewire directly, since the mixer is about the whole graph rather than the defaults.
 
-**Rendering:** `QT_QUICK_BACKEND=software` in the service script. The shell is flat rectangles, text and one wallpaper blit, but the GL scenegraph gives **every visible window** its own render thread and Mesa context, and there are ~15 of them (a wallpaper and a bar per output, plus one per ambient card) — 589 MB RSS / 135 threads on the AMD laptop, against 260 MB / 22 with QPainter. The cost is that GPU-only QML types silently draw nothing: no `ShaderEffect`, `layer.effect` or `MultiEffect` in here (`TrayMenu.qml` tints its icons with `QtQuick.Controls.impl`'s `ColorImage`, which recolours on the CPU, for exactly this reason). Drop the line if a wallpaper crossfade ever stutters on the 3×3440x1440 desktop.
+**Rendering:** `QT_QUICK_BACKEND=software` in the service script (which also sets `QT_WAYLAND_DISABLE_WINDOWDECORATION=1`, for the music window's xdg-shell toplevel — Qt would otherwise draw a grey titlebar on it). The shell is flat rectangles, text and one wallpaper blit, but the GL scenegraph gives **every visible window** its own render thread and Mesa context, and there are ~15 of them (a wallpaper and a bar per output, plus one per ambient card) — 589 MB RSS / 135 threads on the AMD laptop, against 260 MB / 22 with QPainter. The cost is that GPU-only QML types silently draw nothing: no `ShaderEffect`, `layer.effect` or `MultiEffect` in here (`TrayMenu.qml` tints its icons with `QtQuick.Controls.impl`'s `ColorImage`, which recolours on the CPU, for exactly this reason). Drop the line if a wallpaper crossfade ever stutters on the 3×3440x1440 desktop.
 
 **Notable wiring:**
 - `Bar.qml` / `Reach.qml` — the status bar, one per output, replacing the one reach drew itself; same layout (`[desktops] [title … app_id] [status]`), same colours, same hide-vacant/focused-monitor-highlight rules (reach's occupied-corner box was dropped — the cell being drawn at all already says it), so the switch is invisible. `Reach.qml` is the singleton holding window-manager state from reach's socket (see **State socket** above); `forScreen(name)` is how each bar finds its own output. Non-obvious bits: (1) it is an ordinary **layer surface**, so its `exclusiveZone` reserves the strip and the compositor pushes windows *and* the other quickshell cards below it — reach's bar was a river shell surface and had to subtract itself from the layout by hand (`Output.usableArea`). (2) The socket retry is driven by `running: !sock.connected`, **not** by `onConnectionStateChanged`: a connect that *fails* never entered the connected state, so there is no state change to hear and the first attempt would be the only one — the bar would stay blank for the whole session. 5s, only to keep the log quiet (each failure logs); the normal path never retries, since reach's autostart starts runsvdir and is listening before quickshell exists. (3) Hidden (`visible: false`, which releases the exclusive zone with it) when a window is fullscreen on that output, matching reach. (4) The status side is native — volume/mic from the `Volume` singleton, battery from `Sys`, clock in QML, one `sh -c` for the default-route IP — which is what retired the six block scripts and the `kill -35`/`-36` refresh binds.
@@ -155,6 +168,8 @@ past x=5000 so it never collides with the desktop's DP block.
 - `Launcher.qml` — minimal drun app launcher (replaces `rofi -show drun`). Opens on the **focused monitor**: a full-screen overlay is mapped per output (`Variants` over `Quickshell.screens`), but the box is drawn only on the output whose overlay contains the pointer — under reach's `sloppy_focus` that IS the focused monitor. reach exposes **no IPC** for the focused output and grants keyboard focus to *every* layer surface, so pointer containment (a `hoverEnabled` MouseArea latching `activeScreen`) is what singles one out; `activeScreen` is blanked on open (150ms DP-2 fallback timer) to avoid flashing on the previously-focused monitor. Shared query/results/selection state lives on the `Scope` root. The filtered list is a **binding**, never a snapshot: `DesktopEntries` scans asynchronously (`applications.values` is empty at load and fills ~50ms later), so a list computed once when the box opened stayed empty for that whole open if you hit `Super+Space` right after a start or hot-reload — the symptom was an open launcher with a working query field and no rows. An empty result now says so ("no applications found" / "no matches") instead of rendering a blank box. Type to filter `DesktopEntries.applications` by name; Up/Down or Ctrl+K/J to move, Enter = `entry.execute()`, Esc / click-outside closes. Hover selection goes through `Picker.hoverMoved` (see the `Picker.qml` entry). Triggered by `IpcHandler` target `"launcher"` (`toggle`/`show`/`hide`); `Super+space` = `qs ipc call launcher toggle`. A query starting with **`/`** switches it to file mode (see `FileIndex.qml`): Enter opens the hit in `kitty -e nvim` (a directory in `yazi` — nvim on one lands in the netrw that nvim-tree disables), `Shift+Enter` always opens `yazi` (on a file: its parent, with the file selected), `Ctrl+Enter` hands it to `xdg-open`, `Ctrl+T` opens `kitty --directory` in the containing directory, `Ctrl+Y` copies the path. yazi is launched as `kitty -e zsh -ic 'y "$1"; exec zsh'` rather than as kitty's command, so `q` leaves an interactive shell (in the directory yazi was left in, via the zshrc `y` wrapper's `--cwd-file`) instead of closing the window.
 
 **Scripts** (`de/.config/quickshell/scripts/`): `calendar.sh` (Python; `events` = agenda list, `week [offset]` = grid geometry, `refresh`, `status`; needs `icalendar`+`recurring_ical_events` from home-manager; caches to `/tmp/eww-calendar.ics`. It **globs** the nix-profile site-packages version rather than pinning it — the path was hardcoded to `python3.13`, and when nix moved to 3.14 every command silently returned `[]`), `vpn-manager.sh` is **gone**: the lab tunnels are NM profiles now, so there is no root openvpn daemon to start, find or kill (see `Network.qml`).
+
+**A file added to `music/` needs a `qmldir` line.** That directory is an explicit module, so anything not declared stops resolving — including from its siblings — and the error names the *type*, not the missing entry. Same failure shape as the next paragraph.
 
 **Editing a `.js` library needs a real restart.** Quickshell hot-reloads QML on change, but a `.pragma library` file (`NetworkData.js`) stays cached in the running engine: new functions read as `TypeError: Property 'x' ... is not a function` even though the file on disk is correct and every `Configuration Loaded` looks clean. `SVDIR=~/.local/sv sv restart quickshell` is the fix — a QML-only edit does not need it.
 
@@ -190,7 +205,6 @@ Flat (`border-radius: 0` global, enforced in `gtk-3.0/gtk.css`). GTK3/GTK4 are *
 - **killfzf** — `ps --forest` → fzf; Enter=SIGTERM, Ctrl-K=SIGKILL, Tab=multi. `Super+X`.
 - **svfzf / ssvfzf** — two runit service managers (floating kitty + fzf; glyphs ●/○/·). **Split in two** because per-call `doas` prompts broke inside the fzf action loop (stdin is the pick pipeline). `svfzf` = **user** services in `~/.local/sv` (no elevation; enable/disable = `rm`/`touch` a `down` file; `Super+Z`). `ssvfzf` = **system** services in `/etc/sv` (re-execs under `doas` **once** up front so root persists; enable/disable = add/remove `/service` symlink; no default keybind).
 - **rebuild-kernel.sh** — Gentoo kernel rebuild ("lazygentoo", Secure Boot + UKI). Optionally updates `gentoo-sources` (`-e`), seeds + `olddefconfig`s `.config`, builds modules, rebuilds out-of-tree modules (`emerge @module-rebuild` — nvidia-drivers etc., else nvidia breaks every boot), `kernel-install add` (initramfs+UKI via `/etc/kernel/install.d` hooks), signs with ukify, prunes old UKIs, rewrites efibootmgr entry. Self-elevates via `doas`. `-y` skips prompt.
-- **runbar.sh** — **stale/dead** (dwlb/someblocks; unbound).
 
 ## Services (runit)
 
@@ -202,7 +216,39 @@ Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or 
 
 ## Music: MPD + rmpc
 
-`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for the media keys and quickshell's `Mpd.qml`. Media keys (`XF86Audio{Play,Prev,Next}`) call `qs ipc call media {playpause,previous,next}` — an `IpcHandler` in `Mpd.qml` that drives the **MPD** MPRIS player specifically (matched by `dbusName` containing "mpd", never the active player). This replaced `playerctl -p mpd …`, so **media-sound/playerctl is no longer needed**. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px.
+`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, PipeWire (pulse backend) software mixer, 192kHz/24-bit, curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for the media keys and quickshell's `Mpd.qml`. Media keys (`XF86Audio{Play,Prev,Next}`) call `qs ipc call media {playpause,previous,next}` — an `IpcHandler` in `Mpd.qml` that drives the **MPD** MPRIS player specifically (matched by `dbusName` containing "mpd", never the active player). This replaced `playerctl -p mpd …`, so **media-sound/playerctl is no longer needed**. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) rmpc `de/.config/rmpc/config.ron` — 127.0.0.1:6600, custom "miles" theme, vim nav, album art ≤1200px. rmpc is **no longer the only client**: quickshell now has a native one in a window (`Super+Shift+M`) — see **Music player** below. Its keymap is taken from this rmpc config, so the two stay in sync.
+
+## Music player (quickshell `music/`)
+
+A native MPD client in a **window**, not a picker overlay — `Super+Shift+M` / `qs ipc call music toggle`. rmpc stays on `Super+W`; the two coexist. Feature key `music` in the settings menu.
+
+**Why a window.** `FloatingWindow` is an xdg-shell toplevel, so reach tiles it like kitty. Two things that cost time to find: (1) **`app_id` is `org.quickshell`** and there is no per-surface override — it is the process's. A reach rule matching that app_id is therefore exact only while this is the shell's only toplevel; narrow by title if a second appears. (2) Qt draws **client-side decorations** by default — a grey titlebar with min/max/close, on a desktop where kitty hides its own. `QT_WAYLAND_DISABLE_WINDOWDECORATION=1` in `~/.local/sv/quickshell/run` turns them off; harmless to the layer-shell surfaces, which never had decorations.
+
+Lives in its own subdirectory, `de/.config/quickshell/music/` — 15 files, ~2.5k lines. That folder carries a **`qmldir`**, and it must list EVERY component: adding one turns the directory into an explicit module, which replaces the implicit directory listing, so anything unnamed stops resolving — including between files in that same folder. The entry that makes it necessary is `singleton MpdClient`: Quickshell auto-registers singletons in the config root but not in a subdirectory. Each file also carries `import ".."`, since a QML file does not see its parent directory implicitly, and they use root-level `Txt`/`Theme`/`Config`. `shell.qml` does `import "music"`.
+
+**`MpdClient.qml`** — the protocol, spoken over a socket. Not `mpc`: every query would be a fork, and the interesting ones are not one-shot.
+- **Transport.** Quickshell's `Socket` is a `QLocalSocket` — **unix only, no TCP** — so rmpc's port 6600 is unreachable from QML. MPD 0.24 opens `$XDG_RUNTIME_DIR/mpd/socket` by itself, which is the whole reason this needs no `mpd.conf` change. On an older MPD it would need `bind_to_address`.
+- **Two connections, deliberately.** `idle` blocks its connection until something changes, so a client idling on its only socket can never ask a question. `idleSock` parks in `idle`; `cmdSock` carries commands (FIFO, one in flight, callback queue behind it).
+- **Queue cost.** `playlistinfo` on a 6k-song queue is ~78k lines / 1.8 MB / ~180 ms, so it is fetched once and never polled. Edits ride `plchanges <version>` (3 bytes when nothing changed); a gap or a shrink it cannot express falls back to a refetch. Measured: `lsinfo` 2.4 ms, `listplaylists` 0.1 ms, `search` 25–45 ms — all read-on-demand, nothing cached.
+- **Seeking is coalesced and clamped.** Key repeat is 50/s, so one `seekcur` per press floods the connection. Repeats collapse into one absolute seek per 90 ms, the local clock moves immediately, and replies are ignored for 500 ms after (`_seekGuardUntil`) or the bar flickers between the key and the round trip. **The clamp matters: `seekcur <duration>` completes the track and MPD advances.** Worse, **MPD advances the track whenever a seek FAILS**, and a damaged file whose decoder cannot seek near its end fails every time — holding the key then walked the queue a song a second until MPD 0.24.12's output thread died on `Assertion nbytes % out_audio_format.GetFrameSize() == 0`. Hence a 5 s tail guard, a dedupe on the last position sent, and an ACK handler that halts the seek and resyncs.
+
+**`MusicController.qml`** owns all state and keys; `MusicView.qml` composes; `MusicHeader/Queue/StatusBar/Overlay/Banner.qml` present. Panes take an injected `client` and `fontScale`.
+
+**The queue's model is a `ListModel` used purely as a row COUNT** — delegates read their song from the array by index. This looks redundant and is not, and all three variants were tried: an **array** model resets on every assignment (and every queue edit assigns, since QML only notifies on assignment), so even reordering flickered; an **int** model (`queue.length`) fixed reordering but still resets when the count changes, which is exactly what deleting does; only a `ListModel` takes insert/remove as **incremental** operations, leaving rows above the edit untouched so the scroll offset simply stays. `syncRows()` diffs old against new by song `Id` via common prefix/suffix. Measured with the cursor at row 3000: `contentY` 77234 before and after a delete, against 0 with the older models.
+
+**Tabs** are rmpc's five, `1`–`5` and Tab/S-Tab. Panes are built on first visit and kept, so a browse position survives a trip to the queue; a tab never opened is never built. Queue keys are routed only on tab 0 — otherwise `d` would delete a song that is not on screen.
+- **Directories** — one `lsinfo` per level, never a recursive walk; `add` on a directory URI queues everything beneath it, so no recursion here either. Sorted **newest first** by the directory's `Last-Modified` (which MPD derives from the songs under it), matching rmpc's `directories_sort: ModifiedTime(reverse: true)`. Folders only — inside an album the files stay in track order. **`A` at the library root queues the entire library**; that is rmpc's AddAll semantics and it is a footgun.
+- **Playlists** — two levels in one pane. `rm` is not reported as a queue change, so the list is re-read rather than waited on.
+- **Search** — matching is **MPD's**, server-side, case-insensitive substring (rmpc's `Contains`). Unlike the launcher's file mode there is no index to build. Debounced 180 ms, and a stale reply is dropped by comparing the query/tag it was sent with.
+- **Lyrics** — `.lrc` beside the track, read from disk (MPD serves audio, not arbitrary files): `file:` is relative to `~/Music`, same basename, extension swapped. All 3,523 sidecars here are `[mm:ss.xx]`-tagged, so it follows playback; untagged lines keep order and never highlight.
+
+**The banner** (`MusicBanner.qml`) fires on the queue **growing**, not on each add action reporting itself — so it also covers `load`, and adds made from rmpc or `mpc` while the window is open. It keys off **net** growth because reordering removes and re-inserts the same span. The first non-empty queue is suppressed (`_primed`) or the initial 6k-song load would announce itself.
+
+**Queue sync uses `plchangesposid`, not `plchanges`.** An edit anywhere renumbers every song after it, and `plchanges` answers with FULL records for each — measured on this 6k queue, a change at position 0 returns **110,126 lines / 2.67 MB / 250 ms**, identical to `playlistinfo`, i.e. exactly the refetch it is supposed to avoid. The `posid` form answers the same question as `cpos`/`Id` pairs: **12,379 lines / 129 KB / 25 ms**, 20× smaller. Since the metadata is already held keyed by `Id`, a pure renumbering costs zero extra reads; only genuinely new ids are fetched (one `playlistid` each, batched, falling back to a full refetch past 64). *(rmpc does not do this — its binary contains `playlistinfo` and no `plchanges` at all, so it refetches the whole queue on every change.)*
+
+**The queue is refcounted, not permanent.** It is the one expensive thing the client holds — 6k songs is ~110k protocol lines parsed into 6k objects — and nothing needs it while the window is shut. `retainQueue()`/`releaseQueue()` are driven by the window's Loader: released on close, refetched once (~250 ms) on open, and the idle loop stops syncing a queue nobody is reading. The sockets stay up, so transport and now-playing keep working regardless.
+
+**Gotchas worth remembering.** `MpdClient` is a **lazy singleton** — nothing talks to MPD until the window is first opened, which is good for RAM but means `reset()` runs against an empty queue (hence `_jumpPending`, and a deferred reveal because the view has not laid out in the frame the model goes 0 → thousands). Quickshell's QML **hot reload goes stale**: edits silently stop applying, so `SVDIR=~/.local/sv sv restart quickshell` before concluding a change did not work.
 
 ## Package Management
 
@@ -210,13 +256,19 @@ Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or 
 
 ## Stale Void/DWL leftovers
 
-Tracked for cleanup; none load-bearing on Gentoo + reach:
-- `zsh/.zshenv` — `PATH` still carries `$HOME/.config/emacs/bin`; emacs is gone (configs, service and aliases were all removed).
+Tracked for cleanup; none load-bearing on Gentoo + reach.
+> **Not stale, despite a previous note here:** `zsh/.zshenv`'s `$HOME/.config/emacs/bin`
+> on `PATH` is live — `app-editors/emacs` is installed and `~/.config/emacs` is a Doom
+> checkout whose `bin/` holds `doom`, `doom-sync`, `doom-doctor`. Only the runit service
+> and the shell aliases were removed (commit `aa4b679f`). Leave the PATH entry alone.
+
 - `fastfetch/config.jsonc` — Seat/Login Manager modules call `xbps-query` + scan `/var/service/` (this box uses `/service`); broken until rewritten for Portage.
-- `runbar.sh` — dwlb/someblocks; dead, unbound.
-- `yazi/yazi.toml` — `setbg` opener uses `swww img`; stale (system wallpaper is now `qs ipc call wallpaper set <path>`).
+- `yazi/yazi.toml` — the `setbg` opener runs `swww img`; swww is gone (wallpaper is `qs ipc call wallpaper set <path>`) and nothing in `keymap.toml` binds it, so it is reachable only from yazi's `O` menu.
 - `wireplumber/.../usb2-iec958.conf` — comment points to old `~/.local/src/dwl/autostart.sh` (now `flip.sh`).
 - Cosmetic "dwl"/"Void" comments in `killfzf`.
+- `xsettingsd/xsettingsd.conf` — the binary is **not installed** and nothing in `autostart.sh` or `config.zon` launches it, so the dark-theme/cursor XSETTINGS it documents are not actually being applied. Either install and autostart it, or drop the config.
+- `fastfetch/config.jsonc` — the Login Manager module also iterates `/var/service/*`, which does not exist here (`/service` does), so that module prints nothing at all.
+- `kernels/` and `de/Documents/` are undocumented top-level directories; `tests/quickshell/` has TestCase files but no runner.
 
 ## Git Workflow
 

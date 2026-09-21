@@ -76,4 +76,11 @@ export QT_QPA_PLATFORMTHEME=gtk3
 # this line is the one to drop.
 export QT_QUICK_BACKEND=software
 
+# Qt draws client-side decorations on xdg-shell toplevels by default: a grey
+# titlebar with min/max/close buttons, on a desktop where kitty hides its own
+# and reach draws every border. music/Music.qml is the shell's only toplevel,
+# so turn them off and let reach decorate it like any other client. Harmless to
+# the layer-shell surfaces (a bar or an overlay has no decorations to lose).
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+
 exec qs 2>&1

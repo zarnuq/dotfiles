@@ -2,6 +2,10 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
+// Reach, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // Now-playing + volume widget, bottom-left stack (above the two graphs).
 //
@@ -69,6 +73,11 @@ Widget {
         Image {
             visible: root.art !== ""
             width: root.s(120); height: root.s(120)
+            // Capped like every other Image here: under QT_QUICK_BACKEND=software
+            // both the decode and the downscale are CPU work, and rmpc allows
+            // artwork up to 1200px.
+            sourceSize.width: root.s(120) * 2
+            sourceSize.height: root.s(120) * 2
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             source: root.art

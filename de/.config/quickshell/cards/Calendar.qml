@@ -1,5 +1,9 @@
 import Quickshell
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
+// Reach, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // Left bar, 420 wide: stretches from under the brightness widget (150+75) down
 // to the top of the weather card, so it absorbs whatever height is left over:

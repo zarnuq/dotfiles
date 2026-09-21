@@ -9,7 +9,8 @@ import Quickshell.Io
 // wait needed) and are torn down with qs. Each restarts itself if it exits,
 // mirroring runsv's supervision of the old group service.
 //
-// Picker unchanged: `clipfzf` (Super+V) still reads `cliphist list`.
+// The picker half is `ClipboardPicker.qml` (Super+V), which reads
+// `cliphist list` itself. The old `clipfzf` script is gone.
 Scope {
     Process {
         id: textWatch

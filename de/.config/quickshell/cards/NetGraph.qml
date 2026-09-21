@@ -1,6 +1,10 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
+// Reach, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // Sits directly above the cpu card in the bottom-left stack.
 // Down/up MB/s from /proc/net/dev deltas (native), plus an IP footer.

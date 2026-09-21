@@ -1,0 +1,25 @@
+# Adding a qmldir turns this directory into an explicit module, which
+# REPLACES the implicit directory listing — anything not named here stops
+# resolving, including between files in this same folder. So every component
+# is declared, not just the singleton that made the file necessary.
+#
+# The singleton entry is the reason this exists at all: Quickshell
+# auto-registers singletons found in the config ROOT, but not in a
+# subdirectory, and without it MpdClient resolves to nothing.
+
+singleton MpdClient MpdClient.qml
+
+Music                Music.qml
+MusicBanner          MusicBanner.qml
+MusicController      MusicController.qml
+MusicDirectories     MusicDirectories.qml
+MusicHeader          MusicHeader.qml
+MusicList            MusicList.qml
+MusicLyrics          MusicLyrics.qml
+MusicOverlay         MusicOverlay.qml
+MusicPlaylists       MusicPlaylists.qml
+MusicQueue           MusicQueue.qml
+MusicRow             MusicRow.qml
+MusicSearch          MusicSearch.qml
+MusicStatusBar       MusicStatusBar.qml
+MusicView            MusicView.qml

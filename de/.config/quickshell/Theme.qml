@@ -18,6 +18,7 @@ Singleton {
     readonly property color yellow:   "#f9e2af"
     readonly property color crust:    "#11111b"
     readonly property color subtext1: "#bac2de"
+    readonly property color overlay0: "#6c7086"   // recessive text: a third rank under subtext0
 
     // The selected row in a picker list: a flat dark band, and a label lifted
     // just off the normal text colour. Named because four pickers were each

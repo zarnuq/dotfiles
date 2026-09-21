@@ -1,4 +1,8 @@
 import Quickshell
+// The music player is a subdirectory of its own; this makes `Music` resolve.
+// The desktop cards and the music player each live in their own folder.
+import "cards"
+import "music"
 
 // Entry point. quickshell loads ~/.config/quickshell/shell.qml by default.
 //
@@ -26,6 +30,7 @@ ShellRoot {
     LazyLoader { active: Config.on("session");             Session {} }
     LazyLoader { active: Config.on("audio");               Audio {} }
     LazyLoader { active: Config.on("network");             Network {} }
+    LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }

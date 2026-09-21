@@ -1,5 +1,9 @@
 import Quickshell
 import QtQuick
+// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
+// Reach, NotificationService) live one level up, and a QML file does not
+// see its parent directory implicitly.
+import ".."
 
 // One wttr.in request (10 min) split into temp / condition / humidity / wind.
 Widget {

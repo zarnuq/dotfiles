@@ -17,7 +17,8 @@ import QtQuick
 // so it never eats input.
 //
 // Nothing polls: volume/mic ride the Volume singleton's properties (Pipewire's
-// own signals underneath), brightness tails wl-gammarelay's PropertiesChanged,
+// own signals underneath), brightness is a property change on the Reach
+// singleton (reach owns gamma since gamma.zig; wl-gammarelay-rs must NOT run),
 // and the sink label falls out of Volume.sink changing identity.
 Scope {
     id: root

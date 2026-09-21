@@ -7,7 +7,7 @@ import QtQuick
 // Triggered by IPC so the reach keybind is just `qs ipc call launcher toggle`.
 // Picker owns the overlay, the IPC target and the focused-monitor logic; this
 // file is just the query, the list, and the keys. The corpus and the ranking
-// live in FileIndex.qml — including why this doesn't just shell out to fzf.
+// are managed by FileIndex.qml; FileSearch.js implements indexing and ranking.
 //
 // Geometry/colours match spotlight-dark.rasi: 35%x50%, 1px mauve border, zero
 // padding, input font 20, tight rows, dark (#11111b) selection with #bac2de text.

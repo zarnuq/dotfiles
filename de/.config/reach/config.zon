@@ -53,15 +53,18 @@
         "$HOME/.config/reach/autostart.sh",
     },
     .monitors = .{
-        //.{ .name = "DP-5" },
-        //.{ .name = "DP-1", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .refresh = 60000 },
-        //.{ .name = "DP-3", .transform = .rotate_0 },
-        //.{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
-        //.{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 0},
+        // Server room
+        .{ .name = "DP-5", .w = 1920, .h = 1080, .x = 0, .y = 0 },
+        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1080 },
+        .{ .name = "DP-3", .w = 1920, .h = 1080, .x = 1920, .y = 0, .transform = .rotate_270 },
 
-        .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
-        .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
-        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
+        //.{ .name = "DP-1", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .refresh = 60000 },
+        //.{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
+
+        // Desktop
+        //.{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
+        //.{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
+        //.{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
     },
 
     // --- window rules ------------------------------------------
@@ -96,6 +99,7 @@
         .{ .key = "Super+Shift+z", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/ssvfzf" } },
         .{ .key = "Super+w", .action = .{ .spawn = "kitty --class rmpc rmpc" } },
         .{ .key = "Super+Shift+w", .action = .{ .spawn = "rmpc rescan" } },
+        .{ .key = "Super+Shift+m", .action = .{ .spawn = "qs ipc call music toggle" } },
         .{ .key = "Super+t", .action = .{ .spawn = "zen-browser" } },
         .{ .key = "Super+b", .action = .{ .spawn = "qs ipc call wallpaper random" } },
         .{ .key = "Super+Shift+b", .action = .{ .spawn = "qs ipc call wallpaperpicker toggle" } },
