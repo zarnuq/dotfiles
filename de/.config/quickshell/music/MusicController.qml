@@ -259,6 +259,14 @@ QtObject {
         if (root.searching) return;
 
         event.accepted = true;
+
+        // The visible pane gets first refusal, so a tab can own a key the
+        // globals below also use — `i` is insert mode on the Search tab and
+        // the info overlay everywhere else. Every pane guards its modifiers
+        // (h/l but not H/L, and so on), so the globals still reach here.
+        if (root.tab !== 0 && root.pane && root.pane.handleKey && root.pane.handleKey(event))
+            return;
+
         switch (event.key) {
         case Qt.Key_P: root.client.toggle(); return;
         case Qt.Key_S: root.client.stop(); return;
@@ -284,12 +292,8 @@ QtObject {
         case Qt.Key_Backtab: root.cycleTab(-1); return;
         }
 
-        // Other tabs get first refusal; the queue bindings below would act on
-        // rows that are not even on screen.
-        if (root.tab !== 0) {
-            event.accepted = !!(root.pane && root.pane.handleKey && root.pane.handleKey(event));
-            return;
-        }
+        // The queue bindings below would act on rows that are not on screen.
+        if (root.tab !== 0) { event.accepted = false; return; }
         switch (event.key) {
         case Qt.Key_C: root.jumpToCurrent(); return;
         case Qt.Key_J:

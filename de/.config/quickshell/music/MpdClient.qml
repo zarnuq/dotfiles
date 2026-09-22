@@ -253,14 +253,19 @@ Singleton {
         Qt.callLater(gc);
     }
 
-    /// True while the queue was replaced wholesale rather than edited. The
+    /// True while the queue arrived as a first read rather than an edit. The
     /// banner uses it to stay quiet about the initial several-thousand-song
-    /// load without also swallowing a genuine first add.
+    /// load. It is NOT "did we refetch": syncQueue falls back to a refetch on
+    /// anything it cannot express incrementally — an add of more than 64 new
+    /// songs, or any add at all onto an empty queue — and those are real adds
+    /// that must still be announced. `Shift+A` on the library is both at once.
     property bool queueWasBulk: false
 
-    function refreshQueue() {
+    /// `bulk` false says this refetch is standing in for an edit idle already
+    /// told us about, so the size of it is the user's doing, not a first read.
+    function refreshQueue(bulk) {
         root.send("playlistinfo", function (lines) {
-            root.queueWasBulk = true;
+            root.queueWasBulk = bulk !== false;
             root.queue = root.parseRecords(lines, ["file"]);
             root.queueVersion = parseInt(root.status.playlist || "-1");
         });
@@ -273,7 +278,7 @@ Singleton {
     function syncQueue() {
         var from = root.queueVersion;
         var newVersion = parseInt(root.status.playlist || "-1");
-        if (from < 0 || root.queue.length === 0) { root.refreshQueue(); return; }
+        if (from < 0 || root.queue.length === 0) { root.refreshQueue(false); return; }
 
         // plchangesposid, NOT plchanges. An edit anywhere renumbers every song
         // after it, and `plchanges` answers with FULL records for each one —
@@ -282,7 +287,7 @@ Singleton {
         // same question as cpos/Id pairs (129 KB / 25 ms) and the metadata is
         // already here keyed by Id, so only genuinely NEW ids cost anything.
         root.send("plchangesposid " + from, function (lines, err) {
-            if (err) { root.refreshQueue(); return; }
+            if (err) { root.refreshQueue(false); return; }
             root.queueWasBulk = false;
 
             var byId = {};
@@ -312,7 +317,7 @@ Singleton {
             function finish() {
                 // A hole means a version we never saw; only a refetch is honest.
                 for (var k = 0; k < next.length; k++)
-                    if (!next[k]) { root.refreshQueue(); return; }
+                    if (!next[k]) { root.refreshQueue(false); return; }
                 root.queue = next;
                 root.queueVersion = newVersion;
             }
@@ -320,14 +325,14 @@ Singleton {
             if (missing.length === 0) { finish(); return; }
             // Past a certain number of new songs the round trips cost more than
             // one bulk read, so stop being clever.
-            if (missing.length > 64) { root.refreshQueue(); return; }
+            if (missing.length > 64) { root.refreshQueue(false); return; }
 
             var cmds = [];
             for (var m = 0; m < missing.length; m++) cmds.push("playlistid " + missing[m].id);
             root.sendList(cmds, function (lines2, err2) {
-                if (err2) { root.refreshQueue(); return; }
+                if (err2) { root.refreshQueue(false); return; }
                 var songs = root.parseRecords(lines2, ["file"]);
-                if (songs.length !== missing.length) { root.refreshQueue(); return; }
+                if (songs.length !== missing.length) { root.refreshQueue(false); return; }
                 for (var s = 0; s < songs.length; s++) next[missing[s].pos] = songs[s];
                 finish();
             });
@@ -346,7 +351,6 @@ Singleton {
     // double the queries.
 
     function toggle()          { root.send(root.playing ? "pause 1" : (root.stopped ? "play" : "pause 0")); }
-    function play(pos)         { root.send("play " + pos); }
     function playId(id)        { root.send("playid " + id); }
     function stop()            { root.send("stop"); }
     function next()            { root.send("next"); }
@@ -368,15 +372,20 @@ Singleton {
         return Math.max(0, Math.min(end, sec));
     }
 
-    function seekTo(sec) {
+    /// Move the LOCAL clock now and let the flush below send it. Both entry
+    /// points come through here so the guard and the repaint cannot be set in
+    /// one of them and forgotten in the other.
+    function _seek(sec) {
         if (root.duration <= 0) return;
+        root._seekPending = true;
         root._seekGuardUntil = Date.now() + root._seekGuardMs;
         root._elapsedBase = root.clampSeek(sec);
         root._elapsedAt = Date.now();
-        root._tick++;
-        root._seekPending = true;
+        root._tick++;                       // repaint now, not on the next second
         seekFlush.restart();
     }
+
+    function seekTo(sec)   { root._seek(sec); }
 
     // Holding the seek key is reach's 50/s key repeat, so a naive one-command-
     // per-press sends fifty `seekcur`s a second. Each is a `player` change, each
@@ -395,15 +404,7 @@ Singleton {
     readonly property int _seekFlushMs: 90
     readonly property int _seekGuardMs: 500
 
-    function seekBy(delta) {
-        if (root.duration <= 0) return;
-        root._seekPending = true;
-        root._seekGuardUntil = Date.now() + root._seekGuardMs;
-        root._elapsedBase = root.clampSeek(root.elapsed + delta);
-        root._elapsedAt = Date.now();
-        root._tick++;                       // repaint now, not on the next second
-        seekFlush.restart();
-    }
+    function seekBy(delta) { root._seek(root.elapsed + delta); }
 
     Timer {
         id: seekFlush
@@ -445,8 +446,6 @@ Singleton {
     function toggleConsume()   { root.send("consume " + (root.consumeMode === "0" ? "1" : root.consumeMode === "1" ? "oneshot" : "0")); }
     function toggleSingle()    { root.send("single " + (root.singleMode === "0" ? "1" : root.singleMode === "1" ? "oneshot" : "0")); }
 
-    function deleteAt(pos)     { root.send("delete " + pos); }
-    function deleteId(id)      { root.send("deleteid " + id); }
     function clearQueue()      { root.send("clear"); }
     function moveSong(from, to) { root.send("move " + from + " " + to); }
 
@@ -455,23 +454,23 @@ Singleton {
     // MPD answers every one of them in single-digit milliseconds over a socket
     // that is already open. `cb` gets parsed records.
 
+    /// Send `cmd` and hand `cb` its parsed records — an empty list on an ACK,
+    /// so a pane never has to tell "refused" from "nothing there".
+    function _read(cmd, startKeys, cb) {
+        root.send(cmd, function (lines, err) {
+            cb(err ? [] : root.parseRecords(lines, startKeys), err);
+        });
+    }
+
     /// One directory level. Mixed rows: `directory`, `file`, `playlist`.
     function lsinfo(uri, cb) {
-        root.send("lsinfo " + root.q(uri), function (lines, err) {
-            cb(err ? [] : root.parseRecords(lines, ["directory", "file", "playlist"]), err);
-        });
+        root._read("lsinfo " + root.q(uri), ["directory", "file", "playlist"], cb);
     }
 
-    function listPlaylists(cb) {
-        root.send("listplaylists", function (lines, err) {
-            cb(err ? [] : root.parseRecords(lines, ["playlist"]), err);
-        });
-    }
+    function listPlaylists(cb) { root._read("listplaylists", ["playlist"], cb); }
 
     function playlistSongs(name, cb) {
-        root.send("listplaylistinfo " + root.q(name), function (lines, err) {
-            cb(err ? [] : root.parseRecords(lines, ["file"]), err);
-        });
+        root._read("listplaylistinfo " + root.q(name), ["file"], cb);
     }
 
     /// Library search. MPD matches case-insensitively and as a substring, which
@@ -479,9 +478,7 @@ Singleton {
     /// nothing like the launcher's in-process index is needed here.
     function search(tag, query, cb) {
         if (!query) { cb([], null); return; }
-        root.send("search " + tag + " " + root.q(query), function (lines, err) {
-            cb(err ? [] : root.parseRecords(lines, ["file"]), err);
-        });
+        root._read("search " + tag + " " + root.q(query), ["file"], cb);
     }
 
     // ── Queue building ───────────────────────────────────────────────────
@@ -502,7 +499,6 @@ Singleton {
     function loadPlaylist(name)          { root.send("load " + root.q(name)); }
     function removePlaylist(name)        { root.send("rm " + root.q(name)); }
     function savePlaylist(name)          { root.send("save " + root.q(name)); }
-    function renamePlaylist(from, to)    { root.send("rename " + root.q(from) + " " + root.q(to)); }
 
     // ── Sockets ──────────────────────────────────────────────────────────
 

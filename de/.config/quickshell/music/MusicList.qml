@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Shared browse list for the non-queue tabs: virtualized rows, keyboard cursor,
@@ -14,14 +12,11 @@ Item {
     property var rows: []
     property int cursor: 0
     property Component rowDelegate: null
-    property real fontScale: 1.2
     property string emptyText: "nothing here"
     property bool busy: false
 
-    function s(n) { return Config.s(n); }
-    readonly property int rowH: root.s(31)
     readonly property int count: root.rows.length
-    readonly property int viewportRows: Math.max(1, Math.floor(list.height / root.rowH))
+    readonly property int viewportRows: Math.max(1, Math.floor(list.height / Ui.rowH))
     readonly property var current: root.cursor >= 0 && root.cursor < root.count
                                    ? root.rows[root.cursor] : null
 
@@ -58,20 +53,8 @@ Item {
         return false;
     }
 
-    // Compare window coordinates so scrolling under a stationary pointer cannot
-    // move the cursor. A new list resets the baseline.
-    property point lastPointer: Qt.point(-1, -1)
-    property bool pointerSeen: false
-    onRowsChanged: root.pointerSeen = false
-
-    function allowHover(item, event) {
-        var point = item.mapToItem(null, event.x, event.y);
-        var moved = root.pointerSeen && (Math.abs(point.x - root.lastPointer.x) >= 1
-                                        || Math.abs(point.y - root.lastPointer.y) >= 1);
-        root.pointerSeen = true;
-        root.lastPointer = point;
-        return moved;
-    }
+    // A new list must not inherit the old one's pointer baseline.
+    onRowsChanged: Ui.resetHover()
 
     ListView {
         id: list
@@ -83,22 +66,14 @@ Item {
         cacheBuffer: 0
         delegate: root.rowDelegate
 
-        Rectangle {
-            anchors.right: parent.right
-            width: root.s(2)
-            color: Theme.surface1
-            visible: list.contentHeight > list.height
-            y: list.contentHeight > 0 ? list.visibleArea.yPosition * list.height : 0
-            height: list.contentHeight > 0
-                    ? Math.max(root.s(20), list.visibleArea.heightRatio * list.height) : 0
-        }
+        MusicScrollBar { view: list }
     }
 
     Txt {
         anchors.centerIn: parent
         visible: root.count === 0
         color: Theme.surface1
-        font.pixelSize: Math.round(root.s(13) * root.fontScale)
+        font.pixelSize: Ui.fs(13)
         text: root.busy ? "loading…" : root.emptyText
     }
 }

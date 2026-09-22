@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Tab 3 — stored playlists, and one level into whichever you open. Two levels
@@ -11,9 +9,6 @@ Item {
     id: root
 
     required property var client
-    property real fontScale: 1.2
-    function s(n) { return Config.s(n); }
-    function fs(n) { return Math.round(root.s(n) * root.fontScale); }
 
     property var playlists: []
     property string opened: ""
@@ -112,11 +107,11 @@ Item {
     Txt {
         id: crumb
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: root.s(12)
+        anchors.margins: Ui.s(12)
         anchors.bottomMargin: 0
-        height: root.s(20)
+        height: Ui.s(20)
         elide: Text.ElideRight
-        font.pixelSize: root.fs(12)
+        font.pixelSize: Ui.fs(12)
         color: Theme.subtext0
         text: root.inPlaylist ? "󰲹 " + root.opened : "playlists    (C-a saves the queue)"
     }
@@ -124,10 +119,9 @@ Item {
     MusicList {
         id: list
         anchors { top: crumb.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-        anchors.topMargin: root.s(4)
+        anchors.topMargin: Ui.s(4)
         rows: root.rows
         busy: root.busy
-        fontScale: root.fontScale
         emptyText: root.inPlaylist ? "empty playlist" : "no stored playlists"
         onActivated: i => root.activate(i)
 

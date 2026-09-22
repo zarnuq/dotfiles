@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Dismissible song metadata and keyboard help.
@@ -10,28 +8,25 @@ Rectangle {
     property string mode: ""
     property var song: null
     signal dismissed()
-    property real fontScale: 1.2
-    function s(n) { return Config.s(n); }
-    function fs(n) { return Math.round(root.s(n) * root.fontScale); }
 
     component HelpRow: Row {
         id: hr
         required property var modelData
         readonly property bool heading: hr.modelData.k === ""
-        spacing: root.s(12)
-        topPadding: hr.heading ? root.s(10) : 0
+        spacing: Ui.s(12)
+        topPadding: hr.heading ? Ui.s(10) : 0
         Txt {
-            width: root.s(140)
+            width: Ui.s(140)
             horizontalAlignment: Text.AlignRight
             text: hr.modelData.k
             color: Theme.mauve
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
         }
         Txt {
             text: hr.modelData.v
             color: hr.heading ? Theme.subtext0 : Theme.text
             font.bold: hr.heading
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
         }
     }
 
@@ -41,7 +36,7 @@ Rectangle {
     MouseArea { anchors.fill: parent; onClicked: root.dismissed() }
     Flickable {
         anchors.fill: parent
-        anchors.margins: root.s(24)
+        anchors.margins: Ui.s(24)
         visible: root.mode === "info"
         contentHeight: infoCol.height
         clip: true
@@ -49,14 +44,14 @@ Rectangle {
         Column {
             id: infoCol
             width: parent.width
-            spacing: root.s(4)
+            spacing: Ui.s(4)
 
             Txt {
                 text: "song info"
                 color: Theme.mauve
-                font.pixelSize: root.fs(15)
+                font.pixelSize: Ui.fs(15)
                 font.bold: true
-                bottomPadding: root.s(8)
+                bottomPadding: Ui.s(8)
             }
 
             Repeater {
@@ -70,18 +65,18 @@ Rectangle {
                 delegate: Row {
                     id: infoRow
                     required property var modelData
-                    spacing: root.s(12)
+                    spacing: Ui.s(12)
                     Txt {
-                        width: root.s(120)
+                        width: Ui.s(120)
                         text: infoRow.modelData.k
                         color: Theme.subtext0
-                        font.pixelSize: root.fs(12)
+                        font.pixelSize: Ui.fs(12)
                     }
                     Txt {
-                        width: infoCol.width - root.s(132)
+                        width: infoCol.width - Ui.s(132)
                         text: infoRow.modelData.v
                         wrapMode: Text.Wrap
-                        font.pixelSize: root.fs(12)
+                        font.pixelSize: Ui.fs(12)
                     }
                 }
             }
@@ -89,7 +84,7 @@ Rectangle {
     }
     Flickable {
         anchors.fill: parent
-        anchors.margins: root.s(24)
+        anchors.margins: Ui.s(24)
         visible: root.mode === "help"
         contentHeight: helpCol.height
         clip: true
@@ -97,14 +92,14 @@ Rectangle {
         Column {
             id: helpCol
             width: parent.width
-            spacing: root.s(3)
+            spacing: Ui.s(3)
 
             Txt {
                 text: "keybinds"
                 color: Theme.mauve
-                font.pixelSize: root.fs(15)
+                font.pixelSize: Ui.fs(15)
                 font.bold: true
-                bottomPadding: root.s(8)
+                bottomPadding: Ui.s(8)
             }
 
             Repeater {
@@ -129,17 +124,19 @@ Rectangle {
                     { k: "Space / C-Space", v: "select · invert selection" },
                     { k: "d / D", v: "delete selected · clear the queue" },
                     { k: "J / K", v: "move the song down / up" },
+                    { k: "", v: "lyrics" },
+                    { k: "j / k", v: "scroll (it follows playback on its own)" },
                     { k: "", v: "directories · playlists" },
                     { k: "h / l", v: "up a level · open" },
                     { k: "Enter", v: "play it now" },
                     { k: "a", v: "add to the queue (a folder adds all of it)" },
-                    { k: "A", v: "add this whole folder" },
+                    { k: "A", v: "add this whole folder (the library, at the root)" },
                     { k: "D", v: "delete the playlist" },
                     { k: "C-a", v: "save the queue as a playlist" },
                     { k: "", v: "library search" },
-                    { k: "type", v: "search as you type" },
-                    { k: "Esc / ↓", v: "leave the field for the results" },
-                    { k: "T", v: "cycle the tag (any · artist · album · title · …)" },
+                    { k: "i / /", v: "type in the field (normal mode otherwise)" },
+                    { k: "Esc / ↓", v: "leave the field" },
+                    { k: "T / C-t", v: "cycle the tag (any · artist · album · title · …)" },
                     { k: "a / A", v: "add the row · add every match" },
                     { k: "", v: "other" },
                     { k: "i / ~", v: "song info · this help" },

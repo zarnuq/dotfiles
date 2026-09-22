@@ -1,13 +1,17 @@
 # Adding a qmldir turns this directory into an explicit module, which
 # REPLACES the implicit directory listing — anything not named here stops
 # resolving, including between files in this same folder. So every component
-# is declared, not just the singleton that made the file necessary.
+# is declared, not just the singletons that made the file necessary.
 #
-# The singleton entry is the reason this exists at all: Quickshell
-# auto-registers singletons found in the config ROOT, but not in a
-# subdirectory, and without it MpdClient resolves to nothing.
+# The singletons are the reason this exists at all: Quickshell auto-registers
+# singletons found in the config ROOT, but not in a subdirectory, and without
+# these entries MpdClient and Ui resolve to nothing.
+#
+# Every file here also carries `import ".."` — a QML file does not see its
+# parent directory implicitly, and Txt/Theme/Config live up there.
 
 singleton MpdClient MpdClient.qml
+singleton Ui        Ui.qml
 
 Music                Music.qml
 MusicBanner          MusicBanner.qml
@@ -20,6 +24,7 @@ MusicOverlay         MusicOverlay.qml
 MusicPlaylists       MusicPlaylists.qml
 MusicQueue           MusicQueue.qml
 MusicRow             MusicRow.qml
+MusicScrollBar       MusicScrollBar.qml
 MusicSearch          MusicSearch.qml
 MusicStatusBar       MusicStatusBar.qml
 MusicView            MusicView.qml

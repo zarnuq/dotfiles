@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // One row in a browse pane. The queue draws its own (four aligned columns and a
@@ -19,11 +17,10 @@ Item {
     property bool current: false
 
     readonly property bool sel: root.index === root.list.cursor
-    readonly property int detailWidth: root.detail === "" ? 0 : root.list.s(190)
-    function fs(n) { return Math.round(root.list.s(n) * root.list.fontScale); }
+    readonly property int detailWidth: root.detail === "" ? 0 : Ui.s(190)
 
     width: root.list.width
-    height: root.list.rowH
+    height: Ui.rowH
 
     signal activated()
 
@@ -37,7 +34,7 @@ Item {
 
     Rectangle {
         anchors.left: parent.left
-        width: root.list.s(3)
+        width: Ui.s(3)
         height: parent.height
         visible: root.current
         color: Theme.mauve
@@ -45,23 +42,23 @@ Item {
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: root.list.s(12)
-        anchors.rightMargin: root.list.s(12)
-        spacing: root.list.s(10)
+        anchors.leftMargin: Ui.s(12)
+        anchors.rightMargin: Ui.s(12)
+        spacing: Ui.s(10)
 
         Txt {
-            width: root.list.s(20)
+            width: Ui.s(20)
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignHCenter
-            font.pixelSize: root.fs(13)
+            font.pixelSize: Ui.fs(13)
             color: root.iconColor
             text: root.icon
         }
         Txt {
-            width: parent.width - root.list.s(20) - root.list.s(20) - root.detailWidth
+            width: parent.width - Ui.s(20) - Ui.s(20) - root.detailWidth
             anchors.verticalCenter: parent.verticalCenter
             elide: Text.ElideRight
-            font.pixelSize: root.fs(13)
+            font.pixelSize: Ui.fs(13)
             color: root.current ? Theme.mauve
                    : root.sel ? Theme.rowSelectFg : Theme.text
             text: root.label
@@ -71,7 +68,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight
             elide: Text.ElideRight
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
             color: Theme.overlay0
             text: root.detail
         }
@@ -82,7 +79,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         onPositionChanged: event => {
-            if (root.list.allowHover(hover, event)) root.list.cursor = root.index;
+            if (Ui.allowHover(hover, event)) root.list.cursor = root.index;
         }
         onClicked: root.list.cursor = root.index
         onDoubleClicked: { root.list.cursor = root.index; root.activated(); }

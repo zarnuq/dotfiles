@@ -1,25 +1,20 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Queue status and in-place search; search keystrokes stay in the text field.
 Rectangle {
     id: root
     required property MusicController controller
-    property real fontScale: 1.2
-    function s(n) { return Config.s(n); }
-    function fs(n) { return Math.round(root.s(n) * root.fontScale); }
-    height: root.s(34)
+    height: Ui.s(34)
     color: Theme.crust
 
     Txt {
         visible: !root.controller.searching
         anchors.left: parent.left
-        anchors.leftMargin: root.s(12)
+        anchors.leftMargin: Ui.s(12)
         anchors.verticalCenter: parent.verticalCenter
-        font.pixelSize: root.fs(12)
+        font.pixelSize: Ui.fs(12)
         color: Theme.subtext0
         text: {
             if (root.controller.tab !== 0) {
@@ -40,16 +35,16 @@ Rectangle {
     }
     Item {
         anchors.left: parent.left
-        anchors.leftMargin: root.s(12)
+        anchors.leftMargin: Ui.s(12)
         anchors.right: parent.right
-        anchors.rightMargin: root.s(12)
+        anchors.rightMargin: Ui.s(12)
         anchors.verticalCenter: parent.verticalCenter
-        height: root.s(18)
+        height: Ui.s(18)
         visible: root.controller.searching
 
         Txt {
             anchors.verticalCenter: parent.verticalCenter
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
             color: Theme.mauve
             text: "/"
             id: slash
@@ -58,11 +53,11 @@ Rectangle {
         TextInput {
             id: searchField
             anchors.fill: parent
-            anchors.leftMargin: root.s(12)
+            anchors.leftMargin: Ui.s(12)
             verticalAlignment: TextInput.AlignVCenter
             color: Theme.text
             font.family: Theme.font
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
             focus: root.controller.searching
             onTextChanged: root.controller.updateQuery(text)
             onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
@@ -81,7 +76,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: searchField.text === ""
                 color: Theme.surface1
-                font.pixelSize: root.fs(12)
+                font.pixelSize: Ui.fs(12)
                 text: "search the queue"
             }
         }
@@ -89,10 +84,10 @@ Rectangle {
 
     Txt {
         anchors.right: parent.right
-        anchors.rightMargin: root.s(12)
+        anchors.rightMargin: Ui.s(12)
         anchors.verticalCenter: parent.verticalCenter
         visible: !root.controller.searching
-        font.pixelSize: root.fs(11)
+        font.pixelSize: Ui.fs(11)
         color: Theme.surface1
         text: "~ help"
     }

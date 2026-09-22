@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Tab 5 — search the library. The matching is MPD's, not ours: `search` is
@@ -13,15 +11,14 @@ Item {
     id: root
 
     required property var client
-    property real fontScale: 1.2
-    function s(n) { return Config.s(n); }
-    function fs(n) { return Math.round(root.s(n) * root.fontScale); }
 
     property string query: ""
     property var results: []
     property bool busy: false
-    // The field owns the keyboard until Escape or Down leaves it.
-    property bool typing: true
+    // Modal, like vim: the pane opens in NORMAL mode, so 1-5, j/k and every
+    // global key still work on this tab. `i` or `/` enters insert mode and the
+    // field takes the keyboard; Escape hands it straight back.
+    property bool typing: false
 
     // rmpc's tag list, same order.
     readonly property var tags: ["any", "artist", "album", "albumartist", "title", "genre", "filename"]
@@ -30,7 +27,8 @@ Item {
 
     readonly property string status: {
         if (root.busy) return "searching…";
-        if (root.query === "") return "type to search · T changes the tag";
+        if (root.typing) return "-- INSERT --   Esc leaves the field";
+        if (root.query === "") return "i or / to search · j/k to move · T changes the tag";
         return root.results.length + (root.results.length === 1 ? " match" : " matches");
     }
 
@@ -89,26 +87,25 @@ Item {
         switch (event.key) {
         case Qt.Key_A: if (shift) root.addAll(); else root.addRow(list.cursor); return true;
         case Qt.Key_T: if (shift) { root.cycleTag(1); return true; } break;
+        case Qt.Key_I:
         case Qt.Key_Slash: root.focusField(); return true;
         }
         return false;
     }
-
-    Component.onCompleted: root.focusField()
 
     Timer { id: debounce; interval: 180; onTriggered: root.run() }
 
     Item {
         id: bar
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: root.s(12)
+        anchors.margins: Ui.s(12)
         anchors.bottomMargin: 0
-        height: root.s(24)
+        height: Ui.s(24)
 
         Txt {
             id: tagLabel
             anchors.verticalCenter: parent.verticalCenter
-            font.pixelSize: root.fs(12)
+            font.pixelSize: Ui.fs(12)
             color: Theme.mauve
             text: root.tag + " ›"
         }
@@ -116,11 +113,11 @@ Item {
         TextInput {
             id: field
             anchors.fill: parent
-            anchors.leftMargin: tagLabel.width + root.s(8)
+            anchors.leftMargin: tagLabel.width + Ui.s(8)
             verticalAlignment: TextInput.AlignVCenter
             color: Theme.text
             font.family: Theme.font
-            font.pixelSize: root.fs(13)
+            font.pixelSize: Ui.fs(13)
             // Bound, not just set once. forceActiveFocus() on the parent
             // FocusScope delegates straight back to a focused child, so
             // releasing has to clear this — the same shape MusicStatusBar uses
@@ -133,20 +130,15 @@ Item {
                 else debounce.restart();
             }
             Keys.onPressed: event => {
-                // Escape leaves the field for the results; the window's own
-                // Escape is then one more press, same shape as rmpc.
+                // Escape always returns to normal mode — never straight out of
+                // the window, which is what makes a second Escape close it.
                 if (event.key === Qt.Key_Escape || event.key === Qt.Key_Down) {
-                    // Only swallow the key if there is somewhere to go. With no
-                    // results, Escape must fall through and close the window —
-                    // accepting it unconditionally trapped the whole tab.
-                    if (root.results.length > 0) {
-                        root.leaveField();
-                        event.accepted = true;
-                    }
+                    root.leaveField();
+                    event.accepted = true;
                 } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                     debounce.stop();
                     root.run();
-                    if (root.results.length > 0) root.leaveField();
+                    root.leaveField();
                     event.accepted = true;
                 } else if (event.key === Qt.Key_T && (event.modifiers & Qt.ControlModifier)) {
                     root.cycleTag(1);
@@ -158,7 +150,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: field.text === ""
                 color: Theme.surface1
-                font.pixelSize: root.fs(13)
+                font.pixelSize: Ui.fs(13)
                 text: "search the library"
             }
         }
@@ -167,10 +159,9 @@ Item {
     MusicList {
         id: list
         anchors { top: bar.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-        anchors.topMargin: root.s(4)
+        anchors.topMargin: Ui.s(4)
         rows: root.results
         busy: root.busy
-        fontScale: root.fontScale
         emptyText: root.query === "" ? "" : "no matches"
         onActivated: i => root.activate(i)
 

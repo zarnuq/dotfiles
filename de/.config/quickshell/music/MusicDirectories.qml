@@ -1,7 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: `Txt` (and the root singletons) live one level up. A QML
-// file does NOT see its parent directory implicitly — only its own.
 import ".."
 
 // Tab 2 — the library as the tree it is on disk. One lsinfo per level (2.4ms
@@ -11,21 +9,12 @@ Item {
     id: root
 
     required property var client
-    property real fontScale: 1.2
-    function s(n) { return Config.s(n); }
-    function fs(n) { return Math.round(root.s(n) * root.fontScale); }
 
     property string path: ""
     property var entries: []
     property bool busy: false
 
-    // Set when Shift+A is refused at the root; cleared by moving or navigating.
-    property bool refused: false
-    onPathChanged: root.refused = false
-
-    readonly property string status: root.refused
-                                     ? "refusing to queue the whole library — open a folder first"
-                                     : root.busy ? "reading…"
+    readonly property string status: root.busy ? "reading…"
                                      : (list.count > 0 ? list.cursor + 1 : 0) + " / " + list.count
 
     // A ".." row whenever we are not at the root, so going up is visible.
@@ -101,13 +90,13 @@ Item {
         case Qt.Key_H: if (!shift) { root.goUp(); return true; } break;
         case Qt.Key_L: if (!shift) { root.activate(list.cursor); return true; } break;
         case Qt.Key_A:
-            // A queues the directory we are inside. NOT at the root, where the
-            // URI is "" and `add ""` queues the entire library — one keystroke
-            // from this pane's opening state, and how a 6k queue became 12k.
-            if (shift) {
-                if (root.path === "") root.refused = true;
-                else root.client.addUri(root.path);
-            } else root.addRow(list.cursor);
+            // A queues the directory we are INSIDE, which at the root means the
+            // URI "" — and `add ""` is MPD's whole library. That is deliberate:
+            // it is rmpc's AddAll, and the usual way to queue everything before
+            // shuffling. It is also how a 6k queue silently became 12k, so
+            // remember that a second press appends the library again.
+            if (shift) root.client.addUri(root.path);
+            else root.addRow(list.cursor);
             return true;
         }
         return false;
@@ -118,11 +107,11 @@ Item {
     Txt {
         id: crumb
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: root.s(12)
+        anchors.margins: Ui.s(12)
         anchors.bottomMargin: 0
-        height: root.s(20)
+        height: Ui.s(20)
         elide: Text.ElideLeft
-        font.pixelSize: root.fs(12)
+        font.pixelSize: Ui.fs(12)
         color: Theme.subtext0
         text: root.path === "" ? "/" : "/" + root.path
     }
@@ -130,10 +119,9 @@ Item {
     MusicList {
         id: list
         anchors { top: crumb.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
-        anchors.topMargin: root.s(4)
+        anchors.topMargin: Ui.s(4)
         rows: root.rows
         busy: root.busy
-        fontScale: root.fontScale
         emptyText: "empty directory"
         onActivated: i => root.activate(i)
 
