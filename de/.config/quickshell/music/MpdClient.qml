@@ -447,6 +447,9 @@ Singleton {
     function toggleSingle()    { root.send("single " + (root.singleMode === "0" ? "1" : root.singleMode === "1" ? "oneshot" : "0")); }
 
     function clearQueue()      { root.send("clear"); }
+    /// Rescan changed files. `rescan` would re-read every file regardless of
+    /// mtime; this is the cheap one, and what "I just added an album" wants.
+    function update()          { root.send("update"); }
     function moveSong(from, to) { root.send("move " + from + " " + to); }
 
     // ── Library, playlists, search ───────────────────────────────────────
@@ -586,9 +589,11 @@ Singleton {
     Timer { id: idleRetry; interval: 30000; onTriggered: root._arm(); }
 
     function _arm() {
-        // Only the subsystems this shell reacts to, so an unrelated database
-        // update or sticker write doesn't wake us for nothing.
-        idleSock.write("idle player mixer options playlist stored_playlist update\n");
+        // Only the subsystems this shell reacts to, so an unrelated sticker
+        // write doesn't wake us for nothing. `update` fires when a scan starts
+        // and stops; `database` fires only when one actually CHANGED something,
+        // which is the one the library browser has to reload on.
+        idleSock.write("idle player mixer options playlist stored_playlist update database\n");
         idleSock.flush();
     }
 

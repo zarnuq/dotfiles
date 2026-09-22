@@ -139,6 +139,7 @@ Rectangle {
                     { k: "T / C-t", v: "cycle the tag (any · artist · album · title · …)" },
                     { k: "a / A", v: "add the row · add every match" },
                     { k: "", v: "other" },
+                    { k: "U", v: "rescan the library for new songs" },
                     { k: "i / ~", v: "song info · this help" },
                     { k: "q / Esc", v: "close" }
                 ]

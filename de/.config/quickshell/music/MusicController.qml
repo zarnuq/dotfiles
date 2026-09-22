@@ -50,6 +50,9 @@ QtObject {
     property Connections clientConnections: Connections {
         target: root.client
         function onSongPosChanged() { root.resolvePendingJump(); }
+        // `database` means a scan changed something; the panes reload themselves,
+        // this just says so, since a scan finishes long after the keystroke.
+        function onChanged(subsystem) { if (subsystem === "database") root.notify("Library updated"); }
     }
 
     Component.onCompleted: {
@@ -284,6 +287,12 @@ QtObject {
         case Qt.Key_QuoteLeft:
         case Qt.Key_AsciiTilde: root.overlay = "help"; return;
         case Qt.Key_I: root.overlay = "info"; return;
+        case Qt.Key_U:
+            // Rescan for songs added on disk. NOT C-u, which is half a page up
+            // in every pane — rmpc has the same collision and resolves it the
+            // same way, by letting navigation win.
+            if (shift) { root.client.update(); root.notify("Scanning the library…"); return; }
+            break;
         case Qt.Key_Q:
         case Qt.Key_Escape: root.closeRequested(); return;
         case Qt.Key_1: case Qt.Key_2: case Qt.Key_3: case Qt.Key_4: case Qt.Key_5:

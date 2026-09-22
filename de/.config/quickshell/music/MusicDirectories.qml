@@ -21,7 +21,9 @@ Item {
     readonly property var rows: root.path === "" ? root.entries
                                 : [{ _type: "up" }].concat(root.entries)
 
-    function load(next) {
+    /// `keepCursor` is for re-reading the level already in view: descending is
+    /// what should land you at the top, a background rescan is not.
+    function load(next, keepCursor) {
         root.busy = true;
         root.path = next;
         root.client.lsinfo(next, function (records) {
@@ -38,8 +40,21 @@ Item {
             // sorting those by date would scramble the record.
             dirs.sort(root.byNewest);
             root.entries = dirs.concat(lists, files);
-            list.resetCursor();
+            // moveTo clamps, so a level that shrank under us cannot leave the
+            // cursor past the end.
+            if (keepCursor) list.moveTo(list.cursor);
+            else list.resetCursor();
         });
+    }
+
+    // MPD reports `database` only when a scan actually changed something, so
+    // this is not a reload per `update` keystroke. Without it the browser kept
+    // showing the listing from whenever the tab was first opened.
+    Connections {
+        target: root.client
+        function onChanged(subsystem) {
+            if (subsystem === "database") root.load(root.path, true);
+        }
     }
 
     // lsinfo gives a directory `Last-Modified`, which MPD derives from the
