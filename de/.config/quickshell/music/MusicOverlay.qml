@@ -30,7 +30,8 @@ Rectangle {
         }
     }
 
-    visible: root.mode !== ""
+    // "playlist" is the C-a picker's mode, drawn by its own component.
+    visible: root.mode === "info" || root.mode === "help"
     color: Qt.rgba(Theme.base.r, Theme.base.g, Theme.base.b, 0.96)
 
     MouseArea { anchors.fill: parent; onClicked: root.dismissed() }
@@ -131,14 +132,15 @@ Rectangle {
                     { k: "Enter", v: "play it now" },
                     { k: "a", v: "add to the queue (a folder adds all of it)" },
                     { k: "A", v: "add this whole folder (the library, at the root)" },
-                    { k: "D", v: "delete the playlist" },
-                    { k: "C-a", v: "save the queue as a playlist" },
+                    { k: "d / D", v: "remove the song from the playlist · delete the playlist" },
+                    { k: "C-s", v: "save the queue as a playlist" },
                     { k: "", v: "library search" },
                     { k: "i / /", v: "type in the field (normal mode otherwise)" },
                     { k: "Esc / ↓", v: "leave the field" },
                     { k: "T / C-t", v: "cycle the tag (any · artist · album · title · …)" },
                     { k: "a / A", v: "add the row · add every match" },
                     { k: "", v: "other" },
+                    { k: "C-a", v: "add the selection to a playlist (any tab)" },
                     { k: "U", v: "rescan the library for new songs" },
                     { k: "i / ~", v: "song info · this help" },
                     { k: "q / Esc", v: "close" }

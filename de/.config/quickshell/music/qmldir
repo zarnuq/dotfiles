@@ -22,6 +22,7 @@ MusicList            MusicList.qml
 MusicLyrics          MusicLyrics.qml
 MusicOverlay         MusicOverlay.qml
 MusicPlaylists       MusicPlaylists.qml
+MusicPlaylistPicker  MusicPlaylistPicker.qml
 MusicQueue           MusicQueue.qml
 MusicRow             MusicRow.qml
 MusicScrollBar       MusicScrollBar.qml

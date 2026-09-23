@@ -30,13 +30,17 @@ Item {
         });
     }
 
-    function open(name) {
+    /// `keepCursor` is for re-reading the playlist already in view, after an
+    /// edit; opening one should land at its top.
+    function open(name, keepCursor) {
         root.busy = true;
         root.opened = name;
         root.client.playlistSongs(name, function (records) {
             root.busy = false;
             root.songs = records;
-            list.resetCursor();
+            // moveTo clamps, so deleting the last row cannot strand the cursor.
+            if (keepCursor) list.moveTo(list.cursor);
+            else list.resetCursor();
         });
     }
 
@@ -73,7 +77,25 @@ Item {
         return true;
     }
 
-    // `C-a` saves the current queue as a playlist named after the time.
+    // `d` removes ONE song, and only inside a playlist — the mirror of `D`, so
+    // neither can fire at the level the other belongs to. MPD deletes by
+    // position, and the row index is that position: listplaylistinfo returns
+    // the playlist in order and carries no Pos of its own.
+    function deleteSong(i) {
+        if (!root.inPlaylist || !root.songs[i]) return false;
+        root.client.playlistRemoveAt(root.opened, i, function () { root.open(root.opened, true); });
+        return true;
+    }
+
+    /// What C-a adds from here: the song under the cursor. A playlist row is
+    /// not a URI MPD can add to another playlist, so the top level offers none.
+    function selectionUris() {
+        var row = root.inPlaylist ? root.songs[list.cursor] : null;
+        return row && row.file ? [row.file] : [];
+    }
+
+    // `C-s` saves the current queue as a playlist named after the time. (It was
+    // C-a until that key became "add the selection to a playlist" everywhere.)
     function saveQueue() {
         var now = new Date();
         root.client.savePlaylist("queue-" + Qt.formatDateTime(now, "yyyyMMdd-hhmm"));
@@ -88,10 +110,14 @@ Item {
         case Qt.Key_H: if (!shift) { root.back(); return true; } break;
         case Qt.Key_L: if (!shift) { root.activate(list.cursor); return true; } break;
         case Qt.Key_A:
-            if (ctrl) { root.saveQueue(); return true; }
+            if (ctrl) return false;           // C-a is the global playlist picker
             root.addRow(list.cursor);
             return true;
-        case Qt.Key_D: if (shift) return root.deleteRow(list.cursor); break;
+        case Qt.Key_S: if (ctrl) { root.saveQueue(); return true; } break;
+        // navKey has already taken C-d, so this is the plain pair: D removes
+        // the playlist, d removes the song under the cursor.
+        case Qt.Key_D:
+            return shift ? root.deleteRow(list.cursor) : root.deleteSong(list.cursor);
         }
         return false;
     }
@@ -101,7 +127,13 @@ Item {
     // Saving the queue to a playlist arrives as `stored_playlist`.
     Connections {
         target: root.client
-        function onChanged(subsystem) { if (subsystem === "stored_playlist") root.refresh(); }
+        function onChanged(subsystem) {
+            if (subsystem !== "stored_playlist") return;
+            root.refresh();
+            // An edit made elsewhere — rmpc, or the C-a picker adding to the
+            // playlist you happen to be looking at.
+            if (root.inPlaylist) root.open(root.opened, true);
+        }
     }
 
     Txt {
@@ -113,7 +145,7 @@ Item {
         elide: Text.ElideRight
         font.pixelSize: Ui.fs(12)
         color: Theme.subtext0
-        text: root.inPlaylist ? "󰲹 " + root.opened : "playlists    (C-a saves the queue)"
+        text: root.inPlaylist ? "󰲹 " + root.opened : "playlists    (C-s saves the queue)"
     }
 
     MusicList {

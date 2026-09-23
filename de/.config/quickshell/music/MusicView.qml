@@ -42,7 +42,7 @@ FocusScope {
     MusicHeader {
         id: header
         anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: Ui.s(12)
+        anchors.margins: Ui.hs(12)
         client: root.client
         art: root.art
     }
@@ -50,10 +50,10 @@ FocusScope {
     Row {
         id: tabs
         anchors { top: header.bottom; left: parent.left; right: parent.right }
-        anchors.margins: Ui.s(12)
-        anchors.topMargin: Ui.s(6)
-        height: Ui.s(30)
-        spacing: Ui.s(18)
+        anchors.margins: Ui.hs(12)
+        anchors.topMargin: Ui.hs(6)
+        height: Ui.hs(24)
+        spacing: Ui.hs(18)
 
         Repeater {
             model: state.tabs
@@ -62,8 +62,11 @@ FocusScope {
                 required property var modelData
                 required property int index
                 readonly property bool active: index === state.tab
-                text: (index + 1) + " " + modelData.name
-                font.pixelSize: Ui.fs(13)
+                // No leading digit: 1-5 still switch tabs, they just aren't
+                // printed. A step above the list rows (fs(13)) and well under
+                // the header, which is the order they should read in.
+                text: modelData.name
+                font.pixelSize: Ui.fs(15)
                 font.bold: active
                 color: active ? Theme.mauve : Theme.subtext0
                 MouseArea {
@@ -148,5 +151,24 @@ FocusScope {
         mode: state.overlay
         song: state.current
         onDismissed: state.overlay = ""
+    }
+
+    // Loaded only while it is up. A chooser that exists all session is a list
+    // tree for nothing — and destroying it is what makes the focus return
+    // certain: a hidden FocusScope still holds `focus`, so the scope below
+    // would delegate right back into it and every key after an add, on every
+    // tab, would land nowhere.
+    Loader {
+        id: playlistPicker
+        anchors.fill: parent
+        active: state.overlay === "playlist"
+        sourceComponent: MusicPlaylistPicker {
+            client: root.client
+            uris: state.addTargets
+            onClosed: { state.overlay = ""; root.forceActiveFocus(); }
+            onAdded: (name, count) => state.notify(
+                count === 1 ? "Added to  " + name : "Added " + count + " songs to  " + name)
+        }
+        onActiveChanged: if (!active) root.forceActiveFocus()
     }
 }

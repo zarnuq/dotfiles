@@ -72,14 +72,57 @@ Picker {
     minBoxHeight: s(120)
     boxWidth: s(560)
 
+    // A volume write reaches the row's `audio.volume` again only once Pipewire
+    // has applied it and told us, so a slider bound straight to that property
+    // trails the pointer by a round trip — which is what made dragging feel
+    // late. The wanted value is held here and drawn immediately, and the writes
+    // themselves are throttled: a drag emits one mouse move per frame, and
+    // every one of those was a graph update.
+    property var volNode: null
+    property real volWanted: -1
+    property real volSent: -1
+
+    function levelOf(node) {
+        if (!node || !node.audio) return 0;
+        return (node === root.volNode && root.volWanted >= 0) ? root.volWanted : node.audio.volume;
+    }
+
     function setVolume(row, v) {
         if (!row.node || !row.node.audio) return;
-        row.node.audio.volume = Math.max(0, Math.min(1, v));
+        if (root.volNode !== row.node) { root.volNode = row.node; root.volSent = -1; }
+        root.volWanted = Math.max(0, Math.min(1, v));
+        if (!volFlush.running) root.writeVolume();
     }
+
+    function writeVolume() {
+        if (!root.volNode || !root.volNode.audio) return;
+        volSettle.stop();
+        root.volNode.audio.volume = root.volWanted;
+        root.volSent = root.volWanted;
+        volFlush.restart();
+    }
+
+    Timer {
+        id: volFlush
+        interval: 40
+        onTriggered: {
+            if (root.volWanted !== root.volSent) root.writeVolume();
+            else volSettle.restart();
+        }
+    }
+    // Hand the row back to the graph once it has had time to echo the last
+    // write; releasing immediately would snap the slider to the stale value.
+    Timer {
+        id: volSettle
+        interval: 200
+        onTriggered: { root.volNode = null; root.volWanted = -1; root.volSent = -1; }
+    }
+
     function nudge(i, delta) {
         if (!selectable(i)) return;
         var row = rows[i];
-        if (row.node && row.node.audio) root.setVolume(row, row.node.audio.volume + delta);
+        // Off the wanted level, not the echoed one, or held keys lose steps.
+        if (row.node && row.node.audio) root.setVolume(row, root.levelOf(row.node) + delta);
     }
     function toggleMute(i) {
         if (!selectable(i)) return;
@@ -136,7 +179,7 @@ Picker {
                         picker: root
                         readonly property var audio: isHeader ? null : modelData.node.audio
                         readonly property bool muted: audio ? audio.muted : false
-                        readonly property int pct: audio ? Math.round(audio.volume * 100) : 0
+                        readonly property int pct: audio ? Math.round(root.levelOf(modelData.node) * 100) : 0
                         readonly property bool isDefault: !isHeader && root.isDefault(modelData)
 
                         width: content.width

@@ -47,6 +47,7 @@ TestCase {
     function songs(ids) {
         return ids.map(function (id, index) {
             return { Id: String(id), Pos: String(index), Title: "Song " + id,
+                     file: "dir/" + id + ".flac",
                      Artist: "Artist " + (index % 2), Album: "Album" };
         });
     }
@@ -96,6 +97,38 @@ TestCase {
         compare(controller.rowModel.count, 0);
         compare(controller.cursor, 0);
         compare(controller.current, null);
+    }
+
+    // C-a hands the picker URIs, and the marked rows win over the cursor the
+    // same way deleting does.
+    function test_playlistPickerTakesTheQueueSelection() {
+        controller.moveTo(1);
+        verify(press(Qt.Key_A, Qt.ControlModifier));
+        compare(controller.overlay, "playlist");
+        compare(controller.addTargets, ["dir/20.flac"]);
+
+        controller.overlay = "";
+        controller.toggleMark();          // marks row 1, steps to 2
+        controller.toggleMark();
+        press(Qt.Key_A, Qt.ControlModifier);
+        compare(controller.addTargets, ["dir/20.flac", "dir/30.flac"]);
+
+        // An empty queue has nothing to offer, and must not raise the picker.
+        controller.overlay = "";
+        controller.clearMarks();
+        fakeClient.queue = [];
+        press(Qt.Key_A, Qt.ControlModifier);
+        compare(controller.overlay, "");
+        compare(controller.notice, "Nothing selected");
+    }
+
+    // While the picker is up it owns the keyboard: a key must not fall through
+    // to the globals, nor dismiss it the way the info overlay is dismissed.
+    function test_playlistOverlayKeepsItsKeys() {
+        controller.overlay = "playlist";
+        compare(press(Qt.Key_P), false);
+        compare(controller.overlay, "playlist");
+        compare(fakeClient.calls.length, 0);
     }
 
     function test_marksFollowIdsAndDeleteAsOneBatch() {

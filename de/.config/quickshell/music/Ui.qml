@@ -15,8 +15,15 @@ Singleton {
     readonly property real fontScale: 1.2
     readonly property int rowH: root.s(31)
 
+    // The header and the tab strip above the lists get a scale of their own:
+    // at list size they read as chrome rather than as the now-playing display.
+    // One number to turn if it wants to be bigger still.
+    readonly property real headerScale: 1.3
+
     function s(n) { return Config.s(n); }
     function fs(n) { return Math.round(root.s(n) * root.fontScale); }
+    function hs(n) { return Math.round(root.s(n) * root.headerScale); }
+    function hfs(n) { return Math.round(root.fs(n) * root.headerScale); }
 
     // Qt delivers a hover move whenever the row UNDER the cursor changes, so
     // arrowing through a list scrolls it past a motionless pointer and the row
