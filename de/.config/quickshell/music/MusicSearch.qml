@@ -81,19 +81,14 @@ Item {
     }
 
     /// What C-a adds from here: the hit under the cursor.
-    function selectionUris() {
-        var row = root.results[list.cursor];
-        return row && row.file ? [row.file] : [];
-    }
+    function selectionUris() { return list.currentUris(); }
 
     function handleKey(event) {
         if (root.typing) return false;      // the field handles its own keys
         if (list.navKey(event)) return true;
-        var ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0;
         switch (event.key) {
         case Qt.Key_A:
-            if (ctrl) return false;         // C-a is the global playlist picker
             if (shift) root.addAll(); else root.addRow(list.cursor);
             return true;
         case Qt.Key_T: if (shift) { root.cycleTag(1); return true; } break;

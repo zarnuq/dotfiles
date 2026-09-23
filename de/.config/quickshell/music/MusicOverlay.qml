@@ -30,8 +30,7 @@ Rectangle {
         }
     }
 
-    // "playlist" is the C-a picker's mode, drawn by its own component.
-    visible: root.mode === "info" || root.mode === "help"
+    visible: root.mode !== ""
     color: Qt.rgba(Theme.base.r, Theme.base.g, Theme.base.b, 0.96)
 
     MouseArea { anchors.fill: parent; onClicked: root.dismissed() }

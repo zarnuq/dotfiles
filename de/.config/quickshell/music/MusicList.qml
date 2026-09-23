@@ -28,6 +28,12 @@ Item {
     function moveBy(delta) { root.moveTo(root.cursor + delta); }
     function reveal() { list.positionViewAtIndex(root.cursor, ListView.Contain); }
 
+    /// The URI under the cursor, shaped as the C-a picker wants it. Empty when
+    /// the row carries none, so "what counts as addable" is decided once.
+    function currentUris() {
+        return root.current && root.current.file ? [root.current.file] : [];
+    }
+
     // A fresh list starts at its beginning; that is the point of descending.
     function resetCursor() {
         root.cursor = 0;

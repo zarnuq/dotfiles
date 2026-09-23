@@ -22,8 +22,10 @@ QtObject {
     property bool searching: false
     property string overlay: ""
     property int tab: 0
-    // URIs waiting on a playlist choice, read by the C-a picker.
-    property var addTargets: []
+    // A focus-owning modal, which routes its own keys — unlike `overlay`, the
+    // passive scrim any key dismisses. `modalArg` is what it was opened with.
+    property string modal: ""
+    property var modalArg: []
 
     readonly property var tabs: [
         { name: "Queue" }, { name: "Directories" }, { name: "Playlists" },
@@ -211,25 +213,33 @@ QtObject {
         return rows;
     }
 
-    /// What C-a would add: the queue's marked rows (or the cursor), otherwise
-    /// whatever the visible pane says it has selected. A pane with no opinion —
-    /// Lyrics — falls back to the playing song, which is what you are reading.
+    /// What C-a would add: the queue's marked rows (or the cursor) on tab 0,
+    /// where the controller owns the cursor and there is no pane; otherwise
+    /// whatever the visible pane says it has selected.
     function selectionUris() {
         if (root.tab === 0) {
             var rows = root.targets(), out = [];
             for (var i = 0; i < rows.length; i++) if (rows[i].file) out.push(rows[i].file);
             return out;
         }
-        if (root.pane && root.pane.selectionUris) return root.pane.selectionUris();
-        var song = root.client.song || {};
-        return song.file ? [song.file] : [];
+        return root.pane && root.pane.selectionUris ? root.pane.selectionUris() : [];
     }
 
     function promptPlaylist() {
         var uris = root.selectionUris();
         if (uris.length === 0) { root.notify("Nothing selected"); return; }
-        root.addTargets = uris;
-        root.overlay = "playlist";
+        root.openModal("playlist", uris);
+    }
+
+    /// One pair owns both halves of a modal: which one is up and what it was
+    /// given. Set apart, they drift — and the argument outlives the modal.
+    function openModal(name, arg) {
+        root.modalArg = arg;
+        root.modal = name;
+    }
+    function closeModal() {
+        root.modal = "";
+        root.modalArg = [];
     }
 
     function playSelected() {
@@ -259,6 +269,7 @@ QtObject {
         root.query = "";
         root.searching = false;
         root.overlay = "";
+        root.closeModal();
         root.clearMarks();
         root._jumpPending = !root.jumpToCurrent();
         root.resetRequested();
@@ -277,10 +288,9 @@ QtObject {
     function handleKey(event) {
         var ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0;
+        // A modal routes its own keys; an overlay is a scrim any key dismisses.
+        if (root.modal !== "") return;
         if (root.overlay !== "") {
-            // The playlist picker owns the keyboard while it is up; the info
-            // and help overlays are dismissed by any key.
-            if (root.overlay === "playlist") return;
             root.overlay = "";
             event.accepted = true;
             return;
@@ -288,6 +298,10 @@ QtObject {
         if (root.searching) return;
 
         event.accepted = true;
+
+        // Reserved above the pane dispatch: C-a belongs to the window, so no
+        // pane has to know it exists in order to let it through.
+        if (ctrl && event.key === Qt.Key_A) { root.promptPlaylist(); return; }
 
         // The visible pane gets first refusal, so a tab can own a key the
         // globals below also use — `i` is insert mode on the Search tab and
@@ -310,11 +324,6 @@ QtObject {
         case Qt.Key_X: if (shift) { root.client.toggleRandom(); return; } break;
         case Qt.Key_C: if (shift) { root.client.toggleConsume(); return; } break;
         case Qt.Key_V: if (shift) { root.client.toggleSingle(); return; } break;
-        case Qt.Key_A:
-            // Add the selection to a stored playlist, from any tab. The panes
-            // leave C-a alone for exactly this.
-            if (ctrl) { root.promptPlaylist(); return; }
-            break;
         case Qt.Key_QuoteLeft:
         case Qt.Key_AsciiTilde: root.overlay = "help"; return;
         case Qt.Key_I: root.overlay = "info"; return;

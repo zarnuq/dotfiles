@@ -78,19 +78,22 @@ Picker {
     // late. The wanted value is held here and drawn immediately, and the writes
     // themselves are throttled: a drag emits one mouse move per frame, and
     // every one of those was a graph update.
+    // volNode is the sentinel: set and cleared together with volWanted, so a
+    // non-null node IS "we are holding a level for it".
     property var volNode: null
-    property real volWanted: -1
-    property real volSent: -1
+    property real volWanted: 0
+    property bool volDirty: false
 
     function levelOf(node) {
         if (!node || !node.audio) return 0;
-        return (node === root.volNode && root.volWanted >= 0) ? root.volWanted : node.audio.volume;
+        return node === root.volNode ? root.volWanted : node.audio.volume;
     }
 
     function setVolume(row, v) {
         if (!row.node || !row.node.audio) return;
-        if (root.volNode !== row.node) { root.volNode = row.node; root.volSent = -1; }
+        root.volNode = row.node;
         root.volWanted = Math.max(0, Math.min(1, v));
+        root.volDirty = true;
         if (!volFlush.running) root.writeVolume();
     }
 
@@ -98,7 +101,7 @@ Picker {
         if (!root.volNode || !root.volNode.audio) return;
         volSettle.stop();
         root.volNode.audio.volume = root.volWanted;
-        root.volSent = root.volWanted;
+        root.volDirty = false;
         volFlush.restart();
     }
 
@@ -106,7 +109,7 @@ Picker {
         id: volFlush
         interval: 40
         onTriggered: {
-            if (root.volWanted !== root.volSent) root.writeVolume();
+            if (root.volDirty) root.writeVolume();
             else volSettle.restart();
         }
     }
@@ -115,7 +118,7 @@ Picker {
     Timer {
         id: volSettle
         interval: 200
-        onTriggered: { root.volNode = null; root.volWanted = -1; root.volSent = -1; }
+        onTriggered: root.volNode = null;
     }
 
     function nudge(i, delta) {

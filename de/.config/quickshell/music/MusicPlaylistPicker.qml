@@ -27,32 +27,19 @@ FocusScope {
     // reflexively start typing a name.
     readonly property var rows: root.playlists.concat([{ _new: true }])
 
-    function open() {
-        root.naming = false;
-        nameField.text = "";
+    // Built by the view's Loader when C-a asks for it, so this IS its open —
+    // a fresh instance every time, already at its defaults.
+    Component.onCompleted: {
         root.busy = true;
         root.client.listPlaylists(function (records) {
             root.busy = false;
-            records.sort((a, b) => a.playlist.localeCompare(b.playlist));
             root.playlists = records;
             list.resetCursor();
         });
         root.forceActiveFocus();
     }
 
-    /// Hand the keyboard back before going away. Hiding is NOT enough: `focus`
-    /// stays set on this scope, so the view's forceActiveFocus() delegates
-    /// straight back into a picker nobody can see and every key after that —
-    /// j/k included, on every tab — goes nowhere. The search field's escape
-    /// route has the same shape and the same reason.
-    function release() {
-        root.naming = false;
-        nameField.focus = false;
-        root.focus = false;
-    }
-
     function dismiss() {
-        root.release();
         root.closed();
     }
 
@@ -71,11 +58,6 @@ FocusScope {
         root.commit(row.playlist);
     }
 
-    // Built by the view's Loader when C-a asks for it, so this is its open.
-    Component.onCompleted: root.open()
-    // The keyboard goes back on ANY route out, not just dismiss().
-    Component.onDestruction: root.release()
-
     // Any click outside the box dismisses, as the info/help overlay does.
     MouseArea {
         anchors.fill: parent
@@ -91,7 +73,7 @@ FocusScope {
         anchors.centerIn: parent
         width: Math.min(parent.width - Ui.s(80), Ui.s(460))
         height: Math.min(parent.height - Ui.s(80),
-                         header.height + field.height + Ui.rowH * Math.max(1, root.rows.length)
+                         header.height + field.height + Ui.rowH * root.rows.length
                          + Ui.s(24))
         color: Theme.base
         border.width: 1
@@ -136,10 +118,14 @@ FocusScope {
                 color: Theme.text
                 font.family: Theme.font
                 font.pixelSize: Ui.fs(13)
+                // Focused explicitly rather than by a `focus: root.naming`
+                // binding, because this field's container is hidden until
+                // `naming` — and an item that is not yet visible refuses
+                // focus. MusicSearch can bind only because its bar is always
+                // drawn. Escape hands the scope back the same way.
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
                         root.naming = false;
-                        nameField.focus = false;
                         root.forceActiveFocus();
                         event.accepted = true;
                     } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
@@ -157,7 +143,6 @@ FocusScope {
             anchors.bottomMargin: Ui.s(12)
             rows: root.rows
             busy: root.busy
-            emptyText: "no stored playlists"
             onActivated: i => root.activate(i)
 
             rowDelegate: MusicRow {

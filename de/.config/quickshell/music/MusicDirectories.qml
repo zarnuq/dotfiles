@@ -110,13 +110,11 @@ Item {
 
     function handleKey(event) {
         if (list.navKey(event)) return true;
-        var ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0;
         switch (event.key) {
         case Qt.Key_H: if (!shift) { root.goUp(); return true; } break;
         case Qt.Key_L: if (!shift) { root.activate(list.cursor); return true; } break;
         case Qt.Key_A:
-            if (ctrl) return false;           // C-a is the global playlist picker
             // A queues the directory we are INSIDE, which at the root means the
             // URI "" — and `add ""` is MPD's whole library. That is deliberate:
             // it is rmpc's AddAll, and the usual way to queue everything before

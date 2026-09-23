@@ -209,7 +209,6 @@ Singleton {
         // MPD has caught up with the pending volume: hand the readout back.
         if (root._volWanted >= 0 && parseInt(root.status.volume || "-1") === root._volWanted) {
             root._volWanted = -1;
-            root._volSent = -1;
             volRelease.stop();
         }
         // Any status re-anchors the clock, so the dedupe below must not survive
@@ -453,29 +452,29 @@ Singleton {
     // Coalesced like the seek: key repeat is 50/s, and one `setvol` round trip
     // per press queues them behind each other on a FIFO socket — which is the
     // audible lag, not just a slow number.
-    property int _volSent: -1
-    readonly property int _volFlushMs: 60
+    property bool _volDirty: false
 
     function setVolume(v) {
         var target = Math.max(0, Math.min(100, Math.round(v)));
         if (target === root._volWanted) return;
         root._volWanted = target;
+        root._volDirty = true;
         if (!volFlush.running) root._flushVolume();
     }
     function changeVolume(d)   { root.setVolume(root.volume + d); }
 
     function _flushVolume() {
         volRelease.stop();
-        root._volSent = root._volWanted;
         root.send("setvol " + root._volWanted);
+        root._volDirty = false;
         volFlush.restart();
     }
 
     Timer {
         id: volFlush
-        interval: root._volFlushMs
+        interval: 60
         onTriggered: {
-            if (root._volWanted !== root._volSent) root._flushVolume();
+            if (root._volDirty) root._flushVolume();
             else volRelease.restart();
         }
     }
@@ -485,7 +484,7 @@ Singleton {
     Timer {
         id: volRelease
         interval: 1000
-        onTriggered: { root._volWanted = -1; root._volSent = -1; }
+        onTriggered: root._volWanted = -1;
     }
 
     function toggleRepeat()    { root.send("repeat " + (root.repeatOn ? 0 : 1)); }
@@ -518,7 +517,14 @@ Singleton {
         root._read("lsinfo " + root.q(uri), ["directory", "file", "playlist"], cb);
     }
 
-    function listPlaylists(cb) { root._read("listplaylists", ["playlist"], cb); }
+    /// Alphabetical: the order is a fact about the listing, not about whichever
+    /// surface is drawing it, so no caller gets to disagree about it.
+    function listPlaylists(cb) {
+        root._read("listplaylists", ["playlist"], function (records) {
+            records.sort((a, b) => a.playlist.localeCompare(b.playlist));
+            cb(records);
+        });
+    }
 
     function playlistSongs(name, cb) {
         root._read("listplaylistinfo " + root.q(name), ["file"], cb);
@@ -556,9 +562,9 @@ Singleton {
     /// this same command with a typed name. A directory URI adds everything
     /// beneath it, as `add` does to the queue (checked against MPD 0.24).
     function playlistAdd(name, uris, cb) {
-        var cmds = [];
+        var qn = root.q(name), cmds = [];
         for (var i = 0; i < uris.length; i++)
-            cmds.push("playlistadd " + root.q(name) + " " + root.q(uris[i]));
+            cmds.push("playlistadd " + qn + " " + root.q(uris[i]));
         root.sendList(cmds, cb);
     }
 

@@ -24,8 +24,12 @@ Item {
         // beside the word "Stopped".
         visible: root.art !== "" && root.client.song.file !== undefined
         source: root.art
-        sourceSize.width: Ui.hs(150) * 2
-        sourceSize.height: Ui.hs(150) * 2
+        // 1:1 with the drawn size. These outputs are scale 1 (Config.scale is a
+        // layout factor, not devicePixelRatio), so a 2x decode was 4x the
+        // pixels to hold and a smooth downscale on every paint — and under the
+        // software backend it also crowded QQuickPixmapCache's 2 MB.
+        sourceSize.width: Ui.hs(150)
+        sourceSize.height: Ui.hs(150)
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: true

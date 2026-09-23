@@ -158,14 +158,18 @@ FocusScope {
     // certain: a hidden FocusScope still holds `focus`, so the scope below
     // would delegate right back into it and every key after an add, on every
     // tab, would land nowhere.
+    //
+    // Deactivation is the ONE hook that covers every way out — Escape, q, a
+    // click outside, a commit, a reset — so the view takes its focus back here
+    // and the picker never has to know its parent's focus policy.
     Loader {
         id: playlistPicker
         anchors.fill: parent
-        active: state.overlay === "playlist"
+        active: state.modal === "playlist"
         sourceComponent: MusicPlaylistPicker {
             client: root.client
-            uris: state.addTargets
-            onClosed: { state.overlay = ""; root.forceActiveFocus(); }
+            uris: state.modalArg
+            onClosed: state.closeModal()
             onAdded: (name, count) => state.notify(
                 count === 1 ? "Added to  " + name : "Added " + count + " songs to  " + name)
         }

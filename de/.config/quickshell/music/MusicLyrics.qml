@@ -82,6 +82,13 @@ Item {
         root.lines = out;
     }
 
+    /// What C-a adds from here: the song you are reading. This pane has no
+    /// cursor of its own, so the playing track is the only thing it selects.
+    function selectionUris() {
+        var song = root.client.song || {};
+        return song.file ? [song.file] : [];
+    }
+
     function handleKey(event) {
         switch (event.key) {
         case Qt.Key_J: view.contentY = Math.min(view.contentY + Ui.s(31),

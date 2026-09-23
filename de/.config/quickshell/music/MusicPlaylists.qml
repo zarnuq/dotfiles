@@ -24,21 +24,28 @@ Item {
         root.busy = true;
         root.client.listPlaylists(function (records) {
             root.busy = false;
-            records.sort((a, b) => a.playlist.localeCompare(b.playlist));
             root.playlists = records;
             if (!root.inPlaylist) list.resetCursor();
         });
     }
 
-    /// `keepCursor` is for re-reading the playlist already in view, after an
-    /// edit; opening one should land at its top.
-    function open(name, keepCursor) {
-        root.busy = true;
+    function open(name) {
         root.opened = name;
-        root.client.playlistSongs(name, function (records) {
+        root._read(false);
+    }
+
+    /// Re-read the playlist already in view, after an edit. Unlike open() it
+    /// keeps the cursor — moveTo clamps, so deleting the last row cannot
+    /// strand it — because you have not gone anywhere.
+    function reopen() {
+        if (root.inPlaylist) root._read(true);
+    }
+
+    function _read(keepCursor) {
+        root.busy = true;
+        root.client.playlistSongs(root.opened, function (records) {
             root.busy = false;
             root.songs = records;
-            // moveTo clamps, so deleting the last row cannot strand the cursor.
             if (keepCursor) list.moveTo(list.cursor);
             else list.resetCursor();
         });
@@ -49,6 +56,9 @@ Item {
         root.opened = "";
         root.songs = [];
         list.resetCursor();
+        // Catches up on anything stored_playlist reported while we were inside
+        // a playlist, which is the half this level skips while it is hidden.
+        root.refresh();
     }
 
     function activate(i) {
@@ -83,16 +93,16 @@ Item {
     // the playlist in order and carries no Pos of its own.
     function deleteSong(i) {
         if (!root.inPlaylist || !root.songs[i]) return false;
-        root.client.playlistRemoveAt(root.opened, i, function () { root.open(root.opened, true); });
+        // No callback re-read: `playlistdelete` is a stored_playlist change and
+        // the idle connection reports it, which reopens us once instead of
+        // twice. Same convention as every other mutation in MpdClient.
+        root.client.playlistRemoveAt(root.opened, i);
         return true;
     }
 
     /// What C-a adds from here: the song under the cursor. A playlist row is
     /// not a URI MPD can add to another playlist, so the top level offers none.
-    function selectionUris() {
-        var row = root.inPlaylist ? root.songs[list.cursor] : null;
-        return row && row.file ? [row.file] : [];
-    }
+    function selectionUris() { return root.inPlaylist ? list.currentUris() : []; }
 
     // `C-s` saves the current queue as a playlist named after the time. (It was
     // C-a until that key became "add the selection to a playlist" everywhere.)
@@ -110,7 +120,6 @@ Item {
         case Qt.Key_H: if (!shift) { root.back(); return true; } break;
         case Qt.Key_L: if (!shift) { root.activate(list.cursor); return true; } break;
         case Qt.Key_A:
-            if (ctrl) return false;           // C-a is the global playlist picker
             root.addRow(list.cursor);
             return true;
         case Qt.Key_S: if (ctrl) { root.saveQueue(); return true; } break;
@@ -127,12 +136,15 @@ Item {
     // Saving the queue to a playlist arrives as `stored_playlist`.
     Connections {
         target: root.client
+        // Only the level in view: inside a playlist the top-level list is not
+        // drawn, and re-reading it costs a round trip nobody sees. back() and
+        // the pane's own open() re-read it when it matters. An edit made
+        // elsewhere — rmpc, or the C-a picker adding to the playlist you
+        // happen to be looking at — lands here either way.
         function onChanged(subsystem) {
             if (subsystem !== "stored_playlist") return;
-            root.refresh();
-            // An edit made elsewhere — rmpc, or the C-a picker adding to the
-            // playlist you happen to be looking at.
-            if (root.inPlaylist) root.open(root.opened, true);
+            if (root.inPlaylist) root.reopen();
+            else root.refresh();
         }
     }
 
