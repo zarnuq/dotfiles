@@ -4,6 +4,7 @@ import Quickshell
 import "bar"
 import "launcher"
 import "cards"
+import "monitors"
 import "music"
 import "wallpaper"
 
@@ -34,6 +35,7 @@ ShellRoot {
     LazyLoader { active: Config.on("audio");               Audio {} }
     LazyLoader { active: Config.on("network");             Network {} }
     LazyLoader { active: Config.on("music");               Music {} }
+    LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }

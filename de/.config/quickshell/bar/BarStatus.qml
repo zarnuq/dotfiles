@@ -70,6 +70,11 @@ Row {
     Block {
         visible: Sys.batteryPresent
         text: root.statusData.batteryGlyph + " " + Sys.batteryLevel + "%"
-        color: Sys.charging ? Theme.green : (Sys.batteryLevel < 20 ? Theme.red : root.normalFg)
+        // Red only when actually off mains: `Not charging` on AC under 20% is a
+        // threshold hold, not a battery about to die (same reason the card's
+        // warning is gated on Sys.onAc).
+        color: Sys.charging ? Theme.green
+             : Sys.onAc ? Theme.teal
+             : (Sys.batteryLevel < 20 ? Theme.red : root.normalFg)
     }
 }

@@ -9,10 +9,18 @@ import ".."
 // Bottom-right: charge level + state, read from Sys (which owns the BAT0 sysfs
 // poll, since the bar's battery block needs the same two files).
 //
-// Below `lowAt` while discharging the readout turns red and one critical
-// notification is raised. The warning is latched and only re-arms once the
-// level climbs back over `clearAt` (or a charger is plugged in), so a charge
-// hovering on the threshold can't spam the toast.
+// Three states, and they come from two different files: `charging` is BAT0
+// reporting charge actually moving, `onAc` is the mains supply being online.
+// A laptop with charge thresholds spends most of a plugged-in session in
+// neither `Charging` nor `Discharging` (see Sys), so "plugged in" has to be its
+// own state or the card claims to be on battery while the charger is in.
+//
+// Below `lowAt` while OFF mains the readout turns red and one critical
+// notification is raised. Gating that on `!onAc` rather than `!charging` is the
+// point: a threshold hold or a charger too weak to outpace the draw must not
+// tell you to plug in. The warning is latched and only re-arms once the level
+// climbs back over `clearAt` (or a charger is plugged in), so a charge hovering
+// on the threshold can't spam the toast.
 //
 // Sits bottom-right rather than in the packed left column: nothing else lives
 // there, and on the desktop (no BAT0) the card hides itself without leaving a
@@ -42,13 +50,17 @@ Widget {
     readonly property bool present: Sys.batteryPresent
     readonly property int level: Sys.batteryLevel
     readonly property bool charging: Sys.charging
-    readonly property bool low: present && !charging && level < lowAt
-    readonly property color tint: low ? Theme.red : charging ? Theme.green : Theme.text
+    readonly property bool onAc: Sys.onAc
+    readonly property bool low: present && !onAc && level < lowAt
+    readonly property color tint: low ? Theme.red
+                                : charging ? Theme.green
+                                : onAc ? Theme.teal
+                                : Theme.text
 
     property bool warned: false
 
     onLowChanged: root.warn()
-    onChargingChanged: root.warn()
+    onOnAcChanged: root.warn()
 
     function warn() {
         if (root.low && !root.warned) {
@@ -56,7 +68,7 @@ Widget {
             Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "battery",
                                      "Battery low",
                                      root.level + "% remaining — plug in."]);
-        } else if (root.warned && (root.charging || root.level >= root.clearAt)) {
+        } else if (root.warned && (root.onAc || root.level >= root.clearAt)) {
             root.warned = false;
         }
     }
@@ -69,12 +81,15 @@ Widget {
             width: parent.width
             spacing: root.s(10)
             Txt {
-                text: root.charging ? "󰂄" : root.low ? "󰂃" : "󰁹"
+                text: root.charging ? "󰂄"
+                    : root.low ? "󰂃"
+                    : root.onAc ? "󰚥"
+                    : "󰁹"
                 color: root.tint
                 font.pixelSize: root.s(18)
             }
             Txt {
-                text: root.charging ? "charging" : "battery"
+                text: root.charging ? "charging" : root.onAc ? "plugged in" : "battery"
                 color: Theme.subtext0; font.pixelSize: root.s(14)
                 width: parent.width - x - value.width - parent.spacing
                 verticalAlignment: Text.AlignVCenter

@@ -1,0 +1,30 @@
+// monitors/docked.zon — one reach display layout.
+//
+// Selected by the `monitors.zon` SYMLINK in the parent directory:
+//
+//     ln -sfn monitors/docked.zon ~/.config/reach/monitors.zon
+//     kill -HUP $(pidof reach)          # or Super+Shift+r
+//
+// reach knows nothing about presets: it opens monitors.zon, the kernel follows
+// the link, and whatever this file lists IS the monitor table. The link is
+// gitignored, so each machine keeps its own choice; the layouts themselves are
+// committed.
+//
+// Written by the display configurator (`Super+R` `m`), which regenerates the
+// file from its parsed contents — this header survives, anything else written
+// by hand below it does not.
+//
+// Array ORDER is monitor numbering: it decides focusmon/tagmon direction and the
+// `.monitor` index that window rules in config.zon use. A head that isn't
+// connected is simply ignored. A rotated head's .w/.h are its MODE; the transform
+// swaps them in the layout.
+.{
+    .monitors = .{
+        // External on a stand above the panel, portrait head to the right.
+        // DP-3 is 1920x1080 and occupies 1080x1920, so anything right of it
+        // would start at .x = 1920 + 1080.
+        .{ .name = "DP-5", .w = 1920, .h = 1080, .x = 0, .y = 0 },
+        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1080 },
+        .{ .name = "DP-3", .w = 1920, .h = 1080, .x = 1920, .y = 0, .transform = .rotate_270 },
+    },
+}

@@ -21,3 +21,9 @@ de/.local/sv/*/log/main/
 de/.local/sv/*/log/current
 de/.local/sv/*/log/lock
 de/.local/sv/*/log/@*
+
+# reach's active monitor layout is a symlink into de/.config/reach/monitors/,
+# and which one it points at is per-machine state — the same reason
+# ~/.local/state/quickshell/features.json lives outside the repo. The layouts
+# themselves are committed; only the choice is not.
+de/.config/reach/monitors.zon

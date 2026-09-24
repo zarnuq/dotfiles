@@ -106,10 +106,11 @@
         .{ .key = "Super+Shift+b", .action = .{ .spawn = "qs ipc call wallpaperpicker toggle" } },
 
         .{ .key = "Super+r", .chord = .{
-            .{ .key = "d", .action = .{ .spawn = "legcord" } },
-            .{ .key = "b", .action = .{ .spawn = "brave" } },
+            .{ .key = "d", .action = .{ .spawn = "signal-desktop" } },
+            .{ .key = "b", .action = .{ .spawn = "firefox" } },
             .{ .key = "a", .action = .{ .spawn = "qs ipc call audio toggle" } },
             .{ .key = "n", .action = .{ .spawn = "qs ipc call network toggle" } },
+            .{ .key = "m", .action = .{ .spawn = "qs ipc call monitors toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },
 

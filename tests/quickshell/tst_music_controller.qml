@@ -100,34 +100,49 @@ TestCase {
     }
 
     // C-a hands the picker URIs, and the marked rows win over the cursor the
-    // same way deleting does.
+    // same way deleting does. The picker is a `modal`, not an `overlay`: it
+    // routes its own keys, where an overlay is a scrim any key dismisses.
     function test_playlistPickerTakesTheQueueSelection() {
         controller.moveTo(1);
         verify(press(Qt.Key_A, Qt.ControlModifier));
-        compare(controller.overlay, "playlist");
-        compare(controller.addTargets, ["dir/20.flac"]);
+        compare(controller.modal, "playlist");
+        compare(controller.modalArg, ["dir/20.flac"]);
 
-        controller.overlay = "";
+        controller.closeModal();
         controller.toggleMark();          // marks row 1, steps to 2
         controller.toggleMark();
         press(Qt.Key_A, Qt.ControlModifier);
-        compare(controller.addTargets, ["dir/20.flac", "dir/30.flac"]);
+        compare(controller.modalArg, ["dir/20.flac", "dir/30.flac"]);
+
+        // Closing clears the arg with the modal, or it outlives the picker that
+        // was handed it.
+        controller.closeModal();
+        compare(controller.modalArg, []);
 
         // An empty queue has nothing to offer, and must not raise the picker.
-        controller.overlay = "";
         controller.clearMarks();
         fakeClient.queue = [];
         press(Qt.Key_A, Qt.ControlModifier);
-        compare(controller.overlay, "");
+        compare(controller.modal, "");
         compare(controller.notice, "Nothing selected");
     }
 
     // While the picker is up it owns the keyboard: a key must not fall through
     // to the globals, nor dismiss it the way the info overlay is dismissed.
-    function test_playlistOverlayKeepsItsKeys() {
-        controller.overlay = "playlist";
+    // Unaccepted is the point — the event is left for the picker's own focus
+    // scope to take, rather than being swallowed here.
+    function test_playlistModalKeepsItsKeys() {
+        controller.openModal("playlist", []);
         compare(press(Qt.Key_P), false);
-        compare(controller.overlay, "playlist");
+        compare(controller.modal, "playlist");
+        compare(fakeClient.calls.length, 0);
+
+        // An overlay is the other half of the contract: any key dismisses it,
+        // and that key is consumed rather than reaching the globals.
+        controller.closeModal();
+        controller.overlay = "info";
+        compare(press(Qt.Key_P), true);
+        compare(controller.overlay, "");
         compare(fakeClient.calls.length, 0);
     }
 

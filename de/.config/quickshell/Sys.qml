@@ -59,14 +59,39 @@ Singleton {
     readonly property bool batteryPresent: Config.batteryPresent
     property int batteryLevel: 100
     property string batteryStatus: "Unknown"
-    readonly property bool charging: batteryStatus === "Charging" || batteryStatus === "Full"
+
+    // Whether a charger is attached is the MAINS supply's business, and
+    // BAT0/status cannot answer it. With charge thresholds set (75/80 on this
+    // laptop) the kernel reports `Not charging` for the whole time the charge
+    // sits in that window on AC, and `Charging` only while it is actually
+    // moving — so a plug state inferred from the battery read as "on battery"
+    // for most of a plugged-in session: the card said "battery" in white with
+    // the discharge glyph while the bar, which tested `!== "Discharging"`, drew
+    // a plug. It also aimed the card's "plug in" toast at someone already
+    // plugged in, since any `Not charging` under 20% (a charger too weak to
+    // outpace the draw, charge_behaviour set to inhibit) satisfied !charging.
+    //
+    // Default true, and a failed read keeps the last good value: "unplugged" is
+    // the direction that fires a critical notification, so it is never guessed.
+    property bool onAc: true
+    // Kept for what it actually names: charge moving upward. `Full` is on AC at
+    // 100%, which is onAc, not charging.
+    readonly property bool charging: batteryStatus === "Charging"
 
     FileView { id: capFile;  path: "/sys/class/power_supply/BAT0/capacity"; blockLoading: true; printErrors: false }
     FileView { id: battFile; path: "/sys/class/power_supply/BAT0/status";   blockLoading: true; printErrors: false }
+    // `AC` is this laptop's mains name; other firmware calls it ACAD/AC0/ADP1.
+    FileView { id: acFile;   path: "/sys/class/power_supply/AC/online";     blockLoading: true; printErrors: false }
 
     function readBattery() {
         capFile.reload();
         battFile.reload();
+        acFile.reload();
+        // Parsed ahead of the capacity guard below: the plug is independent of
+        // the battery read, and it is what the low-charge latch turns on.
+        var ac = acFile.text().trim();
+        if (ac.length > 0)
+            root.onAc = ac !== "0";
         // An empty or non-numeric read is a read that didn't land, not a battery
         // that vanished: keep the last good values rather than letting Number("")
         // report a fake 0%.

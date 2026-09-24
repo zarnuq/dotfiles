@@ -45,11 +45,14 @@ Scope {
     }
 
     // Sys owns the battery poll shared with the battery card.
+    //
+    // The glyph tracks the LEVEL; whether a charger is in is carried by the
+    // color in BarStatus (green charging, teal held on mains). The old branch
+    // here drew a FULL battery for every state that wasn't `Discharging`, so a
+    // charge-threshold hold at 30% on AC read as a full battery.
     readonly property string batteryGlyph: {
-        if (Sys.batteryStatus === "Charging")
+        if (Sys.charging)
             return "";
-        if (Sys.batteryStatus !== "Discharging")
-            return "";
         if (Sys.batteryLevel <= 10)
             return "";
         if (Sys.batteryLevel <= 25)
