@@ -28,6 +28,8 @@
 
     // --- session environment (dwl setupenv) --------------------------------
     .env = .{
+        // Unset, xdg-open falls back to its own list and picks chromium.
+        .{ "BROWSER", "zen-browser" },
         .{ "XDG_CURRENT_DESKTOP", "river" },
         .{ "XDG_SESSION_TYPE", "wayland" },
         .{ "QT_QPA_PLATFORM", "wayland" },
@@ -69,7 +71,8 @@
 
     // --- window rules ------------------------------------------
     .rules = .{
-        .{ .app_id = "rmpc", .desktop = 1, .monitor = 2 },
+        // app_id is the process's, so the title is what picks out the player.
+        .{ .app_id = "org.quickshell", .title = "Music", .desktop = 1, .monitor = 2 },
         .{ .app_id = "zen", .desktop = 3, .switchto = true },
         .{ .app_id = "^steam", .desktop = 5 },
         .{ .app_id = "signal", .desktop = 4 },
@@ -97,9 +100,7 @@
         .{ .key = "Super+x", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/killfzf" } },
         .{ .key = "Super+z", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/svfzf" } },
         .{ .key = "Super+Shift+z", .action = .{ .spawn = "kitty --class float -e $HOME/.local/bin/ssvfzf" } },
-        .{ .key = "Super+w", .action = .{ .spawn = "kitty --class rmpc rmpc" } },
-        .{ .key = "Super+Shift+w", .action = .{ .spawn = "rmpc rescan" } },
-        .{ .key = "Super+Shift+m", .action = .{ .spawn = "qs ipc call music toggle" } },
+        .{ .key = "Super+w", .action = .{ .spawn = "qs ipc call music toggle" } },
         .{ .key = "Super+t", .action = .{ .spawn = "zen-browser" } },
         .{ .key = "Super+b", .action = .{ .spawn = "qs ipc call wallpaper random" } },
         .{ .key = "Super+Shift+b", .action = .{ .spawn = "qs ipc call wallpaperpicker toggle" } },

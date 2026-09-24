@@ -34,9 +34,8 @@ Item {
         root._read(false);
     }
 
-    /// Re-read the playlist already in view, after an edit. Unlike open() it
-    /// keeps the cursor — moveTo clamps, so deleting the last row cannot
-    /// strand it — because you have not gone anywhere.
+    // Re-read in place after an edit; moveTo clamps, so a deleted last row
+    // cannot strand the cursor.
     function reopen() {
         if (root.inPlaylist) root._read(true);
     }
@@ -56,8 +55,7 @@ Item {
         root.opened = "";
         root.songs = [];
         list.resetCursor();
-        // Catches up on anything stored_playlist reported while we were inside
-        // a playlist, which is the half this level skips while it is hidden.
+        // Catches up on edits made while we were inside a playlist.
         root.refresh();
     }
 
@@ -93,9 +91,7 @@ Item {
     // the playlist in order and carries no Pos of its own.
     function deleteSong(i) {
         if (!root.inPlaylist || !root.songs[i]) return false;
-        // No callback re-read: `playlistdelete` is a stored_playlist change and
-        // the idle connection reports it, which reopens us once instead of
-        // twice. Same convention as every other mutation in MpdClient.
+        // No callback re-read: idle reports stored_playlist and reopens us.
         root.client.playlistRemoveAt(root.opened, i);
         return true;
     }
@@ -136,11 +132,7 @@ Item {
     // Saving the queue to a playlist arrives as `stored_playlist`.
     Connections {
         target: root.client
-        // Only the level in view: inside a playlist the top-level list is not
-        // drawn, and re-reading it costs a round trip nobody sees. back() and
-        // the pane's own open() re-read it when it matters. An edit made
-        // elsewhere — rmpc, or the C-a picker adding to the playlist you
-        // happen to be looking at — lands here either way.
+        // Only the level in view; back() re-reads the other one.
         function onChanged(subsystem) {
             if (subsystem !== "stored_playlist") return;
             if (root.inPlaylist) root.reopen();

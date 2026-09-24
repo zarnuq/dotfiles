@@ -20,8 +20,6 @@
 - qt themes
 - quickshell (bar, widgets, launcher, clipboard, lock screen, notifications, wallpaper)
 - reach (personal wm)
-- rmpc
-- rofi
 - tmux
 - xdg-desktop-portal
 - yazi

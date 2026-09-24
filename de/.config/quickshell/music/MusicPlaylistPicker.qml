@@ -27,8 +27,7 @@ FocusScope {
     // reflexively start typing a name.
     readonly property var rows: root.playlists.concat([{ _new: true }])
 
-    // Built by the view's Loader when C-a asks for it, so this IS its open —
-    // a fresh instance every time, already at its defaults.
+    // A fresh instance per open, so this is its open.
     Component.onCompleted: {
         root.busy = true;
         root.client.listPlaylists(function (records) {
@@ -118,11 +117,8 @@ FocusScope {
                 color: Theme.text
                 font.family: Theme.font
                 font.pixelSize: Ui.fs(13)
-                // Focused explicitly rather than by a `focus: root.naming`
-                // binding, because this field's container is hidden until
-                // `naming` — and an item that is not yet visible refuses
-                // focus. MusicSearch can bind only because its bar is always
-                // drawn. Escape hands the scope back the same way.
+                // Not a `focus:` binding: the container is hidden until
+                // `naming`, and an invisible item refuses focus.
                 Keys.onPressed: event => {
                     if (event.key === Qt.Key_Escape) {
                         root.naming = false;

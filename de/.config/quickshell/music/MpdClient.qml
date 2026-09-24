@@ -517,8 +517,7 @@ Singleton {
         root._read("lsinfo " + root.q(uri), ["directory", "file", "playlist"], cb);
     }
 
-    /// Alphabetical: the order is a fact about the listing, not about whichever
-    /// surface is drawing it, so no caller gets to disagree about it.
+    // Sorted here so no caller disagrees about the order.
     function listPlaylists(cb) {
         root._read("listplaylists", ["playlist"], function (records) {
             records.sort((a, b) => a.playlist.localeCompare(b.playlist));

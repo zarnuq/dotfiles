@@ -28,8 +28,7 @@ Item {
     function moveBy(delta) { root.moveTo(root.cursor + delta); }
     function reveal() { list.positionViewAtIndex(root.cursor, ListView.Contain); }
 
-    /// The URI under the cursor, shaped as the C-a picker wants it. Empty when
-    /// the row carries none, so "what counts as addable" is decided once.
+    // The URI under the cursor, for the C-a picker.
     function currentUris() {
         return root.current && root.current.file ? [root.current.file] : [];
     }

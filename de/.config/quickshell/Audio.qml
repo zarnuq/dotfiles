@@ -78,8 +78,6 @@ Picker {
     // late. The wanted value is held here and drawn immediately, and the writes
     // themselves are throttled: a drag emits one mouse move per frame, and
     // every one of those was a graph update.
-    // volNode is the sentinel: set and cleared together with volWanted, so a
-    // non-null node IS "we are holding a level for it".
     property var volNode: null
     property real volWanted: 0
     property bool volDirty: false

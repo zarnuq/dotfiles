@@ -23,8 +23,7 @@ Singleton {
     function s(n) { return Config.s(n); }
     function fs(n) { return Math.round(root.s(n) * root.fontScale); }
     function hs(n) { return Math.round(root.s(n) * root.headerScale); }
-    // Rounded once, off the raw scales: round(fs(n) * headerScale) would
-    // quantise twice and make hfs something other than "fs, header-sized".
+    // Rounded once: off fs(n) it would quantise twice.
     function hfs(n) { return Math.round(root.s(n) * root.fontScale * root.headerScale); }
 
     // Qt delivers a hover move whenever the row UNDER the cursor changes, so

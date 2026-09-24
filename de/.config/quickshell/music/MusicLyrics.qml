@@ -82,8 +82,7 @@ Item {
         root.lines = out;
     }
 
-    /// What C-a adds from here: the song you are reading. This pane has no
-    /// cursor of its own, so the playing track is the only thing it selects.
+    // No cursor here, so C-a takes the playing song.
     function selectionUris() {
         var song = root.client.song || {};
         return song.file ? [song.file] : [];

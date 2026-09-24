@@ -22,8 +22,7 @@ QtObject {
     property bool searching: false
     property string overlay: ""
     property int tab: 0
-    // A focus-owning modal, which routes its own keys — unlike `overlay`, the
-    // passive scrim any key dismisses. `modalArg` is what it was opened with.
+    // Routes its own keys, unlike `overlay` (a scrim any key dismisses).
     property string modal: ""
     property var modalArg: []
 
@@ -213,9 +212,7 @@ QtObject {
         return rows;
     }
 
-    /// What C-a would add: the queue's marked rows (or the cursor) on tab 0,
-    /// where the controller owns the cursor and there is no pane; otherwise
-    /// whatever the visible pane says it has selected.
+    // Tab 0 has no pane — the controller owns the queue's cursor.
     function selectionUris() {
         if (root.tab === 0) {
             var rows = root.targets(), out = [];
@@ -231,8 +228,7 @@ QtObject {
         root.openModal("playlist", uris);
     }
 
-    /// One pair owns both halves of a modal: which one is up and what it was
-    /// given. Set apart, they drift — and the argument outlives the modal.
+    // Both halves together, or the arg outlives the modal.
     function openModal(name, arg) {
         root.modalArg = arg;
         root.modal = name;
@@ -288,7 +284,6 @@ QtObject {
     function handleKey(event) {
         var ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0;
-        // A modal routes its own keys; an overlay is a scrim any key dismisses.
         if (root.modal !== "") return;
         if (root.overlay !== "") {
             root.overlay = "";
@@ -299,8 +294,7 @@ QtObject {
 
         event.accepted = true;
 
-        // Reserved above the pane dispatch: C-a belongs to the window, so no
-        // pane has to know it exists in order to let it through.
+        // Above the pane dispatch, so no pane has to opt out of it.
         if (ctrl && event.key === Qt.Key_A) { root.promptPlaylist(); return; }
 
         // The visible pane gets first refusal, so a tab can own a key the
