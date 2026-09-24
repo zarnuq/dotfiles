@@ -36,6 +36,8 @@
     ansible
     obsidian
     ydotool
+    python314Packages.python-openstackclient
+    openstack-rs
 
     (texlive.combine {
       inherit (texlive) scheme-medium latexmk;

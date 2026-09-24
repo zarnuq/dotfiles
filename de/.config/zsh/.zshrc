@@ -21,6 +21,7 @@ alias nixgc='nix-collect-garbage -d && nix store optimise'
 alias pyserver='python -m http.server'
 alias c='claude'
 alias cs='claude --dangerously-skip-permissions'
+alias cr='claude --resume'
 alias x='codex'
 alias :q='exit'
 function y() {
