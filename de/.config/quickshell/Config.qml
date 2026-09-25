@@ -76,6 +76,7 @@ Singleton {
         { key: "network",             group: "Session",     label: "Network menu" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
+        { key: "screenshot",          group: "Session",     label: "Screenshot menu" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "clock",               group: "Panel",       label: "Clock" },

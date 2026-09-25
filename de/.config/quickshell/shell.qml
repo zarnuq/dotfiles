@@ -36,6 +36,7 @@ ShellRoot {
     LazyLoader { active: Config.on("network");             Network {} }
     LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("monitors");            Monitors {} }
+    LazyLoader { active: Config.on("screenshot");          Screenshot {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
