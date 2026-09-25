@@ -594,6 +594,21 @@ Singleton {
         }
     }
 
+    // MPD closes a connection that has gone quiet for `connection_timeout`
+    // (60s by default, and mpd.conf does not set it). cmdSock sits silent
+    // between commands, so the server hung up on it roughly once a minute; the
+    // retry timer at the bottom reconnected, and the greeting on the fresh
+    // connection runs refreshAll() — a full refetch of the 6k queue whenever it
+    // is retained, plus a reset of queueWasBulk. One cheap command well inside
+    // that window keeps the connection alive instead. idleSock needs none: MPD
+    // does not time out a connection parked in `idle`.
+    Timer {
+        interval: 30000
+        repeat: true
+        running: root.connected
+        onTriggered: root.send("ping")
+    }
+
     // Parked in `idle`, which answers `changed: <subsystem>` lines and then OK.
     // Re-armed immediately, so there is no window in which a change is missed.
     property var _idleChanges: []
