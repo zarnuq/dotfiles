@@ -1,4 +1,4 @@
-import Quickshell
+pragma ComponentBehavior: Bound
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import QtQuick

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
 // Reach, NotificationService) live one level up, and a QML file does not
@@ -9,7 +10,7 @@ import ".."
 // drew this pair of rectangles by hand. A `radius` set on the track is carried
 // onto the fill, so the two keep the same shape.
 Rectangle {
-    id: g
+    id: root
 
     property real fraction: 0
     property color fillColor: Theme.text
@@ -22,9 +23,9 @@ Rectangle {
 
     Rectangle {
         height: parent.height
-        width: parent.width * g.fraction
-        radius: g.radius
-        color: g.fillColor
-        Behavior on width { enabled: g.animated; NumberAnimation { duration: 90 } }
+        width: parent.width * root.fraction
+        radius: root.radius
+        color: root.fillColor
+        Behavior on width { enabled: root.animated; NumberAnimation { duration: 90 } }
     }
 }

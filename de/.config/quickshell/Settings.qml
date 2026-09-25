@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 
@@ -30,7 +31,7 @@ Picker {
     boxWidth: s(420)
     barHeight: s(30)
 
-    function activate(i) {
+    function activate(i): void {
         if (!selectable(i)) return;
         Config.toggle(rows[i].key);
     }

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 
@@ -12,6 +13,7 @@ import Quickshell.Io
 // The picker half is `ClipboardPicker.qml` (Super+V), which reads
 // `cliphist list` itself. The old `clipfzf` script is gone.
 Scope {
+    id: root
     Variants {
         model: ["text", "image"]
 

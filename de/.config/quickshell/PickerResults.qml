@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // The scrolled list of a picker that drives its own results (the launcher and

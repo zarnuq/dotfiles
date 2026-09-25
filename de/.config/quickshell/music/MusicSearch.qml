@@ -32,7 +32,7 @@ Item {
         return root.results.length + (root.results.length === 1 ? " match" : " matches");
     }
 
-    function cycleTag(direction) {
+    function cycleTag(direction): void {
         root.tagIndex = (root.tagIndex + direction + root.tags.length) % root.tags.length;
         if (root.query !== "") root.run();
     }
@@ -53,28 +53,28 @@ Item {
         });
     }
 
-    function activate(i) {
+    function activate(i): void {
         if (root.results[i]) root.client.addAndPlay(root.results[i].file);
     }
-    function addRow(i) {
+    function addRow(i): void {
         if (root.results[i]) root.client.addUri(root.results[i].file);
     }
     // `A` queues every match as one command list, so a broad search is still
     // a single round trip.
-    function addAll() {
+    function addAll(): void {
         var commands = [];
         for (var i = 0; i < root.results.length; i++)
             commands.push("add " + root.client.q(root.results[i].file));
         root.client.sendList(commands);
     }
 
-    function focusField() { root.typing = true; field.forceActiveFocus(); }
+    function focusField(): void { root.typing = true; field.forceActiveFocus(); }
 
     /// Hand the keyboard back. `typing = false` alone was not enough: nothing
     /// moved focus off the TextInput, so every subsequent key still went into
     /// the query — j/k typed letters, and q/Escape could not close the window.
     signal focusReleased()
-    function leaveField() {
+    function leaveField(): void {
         if (!root.typing) return;
         root.typing = false;      // clears `focus:` on the field
         root.focusReleased();

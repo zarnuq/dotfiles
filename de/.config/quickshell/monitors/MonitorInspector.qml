@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
 
@@ -10,10 +11,10 @@ Item {
     required property var view
     readonly property int index: view.selected
     readonly property var mon: (view.working && index >= 0 && index < view.working.length)
-                               ? view.working[index] : null
+                               ? root.view.working[index] : null
     readonly property var modes: mon ? view.modesFor(mon.name) : []
 
-    implicitHeight: view.s(54)
+    implicitHeight: root.view.s(54)
 
     Rectangle {
         anchors.fill: parent
@@ -22,25 +23,25 @@ Item {
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: view.s(12)
-        anchors.rightMargin: view.s(12)
-        spacing: view.s(14)
+        anchors.leftMargin: root.view.s(12)
+        anchors.rightMargin: root.view.s(12)
+        spacing: root.view.s(14)
 
         Column {
             anchors.verticalCenter: parent.verticalCenter
-            width: view.s(130)
-            spacing: view.s(2)
+            width: root.view.s(130)
+            spacing: root.view.s(2)
             Txt {
                 text: root.mon ? root.mon.name : "no output"
                 color: Theme.text
-                font.pixelSize: view.s(14)
+                font.pixelSize: root.view.s(14)
             }
             Txt {
                 text: !root.mon ? ""
                     : !root.mon.included ? "not in layout"
                     : !root.mon.connected ? "not connected" : "in layout"
                 color: root.mon && root.mon.connected && root.mon.included ? Theme.overlay0 : Theme.peach
-                font.pixelSize: view.s(11)
+                font.pixelSize: root.view.s(11)
             }
         }
 
@@ -78,7 +79,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: root.mon ? root.mon.x + ", " + root.mon.y : ""
             color: Theme.overlay0
-            font.pixelSize: view.s(12)
+            font.pixelSize: root.view.s(12)
         }
 
         MonitorButton {
@@ -97,7 +98,6 @@ Item {
 
         property string caption: ""
         property string value: ""
-        property bool enabled: true
         signal step(int direction)
 
         anchors.verticalCenter: parent.verticalCenter

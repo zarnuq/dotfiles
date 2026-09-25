@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // Hover and click for one entry of a picker's list: pointing at it selects it,

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
 // Reach, NotificationService) live one level up, and a QML file does not
@@ -9,7 +10,7 @@ import ".."
 // fills what the icon and that trailing slot leave — each card used to compute
 // that width itself by subtracting its neighbours by id.
 Row {
-    id: row
+    id: root
 
     property string icon: ""
     property color iconColor: Theme.text
@@ -20,9 +21,9 @@ Row {
     width: parent.width
     spacing: Config.s(10)
 
-    Txt { text: row.icon; color: row.iconColor; font.pixelSize: row.iconSize }
+    Txt { text: root.icon; color: root.iconColor; font.pixelSize: root.iconSize }
     Txt {
-        text: row.label; color: Theme.subtext0; font.pixelSize: Config.s(14)
+        text: root.label; color: Theme.subtext0; font.pixelSize: Config.s(14)
         width: parent.width - x - tail.width - parent.spacing; verticalAlignment: Text.AlignVCenter
     }
     Row { id: tail }

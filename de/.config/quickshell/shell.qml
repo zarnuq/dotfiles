@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 // The big clusters each live in their own folder; these make their types resolve.
 import "bar"
@@ -22,6 +23,7 @@ import "wallpaper"
 // Settings is the one thing with no flag: it must always be built, or turning it
 // off would leave no way to turn anything back on.
 ShellRoot {
+    id: root
     Settings {}
 
     LazyLoader { active: Config.on("wallpaper");           WallpaperView {} }

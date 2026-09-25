@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 import ".."
@@ -35,7 +36,7 @@ Singleton {
     property point lastPointer: Qt.point(-1, -1)
     property bool pointerSeen: false
 
-    function resetHover() { root.pointerSeen = false; }
+    function resetHover(): void { root.pointerSeen = false; }
 
     function allowHover(item, event) {
         var point = item.mapToItem(null, event.x, event.y);

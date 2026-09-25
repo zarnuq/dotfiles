@@ -1,4 +1,4 @@
-import Quickshell
+pragma ComponentBehavior: Bound
 import Quickshell.Io
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
@@ -25,7 +25,7 @@ Widget {
     FileView { id: netDev; path: "/proc/net/dev"; blockLoading: true }
 
     // Sum rx/tx bytes over real + tunnel interfaces (eth/en/wl), diff over 1s.
-    function sample() {
+    function sample(): void {
         netDev.reload();
         var lines = netDev.text().split("\n").slice(2);
         var rx = 0, tx = 0;
@@ -93,13 +93,15 @@ Widget {
             Repeater {
                 model: root.ips
                 Row {
+                    id: ipRow
+                    required property var modelData
                     width: ipList.width
                     Txt {
-                        text: modelData.iface; font.bold: true; font.pixelSize: root.s(11)
-                        color: /^(tun|tap|wg)/.test(modelData.iface) ? Theme.mauve : Theme.green
+                        text: ipRow.modelData.iface; font.bold: true; font.pixelSize: root.s(11)
+                        color: /^(tun|tap|wg)/.test(ipRow.modelData.iface) ? Theme.mauve : Theme.green
                     }
                     Txt {
-                        text: modelData.ip; color: Theme.subtext0; font.pixelSize: root.s(11)
+                        text: ipRow.modelData.ip; color: Theme.subtext0; font.pixelSize: root.s(11)
                         width: parent.width - x; horizontalAlignment: Text.AlignRight
                     }
                 }

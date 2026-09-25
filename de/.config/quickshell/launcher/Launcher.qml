@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 // Parent import: Theme/Config/Txt and the shared Picker chrome live one
@@ -59,7 +60,7 @@ Picker {
     // fd finishes after the box is already open and typed into.
     Connections {
         target: FileIndex
-        function onReadyChanged() { if (FileIndex.ready && root.fileQuery !== "") debounce.restart(); }
+        function onReadyChanged(): void { if (FileIndex.ready && root.fileQuery !== "") debounce.restart(); }
     }
 
     // A live binding, NOT a snapshot. DesktopEntries scans asynchronously —
@@ -103,7 +104,7 @@ Picker {
     // xdg-open instead (an image or a PDF in nvim is no use), Ctrl+T drops a
     // shell in the containing directory, and Ctrl+Y copies the path without
     // opening anything.
-    function launch(action) {
+    function launch(action): void {
         if (root.selected < 0 || root.selected >= root.results.length) return;
         var hit = root.results[root.selected];
 
@@ -142,7 +143,7 @@ Picker {
             spacing: 0
 
             // Called by Picker every time the box appears on an output.
-            function reset() { search.reset(); root.query = ""; }
+            function reset(): void { search.reset(); root.query = ""; }
 
             // Input row (rofi inputbar: no box, just the entry). The
             // placeholder survives the lone sigil that switches mode, so the
@@ -187,14 +188,15 @@ Picker {
                            : "no matches"
 
                 delegate: Rectangle {
+                    id: entry
                     required property var modelData
                     required property int index
                     width: list.width; height: 38
-                    color: index === root.selected ? Theme.rowSelectBg : "transparent"
+                    color: entry.index === root.selected ? Theme.rowSelectBg : "transparent"
 
                     PickerHover {
                         picker: root
-                        row: index
+                        row: entry.index
                         onActivated: root.launch()
                     }
 
@@ -211,8 +213,8 @@ Picker {
                             width: 26; height: 26
                             sourceSize.width: 26; sourceSize.height: 26
                             fillMode: Image.PreserveAspectFit
-                            source: (!root.fileMode && !root.cmdMode && modelData.icon)
-                                    ? Quickshell.iconPath(modelData.icon, "application-x-executable") : ""
+                            source: (!root.fileMode && !root.cmdMode && entry.modelData.icon)
+                                    ? Quickshell.iconPath(entry.modelData.icon, "application-x-executable") : ""
                         }
 
                         Txt {
@@ -220,10 +222,10 @@ Picker {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 26
                             horizontalAlignment: Text.AlignHCenter
-                            text: root.cmdMode ? modelData.glyph
-                                  : (root.fileMode && modelData.isDir) ? "" : ""
+                            text: root.cmdMode ? entry.modelData.glyph
+                                  : (root.fileMode && entry.modelData.isDir) ? "" : ""
                             color: root.cmdMode ? Theme.mauve
-                                   : (root.fileMode && modelData.isDir) ? Theme.blue : Theme.subtext0
+                                   : (root.fileMode && entry.modelData.isDir) ? Theme.blue : Theme.subtext0
                             font.pixelSize: 16
                         }
 
@@ -234,10 +236,10 @@ Picker {
                         // should give way.
                         Txt {
                             id: keyLabel
-                            visible: root.cmdMode && modelData.key !== ""
+                            visible: root.cmdMode && entry.modelData.key !== ""
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.cmdMode ? modelData.key : ""
+                            text: root.cmdMode ? entry.modelData.key : ""
                             color: Theme.overlay0
                             font.pixelSize: 15
                         }
@@ -254,8 +256,8 @@ Picker {
                             // RIGHT for a gloss, which reads forwards.
                             elide: root.cmdMode ? Text.ElideRight : Text.ElideLeft
                             horizontalAlignment: Text.AlignRight
-                            text: root.cmdMode ? modelData.desc
-                                  : root.fileMode ? modelData.dir : ""
+                            text: root.cmdMode ? entry.modelData.desc
+                                  : root.fileMode ? entry.modelData.dir : ""
                             color: Theme.subtext0
                             font.pixelSize: 15
                         }
@@ -267,8 +269,8 @@ Picker {
                             anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
                             elide: Text.ElideRight
-                            text: modelData.name
-                            color: index === root.selected ? Theme.rowSelectFg : Theme.text
+                            text: entry.modelData.name
+                            color: entry.index === root.selected ? Theme.rowSelectFg : Theme.text
                             font.pixelSize: 19
                         }
                     }

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -50,7 +51,7 @@ Picker {
     // one should cost nothing.
     onOpened: { root.query = ""; root.cache = ({}); root.reload(); }
 
-    function reload() { if (!lister.running) lister.running = true; }
+    function reload(): void { if (!lister.running) lister.running = true; }
 
     Process {
         id: lister
@@ -63,7 +64,7 @@ Picker {
     // entry is an image, so nothing has to be decoded to find out — which is
     // the whole point of not doing this the way clipfzf does (it decodes and
     // asks `file` for the mime type, per highlighted row).
-    function parse(text) {
+    function parse(text): void {
         var lines = text.split("\n"), out = [];
         for (var i = 0; i < lines.length; i++) {
             var t = lines[i].indexOf("\t");
@@ -105,12 +106,12 @@ Picker {
         debounce.restart();
     }
 
-    function apply(v) {
+    function apply(v): void {
         root.previewText = v.text !== undefined ? v.text : "";
         root.previewImage = v.img !== undefined ? v.img : "";
     }
 
-    function store(id, v) {
+    function store(id, v): void {
         var c = root.cache;
         c[id] = v;
         root.cache = c;
@@ -124,7 +125,7 @@ Picker {
         onTriggered: root.decode()
     }
 
-    function decode() {
+    function decode(): void {
         var e = root.cur;
         if (!e || root.cache[e.id] !== undefined) return;
         if (textDec.running || imgDec.running) { debounce.restart(); return; }
@@ -162,14 +163,14 @@ Picker {
     // so it has to outlive this call — execDetached is exactly that. clipfzf's
     // stdout/stderr redirect exists only because that daemon inherited kitty's
     // pty and kept the window from closing; there is no pty here.
-    function copy() {
+    function copy(): void {
         if (!root.cur) return;
         Quickshell.execDetached(["sh", "-c", 'cliphist decode "$1" | wl-copy', "sh", root.cur.id]);
         root.hide();
     }
 
     // cliphist delete takes the whole list line on stdin, not an id.
-    function remove() {
+    function remove(): void {
         if (!root.cur || deleter.running) return;
         deleter.command = ["sh", "-c", 'printf "%s\\n" "$1" | cliphist delete', "sh", root.cur.raw];
         deleter.running = true;
@@ -185,7 +186,7 @@ Picker {
             spacing: 0
 
             // Called by Picker each time the box appears on an output.
-            function reset() { search.reset(); root.query = ""; }
+            function reset(): void { search.reset(); root.query = ""; }
 
             PickerSearch {
                 id: search

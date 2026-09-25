@@ -23,7 +23,7 @@ FocusScope {
         return "";
     }
 
-    function reset() {
+    function reset(): void {
         state.reset();
         root.forceActiveFocus();
     }

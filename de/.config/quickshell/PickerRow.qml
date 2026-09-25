@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // Shared menu row: the chrome (selection band, current-device wash, section

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
 
@@ -10,7 +11,7 @@ import ".."
 // once, which is the whole reason the desktop's layout can be edited from the
 // laptop.
 Item {
-    id: canvas
+    id: root
 
     required property var view
 
@@ -21,7 +22,7 @@ Item {
     // Recomputed from the working copy, so dragging a head past the edge
     // rescales rather than pushing it out of sight.
     readonly property var bounds: {
-        var e = view.extent(canvas.entries);
+        var e = root.view.extent(root.entries);
         if (!e) return { x: 0, y: 0, w: 1920, h: 1080 };
         return { x: e.minX, y: e.minY, w: Math.max(1, e.maxX - e.minX), h: Math.max(1, e.maxY - e.minY) };
     }
@@ -47,14 +48,14 @@ Item {
     }
 
     Repeater {
-        model: canvas.entries.length
+        model: root.entries.length
 
         Rectangle {
             id: head
 
             required property int index
-            readonly property var mon: canvas.entries[index]
-            readonly property bool isSelected: canvas.view.selected === index
+            readonly property var mon: root.entries[index]
+            readonly property bool isSelected: root.view.selected === index
 
             // Mid-drag the rectangle follows the snapped drop point rather than
             // the model. Choosing it in the binding, instead of assigning x/y from
@@ -62,31 +63,31 @@ Item {
             // replaces it for good, and a head released that way kept the pixel it
             // was dropped at while the model held the snapped value — a gap the
             // layout did not have, drawn until the next reload.
-            x: canvas.originX + (drag.dragging ? drag.dropX : mon.x) * canvas.zoom
-            y: canvas.originY + (drag.dragging ? drag.dropY : mon.y) * canvas.zoom
-            width: canvas.view.effW(mon) * canvas.zoom
-            height: canvas.view.effH(mon) * canvas.zoom
+            x: root.originX + (drag.dragging ? drag.dropX : mon.x) * root.zoom
+            y: root.originY + (drag.dragging ? drag.dropY : mon.y) * root.zoom
+            width: root.view.effW(mon) * root.zoom
+            height: root.view.effH(mon) * root.zoom
 
             color: mon.included ? (isSelected ? Theme.surface1 : Theme.surface0) : "transparent"
-            border.width: isSelected ? view.s(2) : 1
+            border.width: isSelected ? root.view.s(2) : 1
             border.color: isSelected ? Theme.mauve
                         : !mon.included ? Theme.overlay0
                         : mon.connected ? Theme.surface1 : Theme.peach
 
             Column {
                 anchors.centerIn: parent
-                spacing: view.s(2)
+                spacing: root.view.s(2)
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: head.mon.name
                     color: head.mon.included ? Theme.text : Theme.overlay0
-                    font.pixelSize: view.s(14)
+                    font.pixelSize: root.view.s(14)
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: head.mon.w + "×" + head.mon.h
                     color: Theme.subtext0
-                    font.pixelSize: view.s(11)
+                    font.pixelSize: root.view.s(11)
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -97,7 +98,7 @@ Item {
                     visible: !head.mon.connected || !head.mon.included
                     text: !head.mon.connected ? "not connected" : "not in layout"
                     color: !head.mon.connected ? Theme.peach : Theme.overlay0
-                    font.pixelSize: view.s(10)
+                    font.pixelSize: root.view.s(10)
                 }
             }
 
@@ -120,7 +121,7 @@ Item {
                 property bool dragging: false
 
                 onPressed: mouse => {
-                    canvas.view.selected = head.index;
+                    root.view.selected = head.index;
                     // Held constant for the whole drag, which is what keeps the
                     // pointer on the same spot of the rectangle. Accumulating
                     // frame deltas cannot: the rect moves by the SNAPPED amount,
@@ -136,10 +137,10 @@ Item {
 
                 onPositionChanged: mouse => {
                     if (!dragging) return;
-                    var p = mapToItem(canvas, mouse.x, mouse.y);
-                    var at = canvas.snapFor(head.index,
-                                            (p.x - grabDX - canvas.originX) / canvas.zoom,
-                                            (p.y - grabDY - canvas.originY) / canvas.zoom);
+                    var p = mapToItem(root, mouse.x, mouse.y);
+                    var at = root.snapFor(head.index,
+                                            (p.x - grabDX - root.originX) / root.zoom,
+                                            (p.y - grabDY - root.originY) / root.zoom);
                     dropX = at.x;
                     dropY = at.y;
                 }
@@ -148,11 +149,11 @@ Item {
                     if (!dragging) return;
                     // Commit first: dropping `dragging` hands x/y back to the
                     // model, which must already hold the snapped position.
-                    canvas.view.move(head.index, dropX, dropY);
+                    root.view.move(head.index, dropX, dropY);
                     dragging = false;
                 }
 
-                onDoubleClicked: canvas.view.toggleIncluded(head.index)
+                onDoubleClicked: root.view.toggleIncluded(head.index)
             }
         }
     }
@@ -170,7 +171,7 @@ Item {
     /// pointer skips across. So this canvas cannot express one.
     function snapFor(index, x, y) {
         var mon = entries[index];
-        var w = view.effW(mon), h = view.effH(mon);
+        var w = root.view.effW(mon), h = root.view.effH(mon);
         var others = neighbours(index);
 
         var bestX = { delta: snapPx, value: x }, bestY = { delta: snapPx, value: y };
@@ -199,12 +200,12 @@ Item {
         for (var i = 0; i < entries.length; i++) {
             var o = entries[i];
             if (i !== index && o.included)
-                out.push({ x: o.x, y: o.y, w: view.effW(o), h: view.effH(o) });
+                out.push({ x: o.x, y: o.y, w: root.view.effW(o), h: root.view.effH(o) });
         }
         return out;
     }
 
-    function consider(best, actual, candidate) {
+    function consider(best, actual, candidate): void {
         var delta = Math.abs(actual - candidate);
         if (delta < best.delta) {
             best.delta = delta;

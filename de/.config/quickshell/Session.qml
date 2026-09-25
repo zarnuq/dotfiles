@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Pam
@@ -20,7 +21,7 @@ Scope {
     property string status: ""
     property string timeStr: ""
 
-    function lock() { sessionLock.locked = true; }
+    function lock(): void { sessionLock.locked = true; }
 
     // Lock at 300s idle (swayidle parity).
     IdleMonitor {
@@ -61,7 +62,7 @@ Scope {
         }
     }
 
-    function run(i) {
+    function run(i): void {
         if (i < 0 || i >= root.actions.length) return;
         var act = root.actions[i].act;
 
@@ -105,7 +106,7 @@ Scope {
             root.pending = "";
         }
     }
-    function tryUnlock(pw) {
+    function tryUnlock(pw): void {
         if (pam.active) return;          // one attempt in flight at a time
         root.pending = pw;
         root.status = "checking…";
@@ -216,8 +217,8 @@ Scope {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 onClicked: {
-                                    if (btn.isArmed) root.run(index);
-                                    else root.armed = index;
+                                    if (btn.isArmed) root.run(btn.index);
+                                    else root.armed = btn.index;
                                 }
                             }
 
@@ -227,13 +228,13 @@ Scope {
 
                                 Txt {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: modelData.icon
+                                    text: btn.modelData.icon
                                     color: btn.isArmed ? Theme.peach : Theme.subtext0
                                     font.pixelSize: 16
                                 }
                                 Txt {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: modelData.label
+                                    text: btn.modelData.label
                                     color: btn.isArmed ? Theme.text : Theme.subtext0
                                     font.pixelSize: 13
                                 }

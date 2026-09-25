@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -40,7 +41,7 @@ Picker {
     // Re-listed on every open so wallpapers added since last time show up.
     onOpened: root.reload()
 
-    function reload() { if (!loader.running) loader.running = true; }
+    function reload(): void { if (!loader.running) loader.running = true; }
 
     // Render missing thumbs, then list. ';' not '&&' so a failed render still lists.
     Process {
@@ -49,7 +50,7 @@ Picker {
         stdout: StdioCollector { onStreamFinished: root.parse(text) }
     }
 
-    function parse(text) {
+    function parse(text): void {
         var lines = text.split("\n");
         var out = [], cats = ["All"], seen = ({});
         for (var i = 0; i < lines.length; i++) {
@@ -66,7 +67,7 @@ Picker {
         root.refresh();
     }
 
-    function refresh() {
+    function refresh(): void {
         var c = root.cats[root.catIndex], out = [];
         for (var i = 0; i < root.all.length; i++)
             if (c === "All" || root.all[i].cat === c) out.push(root.all[i]);
@@ -74,13 +75,13 @@ Picker {
         root.selected = 0;
     }
 
-    function setCat(i) {
+    function setCat(i): void {
         if (root.cats.length === 0) return;
         root.catIndex = (i + root.cats.length) % root.cats.length;
         root.refresh();
     }
     // close=false applies without dismissing, so you can flip through live.
-    function apply(close) {
+    function apply(close): void {
         if (root.selected < 0 || root.selected >= root.results.length) return;
         Wallpaper.set(root.results[root.selected].path);
         if (close) root.hide();
@@ -94,7 +95,7 @@ Picker {
     onSelectedChanged: root.updateDim()
     onResultsChanged: root.updateDim()
 
-    function updateDim() {
+    function updateDim(): void {
         var p = root.curPath();
         if (p === "") { root.curDim = ""; dimProbe.stop(); return; }
         if (root.dims[p] !== undefined) { root.curDim = root.dims[p]; dimProbe.stop(); return; }
@@ -109,7 +110,7 @@ Picker {
         onTriggered: root.probeDim()
     }
 
-    function probeDim() {
+    function probeDim(): void {
         var p = root.curPath();
         if (p === "" || root.dims[p] !== undefined) return;
         if (dimProc.running) { dimProbe.restart(); return; }
@@ -174,6 +175,7 @@ Picker {
                         clip: true
 
                         delegate: Rectangle {
+                            id: catRow
                             required property string modelData
                             required property int index
                             width: 190; height: 34
@@ -181,7 +183,7 @@ Picker {
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: { root.setCat(index); keys.forceActiveFocus(); }
+                                onClicked: { root.setCat(catRow.index); keys.forceActiveFocus(); }
                             }
 
                             Txt {
@@ -189,9 +191,9 @@ Picker {
                                 anchors.leftMargin: 14; anchors.rightMargin: 10
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
-                                text: modelData
+                                text: catRow.modelData
                                 font.pixelSize: 15
-                                color: index === root.catIndex ? Theme.mauve : Theme.subtext0
+                                color: catRow.index === root.catIndex ? Theme.mauve : Theme.subtext0
                             }
                         }
                     }
@@ -234,6 +236,7 @@ Picker {
                             onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
 
                             delegate: Item {
+                                id: tile
                                 required property var modelData
                                 required property int index
                                 width: grid.cellWidth
@@ -244,12 +247,12 @@ Picker {
                                     anchors.margins: 3
                                     color: Theme.surface0
                                     border.width: 2
-                                    border.color: index === root.selected ? Theme.mauve : "transparent"
+                                    border.color: tile.index === root.selected ? Theme.mauve : "transparent"
 
                                     Image {
                                         anchors.fill: parent
                                         anchors.margins: 2
-                                        source: "file://" + modelData.thumb
+                                        source: "file://" + tile.modelData.thumb
                                         // Thumbs are natively 400x225, so this is a 1:1
                                         // decode with no rescale. Deliberately NOT
                                         // Wallpaper.decodeSize -- that value is the
@@ -266,7 +269,7 @@ Picker {
 
                                     PickerHover {
                                         picker: root
-                                        row: index
+                                        row: tile.index
                                         onActivated: root.apply(true)
                                     }
                                 }

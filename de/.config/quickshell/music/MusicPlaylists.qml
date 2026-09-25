@@ -28,14 +28,14 @@ Item {
         });
     }
 
-    function open(name) {
+    function open(name): void {
         root.opened = name;
         root._read(false);
     }
 
     // Re-read in place after an edit; moveTo clamps, so a deleted last row
     // cannot strand the cursor.
-    function reopen() {
+    function reopen(): void {
         if (root.inPlaylist) root._read(true);
     }
 
@@ -49,7 +49,7 @@ Item {
         });
     }
 
-    function back() {
+    function back(): void {
         if (!root.inPlaylist) return;
         root.opened = "";
         root.songs = [];
@@ -58,7 +58,7 @@ Item {
         root.refresh();
     }
 
-    function activate(i) {
+    function activate(i): void {
         var row = root.rows[i];
         if (!row) return;
         if (root.inPlaylist) root.client.addAndPlay(row.file);
@@ -66,7 +66,7 @@ Item {
     }
 
     // `a` appends. On a playlist that is `load`, which queues the lot.
-    function addRow(i) {
+    function addRow(i): void {
         var row = root.rows[i];
         if (!row) return;
         if (root.inPlaylist) root.client.addUri(row.file);
@@ -101,7 +101,7 @@ Item {
 
     // `C-s` saves the current queue as a playlist named after the time. (It was
     // C-a until that key became "add the selection to a playlist" everywhere.)
-    function saveQueue() {
+    function saveQueue(): void {
         var now = new Date();
         root.client.savePlaylist("queue-" + Qt.formatDateTime(now, "yyyyMMdd-hhmm"));
         root.refresh();
@@ -132,7 +132,7 @@ Item {
     Connections {
         target: root.client
         // Only the level in view; back() re-reads the other one.
-        function onChanged(subsystem) {
+        function onChanged(subsystem): void {
             if (subsystem !== "stored_playlist") return;
             if (root.inPlaylist) root.reopen();
             else root.refresh();

@@ -38,11 +38,11 @@ FocusScope {
         root.forceActiveFocus();
     }
 
-    function dismiss() {
+    function dismiss(): void {
         root.closed();
     }
 
-    function commit(name) {
+    function commit(name): void {
         var trimmed = (name || "").trim();
         if (trimmed === "" || root.uris.length === 0) return;
         root.client.playlistAdd(trimmed, root.uris);
@@ -50,7 +50,7 @@ FocusScope {
         root.dismiss();
     }
 
-    function activate(i) {
+    function activate(i): void {
         var row = root.rows[i];
         if (!row) return;
         if (row._new) { root.naming = true; nameField.forceActiveFocus(); return; }

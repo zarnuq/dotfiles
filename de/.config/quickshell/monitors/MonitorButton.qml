@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
 
@@ -9,7 +10,6 @@ Rectangle {
 
     property string label: ""
     property bool accent: false
-    property bool enabled: true
     signal clicked()
 
     width: text.implicitWidth + Config.s(24)

@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 
@@ -121,7 +122,7 @@ Singleton {
 
     function on(key) { return root.overrides[key] !== false; }
 
-    function setEnabled(key, enabled) {
+    function setEnabled(key, enabled): void {
         // A fresh object, not a mutation: QML notifies on assignment only, and
         // every LazyLoader in shell.qml is watching this property.
         var next = {};
@@ -133,7 +134,7 @@ Singleton {
         stateFile.setText(JSON.stringify(next, null, 2) + "\n");
     }
 
-    function toggle(key) { root.setEnabled(key, !root.on(key)); }
+    function toggle(key): void { root.setEnabled(key, !root.on(key)); }
 
     // blockLoading: shell.qml reads these flags in the same frame it builds, so
     // an async read would build every widget and then tear the disabled ones

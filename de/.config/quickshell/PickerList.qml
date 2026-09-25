@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // The body of a list picker: the keyboard, the column of rows, and the bottom
@@ -24,7 +25,7 @@ Item {
     // the selection on the first row — so this means only "my own extra state"
     // (a query to clear, a password field to drop).
     signal resetting()
-    function reset() { root.resetting(); }
+    function reset(): void { root.resetting(); }
 
     signal extraKey(var event)
 

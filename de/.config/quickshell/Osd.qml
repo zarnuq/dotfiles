@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -45,14 +46,14 @@ Scope {
     property bool sinkGuard: false
     Timer { id: guard; interval: 500; onTriggered: root.sinkGuard = false }
 
-    function flash(icon, level, muted) {
+    function flash(icon, level, muted): void {
         if (!root.ready) return;
         root.icon = icon; root.level = level; root.muted = muted;
         root.showBar = true; root.shown = true;
         linger.restart();
     }
 
-    function flashText(icon, label) {
+    function flashText(icon, label): void {
         if (!root.ready) return;
         root.icon = icon; root.label = label; root.muted = false;
         root.showBar = false; root.shown = true;
@@ -64,11 +65,11 @@ Scope {
     // also what keeps them bound; this file only decides when to flash. Watching
     // the singleton's plain properties rather than each node's audio object also
     // means there is no target to re-bind when the default device changes.
-    function volumeFlash() {
+    function volumeFlash(): void {
         if (root.sinkGuard || !Volume.sink) return;
         root.flash(Volume.muted ? "󰖁" : "󰕾", Volume.volume, Volume.muted);
     }
-    function micFlash() {
+    function micFlash(): void {
         if (!Volume.source) return;
         root.flash(Volume.micMuted ? "󰍭" : "󰍬", Volume.micVolume, Volume.micMuted);
     }
@@ -78,16 +79,16 @@ Scope {
         // A new default sink names itself instead of showing a level: switching
         // sinks changes the volume too, and sinkGuard is what stops the level
         // OSD from painting over the name in the same frame.
-        function onSinkChanged() {
+        function onSinkChanged(): void {
             if (!Volume.sink) return;
             root.sinkGuard = true;
             guard.restart();
             root.flashText("󰓃", Volume.sinkName);
         }
-        function onVolumeChanged() { root.volumeFlash(); }
-        function onMutedChanged() { root.volumeFlash(); }
-        function onMicVolumeChanged() { root.micFlash(); }
-        function onMicMutedChanged() { root.micFlash(); }
+        function onVolumeChanged(): void { root.volumeFlash(); }
+        function onMutedChanged(): void { root.volumeFlash(); }
+        function onMicVolumeChanged(): void { root.micFlash(); }
+        function onMicMutedChanged(): void { root.micFlash(); }
     }
 
     // ---- brightness -------------------------------------------------------
@@ -98,7 +99,7 @@ Scope {
     // brightness already was.
     Connections {
         target: Reach
-        function onBrightnessChanged() { root.flash("󰃟", Reach.brightness, false); }
+        function onBrightnessChanged(): void { root.flash("󰃟", Reach.brightness, false); }
     }
 
     // ---- surface ----------------------------------------------------------

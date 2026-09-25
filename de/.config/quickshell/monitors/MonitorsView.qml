@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 import ".."
@@ -74,11 +75,11 @@ FocusScope {
 
     // ---- loading ------------------------------------------------------------
 
-    function reload() {
+    function reload(): void {
         stateProc.refresh();
     }
 
-    function applyState(data) {
+    function applyState(data): void {
         if (!data) {
             root.status = "monitors.py failed — is it executable?";
             return;
@@ -95,7 +96,7 @@ FocusScope {
     /// Build the working copy for `name` by merging the preset with the live
     /// outputs: preset entries first (order is monitor numbering, so it is
     /// meaningful), then any connected head the preset does not mention.
-    function loadPreset(name) {
+    function loadPreset(name): void {
         var preset = null;
         for (var i = 0; i < root.presets.length; i++)
             if (root.presets[i].name === name) preset = root.presets[i];
@@ -182,7 +183,7 @@ FocusScope {
     // Every mutation assigns a NEW array: QML only notifies on assignment, so
     // mutating in place would leave the canvas drawing the old positions.
 
-    function patch(index, fields) {
+    function patch(index, fields): void {
         var next = root.working.slice();
         var m = {};
         for (var k in next[index]) m[k] = next[index][k];
@@ -191,15 +192,15 @@ FocusScope {
         root.working = next;
     }
 
-    function move(index, x, y) { root.patch(index, { x: Math.round(x), y: Math.round(y) }); }
+    function move(index, x, y): void { root.patch(index, { x: Math.round(x), y: Math.round(y) }); }
 
-    function cycleTransform(index) {
+    function cycleTransform(index): void {
         var order = ["normal", "rotate_90", "rotate_180", "rotate_270"];
         var at = order.indexOf(root.working[index].transform);
         root.patch(index, { transform: order[(at + 1) % order.length] });
     }
 
-    function stepMode(index, direction) {
+    function stepMode(index, direction): void {
         var m = root.working[index];
         var modes = root.modesFor(m.name);
         if (modes.length === 0) return;
@@ -211,7 +212,7 @@ FocusScope {
         root.patch(index, { w: modes[next].w, h: modes[next].h, refresh: modes[next].refresh });
     }
 
-    function stepScale(index, direction) {
+    function stepScale(index, direction): void {
         var steps = [1.0, 1.25, 1.5, 1.75, 2.0];
         var m = root.working[index];
         var at = steps.indexOf(m.scale);
@@ -220,7 +221,7 @@ FocusScope {
         root.patch(index, { scale: steps[next] });
     }
 
-    function toggleIncluded(index) {
+    function toggleIncluded(index): void {
         var m = root.working[index];
         if (m.included && root.includedOnly().length <= 1) {
             root.status = "a preset needs at least one output";
@@ -254,29 +255,29 @@ FocusScope {
 
     // ---- commands -----------------------------------------------------------
 
-    function run(args, note) {
+    function run(args, note): void {
         root.status = note;
         runProc.command = [root.script].concat(args);
         runProc.refresh();
     }
 
-    function save(name) {
+    function save(name): void {
         var mons = root.includedOnly();
         if (mons.length === 0) { root.status = "nothing to save"; return; }
         root.run(["save", name, JSON.stringify({ monitors: mons })], "saving " + name + "…");
     }
 
-    function activate(name) {
+    function activate(name): void {
         if (root.dirty) { root.status = "unsaved changes — apply or revert first"; return; }
         root.run(["activate", name], "switching to " + name + "…");
     }
 
-    function removePreset(name) { root.run(["delete", name], "deleting " + name + "…"); }
+    function removePreset(name): void { root.run(["delete", name], "deleting " + name + "…"); }
 
     /// Switching is re-pointing the symlink, so an unsaved canvas would be
     /// silently abandoned — say so instead. Clicking the ACTIVE one re-reads it,
     /// which is the natural "revert" gesture.
-    function pick(name) {
+    function pick(name): void {
         if (name === root.activeName) root.loadPreset(name);
         else root.activate(name);
     }

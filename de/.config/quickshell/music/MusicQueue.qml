@@ -14,12 +14,12 @@ ListView {
     boundsBehavior: Flickable.StopAtBounds
     highlightMoveDuration: 0
     cacheBuffer: 0
-    function reveal() { root.positionViewAtIndex(root.controller.cursor, ListView.Contain); }
+    function reveal(): void { root.positionViewAtIndex(root.controller.cursor, ListView.Contain); }
     Connections {
         target: root.controller
-        function onCursorChanged() { root.reveal(); }
-        function onRevealRequested() { Qt.callLater(root.reveal); }
-        function onResetRequested() { Ui.resetHover(); }
+        function onCursorChanged(): void { root.reveal(); }
+        function onRevealRequested(): void { Qt.callLater(root.reveal); }
+        function onResetRequested(): void { Ui.resetHover(); }
     }
     Component.onCompleted: root.positionViewAtIndex(root.controller.cursor, ListView.Center)
     MusicScrollBar { view: root }

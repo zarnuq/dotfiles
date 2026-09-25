@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -62,7 +63,7 @@ Widget {
     onLowChanged: root.warn()
     onOnAcChanged: root.warn()
 
-    function warn() {
+    function warn(): void {
         if (root.low && !root.warned) {
             root.warned = true;
             Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "battery",

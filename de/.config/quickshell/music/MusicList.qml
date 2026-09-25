@@ -24,11 +24,11 @@ Item {
 
     signal activated(int index)
 
-    function moveTo(i) {
+    function moveTo(i): void {
         if (root.count > 0) root.cursor = Math.max(0, Math.min(root.count - 1, i));
     }
-    function moveBy(delta) { root.moveTo(root.cursor + delta); }
-    function reveal() { list.positionViewAtIndex(root.cursor, ListView.Contain); }
+    function moveBy(delta): void { root.moveTo(root.cursor + delta); }
+    function reveal(): void { list.positionViewAtIndex(root.cursor, ListView.Contain); }
 
     // The URI under the cursor, for the C-a picker.
     function currentUris() {
@@ -36,7 +36,7 @@ Item {
     }
 
     // A fresh list starts at its beginning; that is the point of descending.
-    function resetCursor() {
+    function resetCursor(): void {
         root.cursor = 0;
         list.positionViewAtBeginning();
     }

@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -50,7 +51,7 @@ Singleton {
     // command rather than a flag on the walk because fd can report a link's
     // target only through --exec; -x (parallel, ~0.24s for 115 links) beats
     // -X with a shell loop, which serialises the readlinks.
-    function build() {
+    function build(): void {
         if (root.building) return;
         root.building = true;
         root._pairs = [];
@@ -64,7 +65,7 @@ Singleton {
     // Dropped when the launcher has been shut for a while: ~46k JS strings is
     // ~10 MB, and a rebuild is a tenth of a second. Held while in use so
     // typing never waits on fd.
-    function release() {
+    function release(): void {
         root._index = null;
         root.count = 0; root.ready = false;
     }
@@ -100,7 +101,7 @@ Singleton {
         }
     }
 
-    function ingest(text) {
+    function ingest(text): void {
         root._index = FileSearch.createIndex(text, root._pairs, root.demoted);
         root.count = root._index.paths.length;
         root.ready = true;

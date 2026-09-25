@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,

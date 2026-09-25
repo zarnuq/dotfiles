@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -33,8 +34,8 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: if (text.trim() !== "") root.current = text.trim() }
     }
 
-    function random() { pick.running = true; }
-    function set(path) { root.current = path; }
+    function random(): void { pick.running = true; }
+    function set(path): void { root.current = path; }
 
     IpcHandler {
         target: "wallpaper"

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 
@@ -62,7 +63,7 @@ Picker {
 
     property var pendingRow: null
 
-    function activate(i) {
+    function activate(i): void {
         if (!selectable(i)) return;
         var row = root.rows[i];
         root.pendingRow = row;
@@ -97,7 +98,7 @@ Picker {
             id: content
             focus: true
 
-            function reset() { root.delayed = false; }
+            function reset(): void { root.delayed = false; }
 
             Keys.onPressed: function (e) {
                 if (root.navKey(e)) return;

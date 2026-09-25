@@ -1,10 +1,12 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 
 // Catppuccin Mocha palette + shared tokens — the one source of truth every
 // widget reads its colours from.
 Singleton {
+    id: root
     readonly property color base:     "#1e1e2e"
     readonly property color surface0: "#313244"
     readonly property color surface1: "#45475a"
@@ -28,6 +30,10 @@ Singleton {
     // spelling the same two hex values out by hand.
     readonly property color rowSelectBg: crust
     readonly property color rowSelectFg: subtext1
+
+    // The focused desktop's label on the bar: plain white on mauve, carried
+    // over from reach's own bar (config.zon `.bar`) — not a palette colour.
+    readonly property color barSelectFg: "#ffffff"
 
     readonly property string font: "JetBrains Mono Nerd Font"
     readonly property int borderRadius: 0   // flat/sharp everywhere

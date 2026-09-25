@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
@@ -87,7 +88,7 @@ Scope {
     // row is usually short — so a multi-row step lands on the end of the list
     // rather than refusing to move, which is what each of the three
     // list-driving pickers used to spell out as a Math.max/Math.min clamp.
-    function move(delta) {
+    function move(delta): void {
         var i = root.selected + delta;
         while (i >= 0 && i < root.count && !root.selectable(i)) i += (delta > 0 ? 1 : -1);
         if (root.selectable(i)) { root.selected = i; return; }
@@ -117,9 +118,9 @@ Scope {
 
     signal opened()
 
-    function show()   { root.open = true; }
-    function hide()   { root.open = false; }
-    function toggle() { root.open = !root.open; }
+    function show(): void   { root.open = true; }
+    function hide(): void   { root.open = false; }
+    function toggle(): void { root.open = !root.open; }
 
     onOpenChanged: if (open) { activeScreen = ""; pointerSeen = false; fallback.restart(); root.opened(); }
 

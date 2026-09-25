@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -110,7 +111,7 @@ Picker {
         triggeredOnStart: true
         onTriggered: root.rescan()
     }
-    function rescan() {
+    function rescan(): void {
         if (root.wifiDev === "") return;
         root.scanning = true;
         // Fails harmlessly ("scanning not allowed immediately following
@@ -166,11 +167,11 @@ Picker {
         } catch (e) { console.warn("Ignoring invalid VPN source registry: " + e); }
         return ({});
     }
-    function saveSources(next) {
+    function saveSources(next): void {
         root.managedVpns = next;
         vpnSources.setText(JSON.stringify(next, null, 2) + "\n");
     }
-    function setSource(uuid, entry) {   // a null entry forgets the UUID
+    function setSource(uuid, entry): void {   // a null entry forgets the UUID
         var next = Object.assign({}, root.managedVpns);
         if (entry) next[uuid] = entry; else delete next[uuid];
         root.saveSources(next);
@@ -187,7 +188,7 @@ Picker {
     property var importDone: ({})
     property var deleteTried: ({})
 
-    function importNext() {
+    function importNext(): void {
         if (!root.open || act.running || cancelVpn.running || !root.nmSeen || !root.filesSeen) return;
         var adopted = NetworkData.adoptSources(root.managedVpns, root.conns, root.ovpnFiles);
         if (JSON.stringify(adopted) !== JSON.stringify(root.managedVpns)) root.saveSources(adopted);
@@ -290,7 +291,7 @@ Picker {
 
     // `opts` says what the action is, for onExited: { ssid, hadKey } for a
     // Wi-Fi join, { importing } or { deleteUuid } for the ~/VPNs mirror.
-    function run(cmd, note, opts) {
+    function run(cmd, note, opts): void {
         if (act.running || cancelVpn.running) return;
         opts = opts || {};
         act.vpnUuid = cmd[1] === "connection" && cmd[2] === "up" ? cmd[4] : "";
@@ -304,7 +305,7 @@ Picker {
         act.running = true;
     }
 
-    function activate(i) {
+    function activate(i): void {
         if (!selectable(i)) return;
         var row = rows[i];
         if (row.kind === "radio") {
@@ -336,7 +337,7 @@ Picker {
     // one, which is what keeps eduroam working: its profile is named "eduroam
     // [a8f5604d]", so matching by connection name would miss it and try to
     // create a second profile.
-    function join(ssid, pw) {
+    function join(ssid, pw): void {
         var cmd = ["nmcli", "device", "wifi", "connect", ssid];
         // The key rides in argv, where it is readable in /proc for the life of
         // the call. nmcli has no way to take it on stdin or from a file, and
@@ -345,9 +346,9 @@ Picker {
         root.run(cmd, "connecting to " + ssid + "…", { ssid: ssid, hadKey: pw !== undefined });
     }
 
-    function clearStatus() { root.status = ""; root.pwSsid = ""; }
+    function clearStatus(): void { root.status = ""; root.pwSsid = ""; }
 
-    function disconnect(i) {
+    function disconnect(i): void {
         if (!selectable(i)) return;
         var row = rows[i];
         if (row.kind === "eth" && row.active)

@@ -51,7 +51,7 @@ Item {
     // showing the listing from whenever the tab was first opened.
     Connections {
         target: root.client
-        function onChanged(subsystem) {
+        function onChanged(subsystem): void {
             if (subsystem === "database") root.load(root.path, true);
         }
     }
@@ -68,7 +68,7 @@ Item {
         return tb < ta ? -1 : 1;          // ISO-8601 sorts correctly as text
     }
 
-    function goUp() {
+    function goUp(): void {
         if (root.path === "") return;
         var i = root.path.lastIndexOf("/");
         root.load(i < 0 ? "" : root.path.substring(0, i));
@@ -80,7 +80,7 @@ Item {
         return uri.substring(uri.lastIndexOf("/") + 1);
     }
 
-    function activate(i) {
+    function activate(i): void {
         var row = root.rows[i];
         if (!row) return;
         if (row._type === "up") root.goUp();
@@ -90,7 +90,7 @@ Item {
     }
 
     // `a` queues without disturbing playback; a directory queues all of it.
-    function addRow(i) {
+    function addRow(i): void {
         var row = root.rows[i];
         if (!row || row._type === "up") return;
         if (row._type === "playlist") root.client.loadPlaylist(row.playlist);

@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -95,7 +96,7 @@ Singleton {
         onTriggered: sock.connected = true
     }
 
-    function ingest(line) {
+    function ingest(line): void {
         if (!line || line.length === 0)
             return;
 

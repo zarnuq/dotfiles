@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -23,7 +24,7 @@ Scope {
     // isn't JSON — so a handler is `v => root.items = v || []`.
     signal jsonData(var value)
 
-    function refresh() { proc.running = true; }
+    function refresh(): void { proc.running = true; }
 
     Process {
         id: proc

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -17,7 +18,7 @@ import ".."
 // An instance just sets anchors / margins / implicit size and drops its
 // content inside; content is laid into the padded card automatically.
 PanelWindow {
-    id: win
+    id: root
 
     default property alias content: body.data
     property int pad: 10                     // inner padding, unscaled (s() applied)
@@ -27,7 +28,7 @@ PanelWindow {
 
     // Pin to the main screen, falling back to the first output — which on the
     // laptop is the only one there is.
-    Component.onCompleted: if (Config.pinScreen) win.screen = Config.pinScreen;
+    Component.onCompleted: if (Config.pinScreen) root.screen = Config.pinScreen;
 
     // Scale lives on Config so the surfaces that aren't cards share it; s() is
     // kept here as a forwarder because every Widget calls it unqualified.
@@ -39,15 +40,15 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: win.bg
-        border.color: win.borderColor
-        border.width: win.s(1)
+        color: root.bg
+        border.color: root.borderColor
+        border.width: root.s(1)
         radius: Theme.borderRadius
 
         Item {
             id: body
             anchors.fill: parent
-            anchors.margins: win.s(win.pad)
+            anchors.margins: root.s(root.pad)
         }
     }
 }

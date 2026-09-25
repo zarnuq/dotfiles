@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -50,7 +51,7 @@ Scope {
 
     // reach's bar colours (config.zon `.bar`), so the two look identical.
     readonly property color normalFg: Theme.overlay1
-    readonly property color selectFg: "#ffffff"
+    readonly property color selectFg: Theme.barSelectFg
     readonly property color selectBg: Theme.mauve
 
     // ─── status sources ──────────────────────────────────────────────────

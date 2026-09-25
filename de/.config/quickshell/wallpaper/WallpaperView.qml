@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
@@ -15,9 +16,11 @@ import ".."
 // hidden layer drops its source, so at steady state only ONE buffer is
 // referenced for the whole desktop (swww-style), the other layer holds none.
 Variants {
+    id: root
     model: Quickshell.screens
 
     PanelWindow {
+        id: win
         required property var modelData
         screen: modelData
 
@@ -35,8 +38,8 @@ Variants {
         HoverHandler {
             onHoveredChanged: {
                 if (hovered)
-                    Reach.hoveredOutput = modelData.name;
-                else if (Reach.hoveredOutput === modelData.name)
+                    Reach.hoveredOutput = win.modelData.name;
+                else if (Reach.hoveredOutput === win.modelData.name)
                     Reach.hoveredOutput = "";
             }
         }

@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -98,7 +99,7 @@ Singleton {
 
     /// Send `text`; `cb(lines, err)` gets the raw response lines, or err set to
     /// the ACK line when MPD refused it.
-    function send(text, cb) {
+    function send(text, cb): void {
         root._jobs.push({ cmd: text, cb: cb || null });
         root._pump();
     }
@@ -106,20 +107,20 @@ Singleton {
     /// Several commands as one request. MPD answers a command list with a
     /// single OK, so this is also how a multi-row action stays atomic: the
     /// whole list applies, or the first failure aborts the rest of it.
-    function sendList(cmds, cb) {
+    function sendList(cmds, cb): void {
         if (cmds.length === 0) { if (cb) cb([], null); return; }
         if (cmds.length === 1) { root.send(cmds[0], cb); return; }
         root.send("command_list_begin\n" + cmds.join("\n") + "\ncommand_list_end", cb);
     }
 
-    function _pump() {
+    function _pump(): void {
         if (root._busy || !cmdSock.connected || root._jobs.length === 0) return;
         root._busy = true;
         cmdSock.write(root._jobs[0].cmd + "\n");
         cmdSock.flush();
     }
 
-    function _onCmdLine(line) {
+    function _onCmdLine(line): void {
         // The greeting is not a response — it arrives unprompted on connect.
         if (line.indexOf("OK MPD ") === 0) {
             root._greeted = true;
@@ -203,7 +204,7 @@ Singleton {
 
     /// Apply a `status` reply. Both callers go through here so the seek guard
     /// below can't be implemented in one of them and forgotten in the other.
-    function _applyStatus(lines) {
+    function _applyStatus(lines): void {
         var wasId = root.songId;
         root.status = root.parseKV(lines);
         // MPD has caught up with the pending volume: hand the readout back.
@@ -243,12 +244,12 @@ Singleton {
     property int _queueHolders: 0
     readonly property bool queueRetained: root._queueHolders > 0
 
-    function retainQueue() {
+    function retainQueue(): void {
         root._queueHolders++;
         if (root._queueHolders === 1 && root.connected) root.refreshQueue();
     }
 
-    function releaseQueue() {
+    function releaseQueue(): void {
         root._queueHolders = Math.max(0, root._queueHolders - 1);
         if (root._queueHolders > 0) return;
         root.queue = [];
@@ -326,7 +327,7 @@ Singleton {
                 }
             }
 
-            function finish() {
+            function finish(): void {
                 // A hole means a version we never saw; only a refetch is honest.
                 for (var k = 0; k < next.length; k++)
                     if (!next[k]) { root.refreshQueue(false); return; }
@@ -351,7 +352,7 @@ Singleton {
         });
     }
 
-    function refreshAll() {
+    function refreshAll(): void {
         root.refreshStatus();
         root.refreshSong();
         if (root.queueRetained) root.refreshQueue();
@@ -362,11 +363,11 @@ Singleton {
     // and the idle connection reports it a moment later. Doing both would just
     // double the queries.
 
-    function toggle()          { root.send(root.playing ? "pause 1" : (root.stopped ? "play" : "pause 0")); }
-    function playId(id)        { root.send("playid " + id); }
-    function stop()            { root.send("stop"); }
-    function next()            { root.send("next"); }
-    function previous()        { root.send("previous"); }
+    function toggle(): void          { root.send(root.playing ? "pause 1" : (root.stopped ? "play" : "pause 0")); }
+    function playId(id): void        { root.send("playid " + id); }
+    function stop(): void            { root.send("stop"); }
+    function next(): void            { root.send("next"); }
+    function previous(): void        { root.send("previous"); }
     // NEVER land on the end of a track. `seekcur <duration>` completes it and
     // MPD moves to the next song, so holding the seek key re-seeked to each new
     // track's end and walked the queue about a song a second — and at that rate
@@ -387,7 +388,7 @@ Singleton {
     /// Move the LOCAL clock now and let the flush below send it. Both entry
     /// points come through here so the guard and the repaint cannot be set in
     /// one of them and forgotten in the other.
-    function _seek(sec) {
+    function _seek(sec): void {
         if (root.duration <= 0) return;
         root._seekPending = true;
         root._seekGuardUntil = Date.now() + root._seekGuardMs;
@@ -397,7 +398,7 @@ Singleton {
         seekFlush.restart();
     }
 
-    function seekTo(sec)   { root._seek(sec); }
+    function seekTo(sec): void   { root._seek(sec); }
 
     // Holding the seek key is reach's 50/s key repeat, so a naive one-command-
     // per-press sends fifty `seekcur`s a second. Each is a `player` change, each
@@ -416,7 +417,7 @@ Singleton {
     readonly property int _seekFlushMs: 90
     readonly property int _seekGuardMs: 500
 
-    function seekBy(delta) { root._seek(root.elapsed + delta); }
+    function seekBy(delta): void { root._seek(root.elapsed + delta); }
 
     Timer {
         id: seekFlush
@@ -454,16 +455,16 @@ Singleton {
     // audible lag, not just a slow number.
     property bool _volDirty: false
 
-    function setVolume(v) {
+    function setVolume(v): void {
         var target = Math.max(0, Math.min(100, Math.round(v)));
         if (target === root._volWanted) return;
         root._volWanted = target;
         root._volDirty = true;
         if (!volFlush.running) root._flushVolume();
     }
-    function changeVolume(d)   { root.setVolume(root.volume + d); }
+    function changeVolume(d): void   { root.setVolume(root.volume + d); }
 
-    function _flushVolume() {
+    function _flushVolume(): void {
         volRelease.stop();
         root.send("setvol " + root._volWanted);
         root._volDirty = false;
@@ -487,18 +488,18 @@ Singleton {
         onTriggered: root._volWanted = -1;
     }
 
-    function toggleRepeat()    { root.send("repeat " + (root.repeatOn ? 0 : 1)); }
-    function toggleRandom()    { root.send("random " + (root.randomOn ? 0 : 1)); }
+    function toggleRepeat(): void    { root.send("repeat " + (root.repeatOn ? 0 : 1)); }
+    function toggleRandom(): void    { root.send("random " + (root.randomOn ? 0 : 1)); }
     // rmpc cycles these through oneshot, which is MPD 0.24's third value.
     function _cycleMode(mode)  { return mode === "0" ? "1" : mode === "1" ? "oneshot" : "0"; }
-    function toggleConsume()   { root.send("consume " + root._cycleMode(root.consumeMode)); }
-    function toggleSingle()    { root.send("single " + root._cycleMode(root.singleMode)); }
+    function toggleConsume(): void   { root.send("consume " + root._cycleMode(root.consumeMode)); }
+    function toggleSingle(): void    { root.send("single " + root._cycleMode(root.singleMode)); }
 
-    function clearQueue()      { root.send("clear"); }
+    function clearQueue(): void      { root.send("clear"); }
     /// Rescan changed files. `rescan` would re-read every file regardless of
     /// mtime; this is the cheap one, and what "I just added an album" wants.
-    function update()          { root.send("update"); }
-    function moveSong(from, to) { root.send("move " + from + " " + to); }
+    function update(): void          { root.send("update"); }
+    function moveSong(from, to): void { root.send("move " + from + " " + to); }
 
     // ── Library, playlists, search ───────────────────────────────────────
     // All of these are read-on-demand: nothing here is polled or cached, since
@@ -514,7 +515,7 @@ Singleton {
     }
 
     /// One directory level. Mixed rows: `directory`, `file`, `playlist`.
-    function lsinfo(uri, cb) {
+    function lsinfo(uri, cb): void {
         root._read("lsinfo " + root.q(uri), ["directory", "file", "playlist"], cb);
     }
 
@@ -526,14 +527,14 @@ Singleton {
         });
     }
 
-    function playlistSongs(name, cb) {
+    function playlistSongs(name, cb): void {
         root._read("listplaylistinfo " + root.q(name), ["file"], cb);
     }
 
     /// Library search. MPD matches case-insensitively and as a substring, which
     /// is what rmpc's `mode: Contains` means — the matching is server-side, so
     /// nothing like the launcher's in-process index is needed here.
-    function search(tag, query, cb) {
+    function search(tag, query, cb): void {
         if (!query) { cb([], null); return; }
         root._read("search " + tag + " " + root.q(query), ["file"], cb);
     }
@@ -541,7 +542,7 @@ Singleton {
     // ── Queue building ───────────────────────────────────────────────────
     // A directory URI adds everything under it, which is MPD's own behaviour
     // for `add`, so "add this album" needs no recursion here.
-    function addUri(uri)            { root.send("add " + root.q(uri)); }
+    function addUri(uri): void            { root.send("add " + root.q(uri)); }
 
     /// Add then play it by the Id `addid` answers with. Two round trips, not a
     /// command list — but playing by Id rather than position means nothing
@@ -554,15 +555,15 @@ Singleton {
         });
     }
 
-    function loadPlaylist(name)          { root.send("load " + root.q(name)); }
-    function removePlaylist(name)        { root.send("rm " + root.q(name)); }
-    function savePlaylist(name)          { root.send("save " + root.q(name)); }
+    function loadPlaylist(name): void          { root.send("load " + root.q(name)); }
+    function removePlaylist(name): void        { root.send("rm " + root.q(name)); }
+    function savePlaylist(name): void          { root.send("save " + root.q(name)); }
 
     /// Append to a STORED playlist. `playlistadd` creates the playlist when it
     /// does not exist, which is what lets the picker's "new playlist" row be
     /// this same command with a typed name. A directory URI adds everything
     /// beneath it, as `add` does to the queue (checked against MPD 0.24).
-    function playlistAdd(name, uris, cb) {
+    function playlistAdd(name, uris, cb): void {
         var qn = root.q(name), cmds = [];
         for (var i = 0; i < uris.length; i++)
             cmds.push("playlistadd " + qn + " " + root.q(uris[i]));
@@ -571,7 +572,7 @@ Singleton {
 
     /// Remove one song from a stored playlist BY POSITION — the only handle
     /// MPD offers here, so the caller passes the row index it drew.
-    function playlistRemoveAt(name, pos, cb) {
+    function playlistRemoveAt(name, pos, cb): void {
         root.send("playlistdelete " + root.q(name) + " " + pos, cb);
     }
 
@@ -675,7 +676,7 @@ Singleton {
 
     Timer { id: idleRetry; interval: 30000; onTriggered: root._arm(); }
 
-    function _arm() {
+    function _arm(): void {
         // Only the subsystems this shell reacts to, so an unrelated sticker
         // write doesn't wake us for nothing. `update` fires when a scan starts
         // and stops; `database` fires only when one actually CHANGED something,

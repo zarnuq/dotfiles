@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
@@ -37,7 +38,7 @@ Singleton {
         root._prevIdle = idle;
     }
 
-    function readRam() {
+    function readRam(): void {
         memFile.reload();
         var t = memFile.text();
         var total = Number(/MemTotal:\s+(\d+)/.exec(t)[1]);
@@ -83,7 +84,7 @@ Singleton {
     // `AC` is this laptop's mains name; other firmware calls it ACAD/AC0/ADP1.
     FileView { id: acFile;   path: "/sys/class/power_supply/AC/online";     blockLoading: true; printErrors: false }
 
-    function readBattery() {
+    function readBattery(): void {
         capFile.reload();
         battFile.reload();
         acFile.reload();

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
 import QtQuick.Controls.impl
@@ -43,7 +44,7 @@ PopupWindow {
         menu: root.menuHandle
     }
 
-    function close() { wantOpen = false; }
+    function close(): void { wantOpen = false; }
 
     // Closing a menu tears down any submenu it opened.
     onVisibleChanged: if (!visible && subLoader.item) subLoader.item.close()
@@ -173,7 +174,7 @@ PopupWindow {
         active: false
     }
 
-    function toggleSub(handle, rowItem) {
+    function toggleSub(handle, rowItem): void {
         var m = subLoader.item;
         if (m && m.wantOpen && m.menuHandle === handle) { m.close(); return; }
         subLoader.active = true;

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
 // Reach, NotificationService) live one level up, and a QML file does not
@@ -8,7 +9,7 @@ import ".."
 // `centered`, for Mpd's transport row. Brightens from subtext0 to text on
 // hover; caller wires `onClicked`.
 MouseArea {
-    id: btn
+    id: root
     property string icon: ""
     property real size: 14
     property int leftMargin: 0
@@ -22,10 +23,10 @@ MouseArea {
 
     Txt {
         id: label
-        anchors.right: btn.centered ? undefined : parent.right
-        anchors.centerIn: btn.centered ? parent : undefined
-        text: btn.icon
-        color: btn.containsMouse ? Theme.text : Theme.subtext0
-        font.pixelSize: btn.size
+        anchors.right: root.centered ? undefined : parent.right
+        anchors.centerIn: root.centered ? parent : undefined
+        text: root.icon
+        color: root.containsMouse ? Theme.text : Theme.subtext0
+        font.pixelSize: root.size
     }
 }

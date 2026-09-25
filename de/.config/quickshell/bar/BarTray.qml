@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Services.SystemTray
 import QtQuick
@@ -24,7 +25,7 @@ Row {
         anchor.edges: Edges.Bottom
         anchor.gravity: Edges.Bottom | Edges.Left
 
-        function openFor(item, iconItem) {
+        function openFor(item, iconItem): void {
             // Clicking the same icon again also closes a still-loading menu.
             if (menu.wantOpen && menu.menuHandle === item.menu) {
                 menu.close();

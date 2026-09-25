@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 
@@ -158,7 +159,7 @@ Singleton {
     /// surfaces are LazyLoader-built components, not singletons, so there is no
     /// name to reach for — and routing every caller through one path means the
     /// palette cannot drift from what the keybind does.
-    function run(entry) {
+    function run(entry): void {
         Quickshell.execDetached(["qs", "ipc", "call"].concat(entry.args));
     }
 }

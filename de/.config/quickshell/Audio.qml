@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
@@ -42,7 +43,7 @@ Picker {
         }
 
         var r = [];
-        function section(title, nodes, kind) {
+        function section(title, nodes, kind): void {
             if (nodes.length === 0) return;
             r.push({ kind: "header", label: title });
             for (var j = 0; j < nodes.length; j++)
@@ -87,7 +88,7 @@ Picker {
         return node === root.volNode ? root.volWanted : node.audio.volume;
     }
 
-    function setVolume(row, v) {
+    function setVolume(row, v): void {
         if (!row.node || !row.node.audio) return;
         root.volNode = row.node;
         root.volWanted = Math.max(0, Math.min(1, v));
@@ -95,7 +96,7 @@ Picker {
         if (!volFlush.running) root.writeVolume();
     }
 
-    function writeVolume() {
+    function writeVolume(): void {
         if (!root.volNode || !root.volNode.audio) return;
         volSettle.stop();
         root.volNode.audio.volume = root.volWanted;
@@ -119,19 +120,19 @@ Picker {
         onTriggered: root.volNode = null;
     }
 
-    function nudge(i, delta) {
+    function nudge(i, delta): void {
         if (!selectable(i)) return;
         var row = rows[i];
         // Off the wanted level, not the echoed one, or held keys lose steps.
         if (row.node && row.node.audio) root.setVolume(row, root.levelOf(row.node) + delta);
     }
-    function toggleMute(i) {
+    function toggleMute(i): void {
         if (!selectable(i)) return;
         var n = rows[i].node;
         if (n && n.audio) n.audio.muted = !n.audio.muted;
     }
 
-    function activate(i) {
+    function activate(i): void {
         if (!selectable(i)) return;
         var row = rows[i];
         if (row.kind === "stream") { root.toggleMute(i); return; }
@@ -219,7 +220,7 @@ Picker {
                         anchors.margins: -root.s(10)   // the track is 6px tall; the grab area shouldn't be
                         onPressed: function (e) { root.selected = rowItem.index; set(e.x); }
                         onPositionChanged: function (e) { if (pressed) set(e.x); }
-                        function set(x) {
+                        function set(x): void {
                             root.setVolume(rowItem.modelData, (x - root.s(10)) / track.width);
                         }
                     }

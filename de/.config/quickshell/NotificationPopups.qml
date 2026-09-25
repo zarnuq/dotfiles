@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Notifications
@@ -13,12 +14,12 @@ import QtQuick
 // the buttons were unreachable, the art was dropped, and the markup printed as
 // literal tags.
 PanelWindow {
-    id: win
+    id: root
 
     // Show on the main screen (where the widgets live), as Widget does — this
     // had its own copy of the pin and of the scale rule, with "DP-2" written
     // out rather than read from Config.
-    Component.onCompleted: if (Config.pinScreen) win.screen = Config.pinScreen;
+    Component.onCompleted: if (Config.pinScreen) root.screen = Config.pinScreen;
     function s(n) { return Config.s(n); }
 
     WlrLayershell.layer: WlrLayer.Overlay
@@ -33,7 +34,7 @@ PanelWindow {
     Column {
         id: col
         width: parent.width
-        spacing: win.s(10)
+        spacing: root.s(10)
 
         Repeater {
             model: NotificationService.live
@@ -42,9 +43,9 @@ PanelWindow {
                 id: card
                 required property var modelData
                 width: col.width
-                implicitHeight: content.height + win.s(24)
+                implicitHeight: content.height + root.s(24)
                 color: Theme.base
-                border.width: win.s(2)
+                border.width: root.s(2)
                 border.color: card.modelData.urgency === NotificationUrgency.Critical ? Theme.peach
                             : card.modelData.urgency === NotificationUrgency.Low ? Theme.surface1
                             : Theme.mauve
@@ -69,7 +70,7 @@ PanelWindow {
                 /// Invoke one action. A `resident` notification stays up
                 /// afterwards (the spec's word for a toast you answer more than
                 /// once); anything else is finished the moment you answer it.
-                function run(action) {
+                function run(action): void {
                     action.invoke();
                     if (!card.modelData.resident) card.modelData.dismiss();
                 }
@@ -93,41 +94,41 @@ PanelWindow {
                 Column {
                     id: content
                     anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter
-                              leftMargin: win.s(12); rightMargin: win.s(12) }
-                    spacing: win.s(6)
+                              leftMargin: root.s(12); rightMargin: root.s(12) }
+                    spacing: root.s(6)
 
                     Row {
                         id: head
                         width: parent.width
-                        spacing: img.visible ? win.s(10) : 0
+                        spacing: img.visible ? root.s(10) : 0
 
                         Image {
                             id: img
                             source: card.modelData.image
                             visible: card.modelData.image !== ""
-                            width: visible ? win.s(48) : 0
-                            height: visible ? win.s(48) : 0
+                            width: visible ? root.s(48) : 0
+                            height: visible ? root.s(48) : 0
                             // Under QT_QUICK_BACKEND=software every pixel is
                             // decoded and scaled on the CPU, and `image` is
                             // whatever path the app handed over — a full-size
                             // cover or avatar. Cap the decode at the drawn size.
-                            sourceSize.width: win.s(48)
-                            sourceSize.height: win.s(48)
+                            sourceSize.width: root.s(48)
+                            sourceSize.height: root.s(48)
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                         }
 
                         Column {
                             width: head.width - img.width - head.spacing
-                            spacing: win.s(2)
-                            Txt { text: card.modelData.appName || "Notification"; color: Theme.subtext0; font.pixelSize: win.s(15) }
-                            Txt { text: card.modelData.summary; font.bold: true; font.pixelSize: win.s(20)
+                            spacing: root.s(2)
+                            Txt { text: card.modelData.appName || "Notification"; color: Theme.subtext0; font.pixelSize: root.s(15) }
+                            Txt { text: card.modelData.summary; font.bold: true; font.pixelSize: root.s(20)
                                   width: parent.width; wrapMode: Text.WordWrap }
                             Txt {
                                 visible: card.modelData.body !== ""
                                 text: card.modelData.body
                                 color: Theme.subtext0
-                                font.pixelSize: win.s(18)
+                                font.pixelSize: root.s(18)
                                 width: parent.width
                                 wrapMode: Text.WordWrap
                                 // The server claims bodyMarkupSupported, so a body
@@ -148,7 +149,7 @@ PanelWindow {
                         id: actionRow
                         visible: card.buttons.length > 0
                         width: parent.width
-                        spacing: win.s(6)
+                        spacing: root.s(6)
 
                         Repeater {
                             model: card.buttons
@@ -158,14 +159,14 @@ PanelWindow {
                                 required property var modelData
                                 width: (actionRow.width - (card.buttons.length - 1) * actionRow.spacing)
                                        / card.buttons.length
-                                height: win.s(28)
+                                height: root.s(28)
                                 color: hover.containsMouse ? Theme.surface1 : Theme.surface0
 
                                 Txt {
                                     anchors.centerIn: parent
-                                    width: parent.width - win.s(12)
+                                    width: parent.width - root.s(12)
                                     text: btn.modelData.text
-                                    font.pixelSize: win.s(15)
+                                    font.pixelSize: root.s(15)
                                     horizontalAlignment: Text.AlignHCenter
                                     elide: Text.ElideRight
                                 }

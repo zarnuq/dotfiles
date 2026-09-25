@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // The query row of a picker that filters as you type (the launcher and the
@@ -26,7 +27,7 @@ Item {
 
     // The box is rebuilt each time it appears, but Picker hands focus to the
     // box's root first, so the field has to take it back.
-    function reset() { field.text = ""; field.forceActiveFocus(); }
+    function reset(): void { field.text = ""; field.forceActiveFocus(); }
 
     Field {
         id: field

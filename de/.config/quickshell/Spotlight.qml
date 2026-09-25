@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -67,7 +68,7 @@ Scope {
     property real cx: 0
     property real cy: 0
 
-    function show() {
+    function show(): void {
         root.activeScreen = "";
         root.moved = 0;
         root.shown = true;
@@ -75,7 +76,7 @@ Scope {
         grace.restart();
         safety.restart();
     }
-    function hide() {
+    function hide(): void {
         root.shown = false;
         // Leave the radius settled, so a hidden overlay never holds a huge
         // canvas and the next show() starts from `from` regardless.
@@ -102,7 +103,7 @@ Scope {
     // Nothing may leave an input-grabbing overlay on screen indefinitely.
     Timer { id: safety; interval: 4000; onTriggered: root.hide() }
 
-    function onPointer(x, y, screenName) {
+    function onPointer(x, y, screenName): void {
         if (root.activeScreen === "") root.activeScreen = screenName;
         if (screenName !== root.activeScreen) return;
 

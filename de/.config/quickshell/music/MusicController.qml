@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 
 // Pure state: imports nothing but QtQuick, and deliberately so — that is what
@@ -52,10 +53,10 @@ QtObject {
 
     property Connections clientConnections: Connections {
         target: root.client
-        function onSongPosChanged() { root.resolvePendingJump(); }
+        function onSongPosChanged(): void { root.resolvePendingJump(); }
         // `database` means a scan changed something; the panes reload themselves,
         // this just says so, since a scan finishes long after the keystroke.
-        function onChanged(subsystem) { if (subsystem === "database") root.notify("Library updated"); }
+        function onChanged(subsystem): void { if (subsystem === "database") root.notify("Library updated"); }
     }
 
     Component.onCompleted: {
@@ -65,7 +66,7 @@ QtObject {
     onQueueChanged: if (root._ready) root.updateQueue();
 
     // Preserve unchanged model rows so edits do not reset the ListView.
-    function syncRows(oldQueue, newQueue) {
+    function syncRows(oldQueue, newQueue): void {
         var oldCount = oldQueue.length;
         var newCount = newQueue.length;
         var limit = Math.min(oldCount, newCount);
@@ -86,7 +87,7 @@ QtObject {
         root._lastInsert = { at: prefix, count: insertCount, removed: removeCount };
     }
 
-    function updateQueue() {
+    function updateQueue(): void {
         var hay = new Array(root.queue.length);
         var marks = {};
         for (var i = 0; i < root.queue.length; i++) {
@@ -111,12 +112,12 @@ QtObject {
         root.resolvePendingJump();
     }
 
-    function notify(text) {
+    function notify(text): void {
         root.notice = text;
         root.noticeTimer.restart();
     }
 
-    function announceAdded(count) {
+    function announceAdded(count): void {
         // Only name the song for a CLEAN single insert. When a batch both
         // removes and adds — another client rewriting part of the queue —
         // net growth can be 1 while the row at the change point is not the
@@ -127,7 +128,7 @@ QtObject {
                          : "Added  " + count + (count === 1 ? " song" : " songs"));
     }
 
-    function resolvePendingJump() {
+    function resolvePendingJump(): void {
         if (root._jumpPending && root.jumpToCurrent()) {
             root._jumpPending = false;
             // The view defers scrolling until newly inserted rows are laid out.
@@ -150,29 +151,29 @@ QtObject {
         return -1;
     }
 
-    function jumpMatch(direction) {
+    function jumpMatch(direction): void {
         var i = root.findMatch(root.cursor, direction);
         if (i >= 0) root.cursor = i;
     }
 
-    function updateQuery(text) {
+    function updateQuery(text): void {
         root.query = text;
         if (text === "" || root.matches(root.cursor)) return;
         var i = root.findMatch(root.cursor - 1, 1);
         if (i >= 0) root.cursor = i;
     }
 
-    function finishSearch(cancel) {
+    function finishSearch(cancel): void {
         if (cancel) root.query = "";
         root.searching = false;
     }
 
-    function moveTo(i) {
+    function moveTo(i): void {
         if (root.queue.length > 0)
             root.cursor = Math.max(0, Math.min(root.queue.length - 1, i));
     }
 
-    function moveBy(delta) { root.moveTo(root.cursor + delta); }
+    function moveBy(delta): void { root.moveTo(root.cursor + delta); }
 
     function jumpToCurrent() {
         if (root.client.songPos < 0 || root.client.songPos >= root.queue.length) return false;
@@ -182,7 +183,7 @@ QtObject {
 
     function isMarked(song) { return song && root.marked[song.Id] === true; }
 
-    function toggleMark() {
+    function toggleMark(): void {
         var song = root.current;
         if (!song) return;
         var next = {};
@@ -193,7 +194,7 @@ QtObject {
         root.moveBy(1);
     }
 
-    function invertMarks() {
+    function invertMarks(): void {
         var next = {};
         for (var i = 0; i < root.queue.length; i++) {
             var id = root.queue[i].Id;
@@ -202,7 +203,7 @@ QtObject {
         root.marked = next;
     }
 
-    function clearMarks() { root.marked = ({}); }
+    function clearMarks(): void { root.marked = ({}); }
 
     function targets() {
         if (root.markedCount === 0) return root.current ? [root.current] : [];
@@ -222,27 +223,27 @@ QtObject {
         return root.pane && root.pane.selectionUris ? root.pane.selectionUris() : [];
     }
 
-    function promptPlaylist() {
+    function promptPlaylist(): void {
         var uris = root.selectionUris();
         if (uris.length === 0) { root.notify("Nothing selected"); return; }
         root.openModal("playlist", uris);
     }
 
     // Both halves together, or the arg outlives the modal.
-    function openModal(name, arg) {
+    function openModal(name, arg): void {
         root.modalArg = arg;
         root.modal = name;
     }
-    function closeModal() {
+    function closeModal(): void {
         root.modal = "";
         root.modalArg = [];
     }
 
-    function playSelected() {
+    function playSelected(): void {
         if (root.current) root.client.playId(root.current.Id);
     }
 
-    function deleteSelected() {
+    function deleteSelected(): void {
         var rows = root.targets();
         if (rows.length === 0) return;
         var commands = [];
@@ -251,7 +252,7 @@ QtObject {
         root.clearMarks();
     }
 
-    function moveSelected(direction) {
+    function moveSelected(direction): void {
         var song = root.current;
         if (!song || root.markedCount > 0) return;
         var from = parseInt(song.Pos);
@@ -261,7 +262,7 @@ QtObject {
         root.cursor = to;
     }
 
-    function reset() {
+    function reset(): void {
         root.query = "";
         root.searching = false;
         root.overlay = "";
@@ -271,17 +272,17 @@ QtObject {
         root.resetRequested();
     }
 
-    function setTab(i) {
+    function setTab(i): void {
         if (i < 0 || i >= root.tabs.length || i === root.tab) return;
         root.searching = false;
         root.tab = i;
     }
 
-    function cycleTab(direction) {
+    function cycleTab(direction): void {
         root.setTab((root.tab + direction + root.tabs.length) % root.tabs.length);
     }
 
-    function handleKey(event) {
+    function handleKey(event): void {
         var ctrl = (event.modifiers & Qt.ControlModifier) !== 0;
         var shift = (event.modifiers & Qt.ShiftModifier) !== 0;
         if (root.modal !== "") return;

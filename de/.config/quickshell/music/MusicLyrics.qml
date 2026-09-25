@@ -111,7 +111,7 @@ Item {
 
     Connections {
         target: root
-        function onActiveLineChanged() {
+        function onActiveLineChanged(): void {
             if (root.activeLine >= 0) view.positionViewAtIndex(root.activeLine, ListView.Center);
         }
     }

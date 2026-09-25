@@ -1,4 +1,5 @@
 pragma Singleton
+pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Services.Pipewire
 
@@ -37,6 +38,6 @@ Singleton {
     readonly property string sinkName:
         sink ? (sink.description || sink.nickname || sink.name || "") : ""
 
-    function toggleMute()    { if (_sinkAudio) _sinkAudio.muted = !_sinkAudio.muted; }
-    function toggleMicMute() { if (_sourceAudio) _sourceAudio.muted = !_sourceAudio.muted; }
+    function toggleMute(): void    { if (_sinkAudio) _sinkAudio.muted = !_sinkAudio.muted; }
+    function toggleMicMute(): void { if (_sourceAudio) _sourceAudio.muted = !_sourceAudio.muted; }
 }

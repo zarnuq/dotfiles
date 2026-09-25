@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 // Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
 // Reach, NotificationService) live one level up, and a QML file does not
@@ -10,7 +11,7 @@ import ".."
 // Always overlaid: a card stacks several of these over one plot area, so each
 // fills its parent by default rather than every instance saying so.
 Canvas {
-    id: g
+    id: root
 
     anchors.fill: parent
 
