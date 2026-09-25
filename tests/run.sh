@@ -1,7 +1,7 @@
 #!/bin/sh
 # QML unit tests for the quickshell config: tests/quickshell/tst_*.qml.
 #
-#   tests/run.sh                 # everything
+#   tests/run.sh                 # tests/lint.sh, then every case
 #   tests/run.sh -functions      # list the cases without running them
 #   tests/run.sh MusicController # one TestCase by name
 #
@@ -60,8 +60,14 @@ for rel in $(sed -n 's|.*\(\.\./\.\./[A-Za-z0-9_./-]*\).*|\1|p' "$tests"/tst_*.q
     cp "$src" "$dest"
 done
 
+# Lint first, but only on a full run: `run.sh MusicController` or `-functions`
+# is someone iterating on one case, and a lint failure elsewhere is noise there.
+status=0
+if [ $# -eq 0 ]; then
+    sh "$root/tests/lint.sh" || status=$?
+fi
+
 # offscreen: no compositor needed, so this runs over ssh and in a hook.
 cd "$stage/tests/quickshell"
-status=0
 "$runner" -input . -platform offscreen "$@" || status=$?
 exit $status

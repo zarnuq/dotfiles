@@ -46,8 +46,10 @@ switch_to() {
     # that's what separates a real app from the filter chains' own playback
     # inputs and the mic loopback, which feed raw hardware and would break the
     # EQ graph if they were dragged along.
-    pactl -f json list sink-inputs \
-        | jq -r '.[] | select(.properties["application.name"] != null) | .index' \
+    # Plain-text listing, not `-f json`: that needed jq for one field. LC_ALL=C
+    # keeps the "Sink Input #N" header unlocalised; the property key never is.
+    LC_ALL=C pactl list sink-inputs \
+        | awk '/^Sink Input #/ { id = substr($3, 2) } /^[ \t]+application\.name = / { print id }' \
         | while read -r input_id; do
             pactl move-sink-input "$input_id" "$next_sink" 2>/dev/null
         done

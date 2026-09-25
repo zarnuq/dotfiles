@@ -102,7 +102,7 @@
       "type": "command",
       "key": "Seat Manager ",
       "keyColor": "blue",
-      "text": "for p in seatd elogind systemd-logind; do if pgrep -x \"$p\" >/dev/null 2>&1; then ver=$(xbps-query -p pkgver \"$p\" 2>/dev/null | sed \"s/^$p-//\"); printf '%s' \"$p\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0; fi; done"
+      "text": "for p in seatd elogind systemd-logind; do if pgrep -x \"$p\" >/dev/null 2>&1; then ver=$(qlist -Ive \"$p\" 2>/dev/null | grep -v ^acct- | head -1 | sed \"s|.*/$p-||\"); printf '%s' \"$p\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0; fi; done"
     },
     {
       "type": "packages",
@@ -120,7 +120,7 @@
       "type": "command",
       "key": "Login Manager ",
       "keyColor": "magenta",
-      "text": "for s in /var/service/*/; do name=$(basename \"$s\"); case \"$name\" in greetd|gdm|sddm|lightdm|lxdm|ly|emptty) ver=$(xbps-query -p pkgver \"$name\" 2>/dev/null | sed \"s/^$name-//\"); printf '%s' \"$name\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0;; esac; done"
+      "text": "for s in /service/*/; do name=$(basename \"$s\"); case \"$name\" in greetd|gdm|sddm|lightdm|lxdm|ly|emptty) ver=$(qlist -Ive \"$name\" 2>/dev/null | grep -v ^acct- | head -1 | sed \"s|.*/$name-||\"); printf '%s' \"$name\"; [ -n \"$ver\" ] && printf ' %s' \"$ver\"; printf '\\n'; exit 0;; esac; done"
     },
     {
       "type": "theme",

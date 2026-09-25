@@ -43,12 +43,16 @@ Widget {
 
     Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.sample() }
 
-    // IP list: real NICs + tunnels that have a carrier and an address.
+    // IP list: real NICs + tunnels that have a carrier and an address. `ip -j`
+    // is already JSON, so the filter is done here rather than piped through jq.
     Poll {
-        command: ["sh", "-c",
-            "ip -j -4 addr 2>/dev/null | jq -c '[.[] | select(.ifname | test(\"^(eth|en|wl|tun|tap|wg)\")) | select(.flags | index(\"LOWER_UP\")) | select(.addr_info | length > 0) | {iface: .ifname, ip: .addr_info[0].local}]'"]
+        command: ["ip", "-j", "-4", "addr"]
         interval: 10000
-        onJsonData: v => root.ips = v || []
+        onJsonData: v => root.ips = (v || [])
+            .filter(l => /^(eth|en|wl|tun|tap|wg)/.test(l.ifname)
+                         && (l.flags || []).indexOf("LOWER_UP") !== -1
+                         && (l.addr_info || []).length > 0)
+            .map(l => ({ iface: l.ifname, ip: l.addr_info[0].local }))
     }
 
     Column {

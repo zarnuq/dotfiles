@@ -16,7 +16,7 @@ Canvas {
     anchors.fill: parent
 
     property real value: 0
-    property color lineColor: "white"
+    property color lineColor: Theme.text
     property real thickness: Config.s(2)
     property int maxSamples: 30   // 30 samples * 2s = 60s window (eww GRAPH-RANGE "60s")
     property real minv: 0

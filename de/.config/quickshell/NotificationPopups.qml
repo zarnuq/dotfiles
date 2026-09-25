@@ -70,9 +70,13 @@ PanelWindow {
                 /// Invoke one action. A `resident` notification stays up
                 /// afterwards (the spec's word for a toast you answer more than
                 /// once); anything else is finished the moment you answer it.
+                /// invoke() does that closing itself (Quickshell's
+                /// NotificationAction::invoke closes a non-resident notification
+                /// after sending ActionInvoked), so a dismiss() here would be a
+                /// second close on a destroyed object — logged as
+                /// "Cannot close destroyed notification".
                 function run(action): void {
                     action.invoke();
-                    if (!card.modelData.resident) card.modelData.dismiss();
                 }
 
                 // mako default-timeout: normal 5s, low 3s, critical 0 (stays).

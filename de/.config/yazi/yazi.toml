@@ -40,7 +40,7 @@ open = [
 	{ run = 'xdg-open "$1"', desc = "Open", for = "linux" },
 ]
 setbg = [
-	{ run = 'swww img "$1" --transition-fps 144 --transition-type top --transition-duration 1', orphan = true, desc = "setbg", for = "linux" },
+	{ run = 'qs ipc call wallpaper set "$1"', orphan = true, desc = "setbg", for = "linux" },
 ]
 view = [
 	{ run = 'swayimg "$1"', orphan = true, desc = "View", for = "linux" },
@@ -66,7 +66,7 @@ use = [ "cd", "edit", "reveal" ]
 # xdg-open hands images to chromium, so bind them to the swayimg opener directly
 [[open.prepend_rules]]
 mime = "image/*"
-use = [ "view", "open", "reveal" ]
+use = [ "view", "setbg", "open", "reveal" ]
 
 [tasks]
 micro_workers    = 10

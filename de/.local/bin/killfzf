@@ -1,6 +1,6 @@
 #!/bin/sh
 # Process killer: ps process tree + fzf, sends a signal to the selection.
-# Bound to MOD+x in dwl (opens in a floating kitty via the ^float rule).
+# Bound to Super+X in reach (opens in a floating kitty via the ^float rule).
 #
 # Tab/Shift-Tab to multi-select. Enter = SIGTERM (graceful), Ctrl-K = SIGKILL.
 # Explicit `-o` format keeps PID in field 1; --forest draws the tree in the
