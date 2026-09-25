@@ -12,16 +12,14 @@ import Quickshell.Io
 // The picker half is `ClipboardPicker.qml` (Super+V), which reads
 // `cliphist list` itself. The old `clipfzf` script is gone.
 Scope {
-    Process {
-        id: textWatch
-        running: true
-        command: ["wl-paste", "--type", "text", "--watch", "cliphist", "store"]
-        onExited: running = true
-    }
-    Process {
-        id: imageWatch
-        running: true
-        command: ["wl-paste", "--type", "image", "--watch", "cliphist", "store"]
-        onExited: running = true
+    Variants {
+        model: ["text", "image"]
+
+        Process {
+            required property string modelData
+            running: true
+            command: ["wl-paste", "--type", modelData, "--watch", "cliphist", "store"]
+            onExited: running = true
+        }
     }
 }

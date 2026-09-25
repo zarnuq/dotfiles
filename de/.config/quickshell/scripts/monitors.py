@@ -39,6 +39,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from contextlib import suppress
 
 HEADER_SENTINEL = "\n.{"
 
@@ -60,7 +61,7 @@ def reach_dir():
     for path in candidates:
         if os.path.isdir(path):
             return path
-    return candidates[0] if candidates else "/etc/reach"
+    return candidates[0]
 
 
 def link_path():
@@ -84,8 +85,7 @@ def active_name():
         # A regular file there is legal — reach only cares that it parses — but
         # then no named layout is active, and the GUI says so.
         return None
-    target = os.readlink(link)
-    name = os.path.basename(target)
+    name = os.path.basename(os.readlink(link))
     return name[:-4] if name.endswith(".zon") else name
 
 
@@ -179,19 +179,16 @@ def parse_zon(src):
             pos += 1
             is_struct = (toks[pos][0] == "field" and pos + 1 < len(toks)
                          and toks[pos + 1][0] == "eq")
-            if is_struct:
-                obj = {}
-                while pos < len(toks) and toks[pos][0] != "close":
+            out = {} if is_struct else []
+            while pos < len(toks) and toks[pos][0] != "close":
+                if is_struct:
                     key = toks[pos][1]
                     pos += 2  # the field name and its `=`
-                    obj[key] = parse_value()
-                pos += 1
-                return obj
-            arr = []
-            while pos < len(toks) and toks[pos][0] != "close":
-                arr.append(parse_value())
+                    out[key] = parse_value()
+                else:
+                    out.append(parse_value())
             pos += 1
-            return arr
+            return out
         # A bare `.name` with no `=` after it is an enum literal, not a key.
         pos += 1
         return Enum(value) if kind == "field" else value
@@ -276,10 +273,8 @@ def atomic_write(path, body):
             fh.write(body)
         os.replace(tmp, path)
     except BaseException:
-        try:
+        with suppress(OSError):
             os.unlink(tmp)
-        except OSError:
-            pass
         raise
 
 
@@ -296,10 +291,8 @@ def point_link(name):
     """
     link = link_path()
     tmp = link + ".new"
-    try:
+    with suppress(OSError):
         os.unlink(tmp)
-    except OSError:
-        pass
     os.symlink(os.path.join("monitors", name + ".zon"), tmp)
     os.replace(tmp, link)
 
@@ -352,7 +345,7 @@ def cmd_state():
         _, monitors = read_layout(preset_path(name))
         presets.append({"name": name, "monitors": monitors})
     active = active_name()
-    json.dump({
+    emit({
         "dir": presets_dir(),
         "link": link_path(),
         "active": active,
@@ -361,15 +354,14 @@ def cmd_state():
         "activeMissing": bool(active) and not os.path.isfile(preset_path(active)),
         "presets": presets,
         "outputs": live_outputs(),
-    }, sys.stdout)
-    print()
+    })
+    return 0
 
 
 def cmd_activate(name):
     if not os.path.isfile(preset_path(name)):
         return fail("no layout named '%s'" % name)
-    point_link(name)
-    return ok(reloaded=reload_reach(), active=name)
+    return switch_to(name)
 
 
 def cmd_save(name, body=None):
@@ -391,8 +383,7 @@ def cmd_save(name, body=None):
     path = preset_path(name)
     header, _ = read_layout(path)
     write_layout(path, header, monitors)
-    point_link(name)
-    return ok(reloaded=reload_reach(), active=name)
+    return switch_to(name)
 
 
 def cmd_delete(name):
@@ -407,17 +398,26 @@ def cmd_delete(name):
     return ok(reloaded=False)
 
 
-def ok(**extra):
-    payload = {"ok": True}
-    payload.update(extra)
+def switch_to(name):
+    """Make monitors/<name>.zon the live layout and tell reach."""
+    point_link(name)
+    return ok(reloaded=reload_reach(), active=name)
+
+
+# Every command answers with one JSON line on stdout — the QML side reads that,
+# not the exit status.
+def emit(payload):
     json.dump(payload, sys.stdout)
     print()
+
+
+def ok(**extra):
+    emit(dict({"ok": True}, **extra))
     return 0
 
 
 def fail(message):
-    json.dump({"ok": False, "error": message}, sys.stdout)
-    print()
+    emit({"ok": False, "error": message})
     return 1
 
 
@@ -427,8 +427,7 @@ def main(argv):
         return 2
     cmd = argv[1]
     if cmd == "state":
-        cmd_state()
-        return 0
+        return cmd_state()
     if cmd == "apply":
         return ok(reloaded=reload_reach())
     if cmd in ("activate", "save", "delete"):

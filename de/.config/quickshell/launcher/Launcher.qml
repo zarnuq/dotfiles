@@ -84,6 +84,10 @@ Picker {
     }
     onQueryChanged: root.selected = 0
 
+    // What the arrows walk. Picker's move() clamps against it, so this file
+    // doesn't repeat that arithmetic inline in the key handler.
+    count: root.results.length
+
     // yazi is run *inside* an interactive zsh rather than as kitty's command,
     // so quitting it (`q`) drops into a shell in the directory it was left in
     // instead of taking the window down with it. `y` is the zshrc wrapper that
@@ -135,187 +139,137 @@ Picker {
 
     box: Component {
         Column {
-            id: content
             spacing: 0
 
             // Called by Picker every time the box appears on an output.
-            function reset() {
-                field.text = ""; root.query = ""; root.selected = 0;
-                field.forceActiveFocus();
-            }
+            function reset() { search.reset(); root.query = ""; }
 
-            // Input row (rofi inputbar: no box, just the entry).
-            Item {
+            // Input row (rofi inputbar: no box, just the entry). The
+            // placeholder survives the lone sigil that switches mode, so the
+            // box says what it's searching before you've typed a query.
+            PickerSearch {
+                id: search
+                picker: root
                 width: parent.width
                 height: 52
+                margin: 12
+                fontSize: 24
+                placeholder: text === "/" ? "Find file…"
+                             : text === ">" ? "Open menu…"
+                             : "Search…  ( / files, > menus)"
+                placeholderShown: text === "" || text === "/" || text === ">"
+                onTextChanged: root.query = text
 
-                TextInput {
-                    id: field
-                    anchors.fill: parent
-                    anchors.leftMargin: 12; anchors.rightMargin: 12
-                    verticalAlignment: TextInput.AlignVCenter
-                    color: Theme.text
-                    font.family: Theme.font; font.pixelSize: 24
-                    focus: true
-                    onTextChanged: root.query = text
-                    Keys.onPressed: function (e) {
-                        if (e.key === Qt.Key_Escape) { root.hide(); e.accepted = true; }
-                        else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
-                            root.launch((e.modifiers & Qt.ControlModifier) ? "xdg"
-                                        : (e.modifiers & Qt.ShiftModifier) ? "yazi" : "");
-                            e.accepted = true;
-                        } else if (e.key === Qt.Key_Y && (e.modifiers & Qt.ControlModifier) && root.fileMode) {
-                            root.launch("copy"); e.accepted = true;
-                        } else if (e.key === Qt.Key_T && (e.modifiers & Qt.ControlModifier) && root.fileMode) {
-                            root.launch("term"); e.accepted = true;
-                        }
-                        else if (e.key === Qt.Key_Down || (e.key === Qt.Key_J && (e.modifiers & Qt.ControlModifier))) {
-                            root.selected = Math.min(root.selected + 1, root.results.length - 1); e.accepted = true;
-                        } else if (e.key === Qt.Key_Up || (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier))) {
-                            root.selected = Math.max(root.selected - 1, 0); e.accepted = true;
-                        }
-                    }
+                onSubmitted: function (e) {
+                    root.launch((e.modifiers & Qt.ControlModifier) ? "xdg"
+                                : (e.modifiers & Qt.ShiftModifier) ? "yazi" : "");
                 }
-
-                // Placeholder. It also survives the lone "/" that switches to
-                // file mode, so the box says what it's searching before you've
-                // typed a query — which means it has to start AFTER the slash
-                // and its cursor instead of on top of them.
-                Txt {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12 + (field.text === "" ? 0 : field.contentWidth + 10)
-                    anchors.rightMargin: 12
-                    verticalAlignment: Text.AlignVCenter
-                    text: field.text === "/" ? "Find file…"
-                          : field.text === ">" ? "Open menu…"
-                          : "Search…  ( / files, > menus)"
-                    color: Theme.subtext0
-                    font.pixelSize: 24
-                    visible: field.text === "" || field.text === "/" || field.text === ">"
+                onExtraKey: function (e) {
+                    if (!(e.modifiers & Qt.ControlModifier) || !root.fileMode) return;
+                    if (e.key === Qt.Key_Y) root.launch("copy");
+                    else if (e.key === Qt.Key_T) root.launch("term");
+                    else return;
+                    e.accepted = true;
                 }
             }
 
-            // Results.
-            Item {
+            PickerResults {
+                id: list
+                picker: root
                 width: parent.width
                 height: parent.height - 52
+                model: root.results
+                emptySize: 17
+                emptyText: root.cmdMode ? "no matches"
+                           : !root.fileMode ? (root.query === "" ? "no applications found" : "no matches")
+                           : !FileIndex.ready ? "indexing…"
+                           : root.fileQuery === "" ? FileIndex.count + " files"
+                           : "no matches"
 
-                Txt {
-                    anchors.centerIn: parent
-                    visible: root.results.length === 0
-                    text: root.cmdMode ? "no matches"
-                          : !root.fileMode ? (root.query === "" ? "no applications found" : "no matches")
-                          : !FileIndex.ready ? "indexing…"
-                          : root.fileQuery === "" ? FileIndex.count + " files"
-                          : "no matches"
-                    color: Theme.subtext0
-                    font.pixelSize: 17
-                }
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: list.width; height: 38
+                    color: index === root.selected ? Theme.rowSelectBg : "transparent"
 
-                ListView {
-                    id: list
-                    anchors.fill: parent
-                    clip: true
-                    model: root.results
-                    currentIndex: root.selected
-                    onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-                    boundsBehavior: Flickable.StopAtBounds
+                    PickerHover {
+                        picker: root
+                        row: index
+                        onActivated: root.launch()
+                    }
 
-                    delegate: Rectangle {
-                        required property var modelData
-                        required property int index
-                        width: list.width; height: 38
-                        color: index === root.selected ? Theme.rowSelectBg : "transparent"
+                    // App row: icon + name. File row: a glyph, the basename,
+                    // and the parent directory dimmed on the right. Menu row:
+                    // a glyph, the name, a gloss and the key that also does it.
+                    Item {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12; anchors.rightMargin: 12
 
-                        // positionChanged, NOT entered: arrowing down scrolls
-                        // the view, which slides a different row under a
-                        // motionless cursor and fires entered — so every
-                        // keypress handed the selection straight back to
-                        // whatever the pointer happened to sit on. Only real
-                        // pointer movement should steal it.
-                        MouseArea {
-                            id: hover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = index; }
-                            onClicked: { root.selected = index; root.launch(); }
+                        Image {
+                            visible: !root.fileMode && !root.cmdMode
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 26; height: 26
+                            sourceSize.width: 26; sourceSize.height: 26
+                            fillMode: Image.PreserveAspectFit
+                            source: (!root.fileMode && !root.cmdMode && modelData.icon)
+                                    ? Quickshell.iconPath(modelData.icon, "application-x-executable") : ""
                         }
 
-                        // App row: icon + name. File row: a glyph, the
-                        // basename, and the parent directory dimmed on the
-                        // right — elided from the LEFT, so the deep end of the
-                        // path stays visible. That tail is the only thing
-                        // telling four identically-named .zshrc hits apart.
-                        Item {
-                            anchors.fill: parent
-                            anchors.leftMargin: 12; anchors.rightMargin: 12
+                        Txt {
+                            visible: root.fileMode || root.cmdMode
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 26
+                            horizontalAlignment: Text.AlignHCenter
+                            text: root.cmdMode ? modelData.glyph
+                                  : (root.fileMode && modelData.isDir) ? "" : ""
+                            color: root.cmdMode ? Theme.mauve
+                                   : (root.fileMode && modelData.isDir) ? Theme.blue : Theme.subtext0
+                            font.pixelSize: 16
+                        }
 
-                            Image {
-                                visible: !root.fileMode && !root.cmdMode
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 26; height: 26
-                                sourceSize.width: 26; sourceSize.height: 26
-                                fillMode: Image.PreserveAspectFit
-                                source: (!root.fileMode && modelData.icon)
-                                        ? Quickshell.iconPath(modelData.icon, "application-x-executable") : ""
-                            }
+                        // The key that also does this, read out of config.zon
+                        // by Commands — the point of the list is to teach the
+                        // binding, not to replace it. Anchored outermost and
+                        // never elided: on a narrow output the gloss is what
+                        // should give way.
+                        Txt {
+                            id: keyLabel
+                            visible: root.cmdMode && modelData.key !== ""
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: root.cmdMode ? modelData.key : ""
+                            color: Theme.overlay0
+                            font.pixelSize: 15
+                        }
 
-                            Txt {
-                                visible: root.fileMode || root.cmdMode
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 26
-                                horizontalAlignment: Text.AlignHCenter
-                                text: root.cmdMode ? modelData.glyph
-                                      : (root.fileMode && modelData.isDir) ? "\uf07b" : "\uf15b"
-                                color: root.cmdMode ? Theme.mauve
-                                       : (root.fileMode && modelData.isDir) ? Theme.blue : Theme.subtext0
-                                font.pixelSize: 16
-                            }
+                        Txt {
+                            id: dirLabel
+                            visible: root.fileMode || root.cmdMode
+                            anchors.right: keyLabel.visible ? keyLabel.left : parent.right
+                            anchors.rightMargin: keyLabel.visible ? 14 : 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.min(implicitWidth, parent.width * 0.55)
+                            // Elided from the LEFT for a path (the deep end is
+                            // what tells four .zshrc hits apart) but from the
+                            // RIGHT for a gloss, which reads forwards.
+                            elide: root.cmdMode ? Text.ElideRight : Text.ElideLeft
+                            horizontalAlignment: Text.AlignRight
+                            text: root.cmdMode ? modelData.desc
+                                  : root.fileMode ? modelData.dir : ""
+                            color: Theme.subtext0
+                            font.pixelSize: 15
+                        }
 
-                            // The key that also does this, read out of
-                            // config.zon by Commands — the point of the list is
-                            // to teach the binding, not to replace it. Anchored
-                            // outermost and never elided: on a narrow output
-                            // the gloss is what should give way.
-                            Txt {
-                                id: keyLabel
-                                visible: root.cmdMode && modelData.key !== ""
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.cmdMode ? modelData.key : ""
-                                color: Theme.overlay0
-                                font.pixelSize: 15
-                            }
-
-                            Txt {
-                                id: dirLabel
-                                visible: root.fileMode || root.cmdMode
-                                anchors.right: keyLabel.visible ? keyLabel.left : parent.right
-                                anchors.rightMargin: keyLabel.visible ? 14 : 0
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Math.min(implicitWidth, parent.width * 0.55)
-                                // Elided from the LEFT for a path (the deep end
-                                // is what tells four .zshrc hits apart) but from
-                                // the RIGHT for a gloss, which reads forwards.
-                                elide: root.cmdMode ? Text.ElideRight : Text.ElideLeft
-                                horizontalAlignment: Text.AlignRight
-                                text: root.cmdMode ? modelData.desc
-                                      : root.fileMode ? modelData.dir : ""
-                                color: Theme.subtext0
-                                font.pixelSize: 15
-                            }
-
-                            Txt {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 34
-                                anchors.right: (root.fileMode || root.cmdMode) ? dirLabel.left : parent.right
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                elide: Text.ElideRight
-                                text: modelData.name
-                                color: index === root.selected ? Theme.rowSelectFg : Theme.text
-                                font.pixelSize: 19
-                            }
+                        Txt {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 34
+                            anchors.right: (root.fileMode || root.cmdMode) ? dirLabel.left : parent.right
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                            text: modelData.name
+                            color: index === root.selected ? Theme.rowSelectFg : Theme.text
+                            font.pixelSize: 19
                         }
                     }
                 }

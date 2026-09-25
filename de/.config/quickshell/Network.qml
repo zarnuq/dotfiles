@@ -62,7 +62,19 @@ Picker {
             "printf '%s\\n' \"$c\" | sed 's/^/C:/'; " +
             "printf '%s\\n' \"$d\" | sed 's/^/D:/'; " +
             "printf 'R:%s\\nS:ok\\n' \"$r\""]
-        onData: text => root.parseState(text)
+        onData: text => {
+            if (!text.endsWith("S:ok\n")) { root.nmSeen = false; return; }
+            var snapshot = NetworkData.parseState(text);
+            root.conns = snapshot.conns;
+            root.wifiDev = snapshot.wifiDev;
+            root.eths = snapshot.eths;
+            root.devStates = snapshot.devStates;
+            root.radioOn = snapshot.radioOn;
+            root.nmSeen = true;
+            // An action clears nmSeen and refreshes, so this is also what walks
+            // several new files through import one after another.
+            Qt.callLater(root.importNext);
+        }
     }
 
     // The AP list is deliberately NOT in that command. `device wifi list`
@@ -77,7 +89,14 @@ Picker {
         running: root.open
         interval: 5000
         command: ["nmcli", "-t", "-f", "IN-USE,SIGNAL,SECURITY,SSID", "device", "wifi", "list", "--rescan", "no"]
-        onData: text => root.parseAps(text)
+        onData: text => {
+            var list = NetworkData.parseAps(text);
+            root.aps = list;
+            // Only a list with something in it ends the "scanning…" state: the
+            // first tick after a rescan request usually lands before NM has any
+            // results, and calling that "done" would flash an empty list as final.
+            if (list.length > 0) root.scanning = false;
+        }
     }
 
     // The scan request, detached: it takes seconds, nothing waits on it, and
@@ -113,31 +132,10 @@ Picker {
             "printf 'F:ok\\n'"]
         onData: text => {
             if (!text.endsWith("F:ok\n")) { root.filesSeen = false; return; }
-            root.ovpnFiles = NetworkData.parseVpnFiles(text.slice(0, -5));
+            root.ovpnFiles = NetworkData.parseVpnFiles(text);
             root.filesSeen = true;
             Qt.callLater(root.importNext);
         }
-    }
-
-    function parseState(text) {
-        if (!text.endsWith("S:ok\n")) { root.nmSeen = false; return; }
-        var snapshot = NetworkData.parseState(text);
-        root.conns = snapshot.conns;
-        root.wifiDev = snapshot.wifiDev;
-        root.eths = snapshot.eths;
-        root.devStates = snapshot.devStates;
-        root.radioOn = snapshot.radioOn;
-        root.nmSeen = true;
-        Qt.callLater(root.importNext);
-    }
-
-    function parseAps(text) {
-        var list = NetworkData.parseAps(text);
-        root.aps = list;
-        // Only a list with something in it ends the "scanning…" state: the
-        // first tick after a rescan request usually lands before NM has any
-        // results, and calling that "done" would flash an empty list as final.
-        if (list.length > 0) root.scanning = false;
     }
 
     readonly property var vpnConns: NetworkData.vpnConnections(root.conns, root.devStates)
@@ -172,17 +170,18 @@ Picker {
         root.managedVpns = next;
         vpnSources.setText(JSON.stringify(next, null, 2) + "\n");
     }
-    function rememberSource(uuid, name, file) {
+    function setSource(uuid, entry) {   // a null entry forgets the UUID
         var next = Object.assign({}, root.managedVpns);
-        // Record WHAT was imported, not just where it came from: a file
-        // replaced under the same name is invisible to a name check.
-        var hash = "";
-        for (var i = 0; i < root.ovpnFiles.length; i++)
-            if (root.ovpnFiles[i].file === file) hash = root.ovpnFiles[i].hash;
-        next[uuid] = { name: name, file: file, hash: hash };
+        if (entry) next[uuid] = entry; else delete next[uuid];
         root.saveSources(next);
     }
 
+    // The mirror's guards, each answering a different question. importTried
+    // (cleared on open, like its twin deleteTried): a file NM refuses is not
+    // retried every tick, but gets another go on the next open. importDone
+    // (never cleared): a finished import stays done while the snapshot that
+    // would vouch for it is still a refresh away. nmSeen/filesSeen: nothing is
+    // imported or removed before both listings have actually landed.
     readonly property var pendingImports: NetworkData.pendingImports(root.vpnConns, root.ovpnFiles)
     property var importTried: ({})
     property var importDone: ({})
@@ -190,62 +189,19 @@ Picker {
 
     function importNext() {
         if (!root.open || act.running || cancelVpn.running || !root.nmSeen || !root.filesSeen) return;
-        var next = NetworkData.adoptSources(root.managedVpns, root.conns, root.ovpnFiles);
-        if (JSON.stringify(next) !== JSON.stringify(root.managedVpns)) root.saveSources(next);
-        // A changed file is deleted first and re-imported by the loop below;
-        // an obsolete one is simply gone. Both are the same delete command.
-        var obsolete = NetworkData.obsoleteSources(root.managedVpns, root.conns, root.ovpnFiles)
-                       .concat(NetworkData.staleSources(root.managedVpns, root.conns, root.ovpnFiles));
-        for (var j = 0; j < obsolete.length; j++) {
-            var old = obsolete[j];
-            if (root.deleteTried[old.uuid]) continue;
-            root.deleteTried[old.uuid] = true;
-            act.deleteUuid = old.uuid;
-            root.run(["nmcli", "connection", "delete", "uuid", old.uuid], "removing " + old.name + "…");
-            return;
-        }
-        for (var i = 0; i < root.pendingImports.length; i++) {
-            var f = root.pendingImports[i];
-            if (root.importTried[f.file] || root.importDone[f.file]) continue;
-            root.importTried[f.file] = true;
-            act.importFile = f.file;
-            act.importName = f.name;
-            // Import, then discard the default route the server pushes — one
-            // command, because the second half is not optional.
-            //
-            // HTB pushes `default via <tun gw> metric 50`, which outranks the
-            // Wi-Fi default (metric 600), so every packet — DNS included — goes
-            // down a tunnel that carries no general internet, and the machine
-            // drops off the network the moment a lab connects. `never-default`
-            // discards only that default; the lab subnets it also pushes
-            // (10.10.x, 10.129.x, …) still get their routes. These are lab
-            // configs by definition, so split tunnel is the policy here.
-            //
-            // The UUID comes from the import's own output, never a name lookup
-            // — several profiles can share a name. stdout is reprinted verbatim
-            // so onExited's own UUID match still sees it. `con mod` is avoided
-            // elsewhere in this file (unprivileged, it drops a profile's stored
-            // secrets), but a profile created one line earlier has none: an
-            // openvpn import stores cert PATHS and `vpn.secrets` is empty.
-            // WireGuard imports are a bare `con import`, deliberately. The
-            // never-default fix below is a `con mod`, and doing that
-            // unprivileged to a wireguard profile silently drops the private
-            // key it just stored — the config file is the only other copy, and
-            // for a peer-generated key there may be none. A wg tunnel takes its
-            // routes from AllowedIPs anyway; if one of yours carries
-            // 0.0.0.0/0 and you want it split, that is a one-off
-            // `doas nmcli con mod <uuid> ipv4.never-default yes`.
-            root.run(f.kind === "wireguard"
-                     ? ["nmcli", "connection", "import", "type", "wireguard", "file", f.file]
-                     : ["sh", "-c",
-                        "out=$(nmcli connection import type openvpn file \"$1\") || exit $?; " +
-                        "printf '%s\\n' \"$out\"; " +
-                        "uuid=$(printf '%s' \"$out\" | grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | head -1); " +
-                        "[ -n \"$uuid\" ] && nmcli connection modify uuid \"$uuid\" " +
-                        "ipv4.never-default yes ipv6.never-default yes || true",
-                        "sh", f.file],
-                     "importing " + f.name + "…");
-            return;
+        var adopted = NetworkData.adoptSources(root.managedVpns, root.conns, root.ovpnFiles);
+        if (JSON.stringify(adopted) !== JSON.stringify(root.managedVpns)) root.saveSources(adopted);
+        var step = NetworkData.syncStep(root.managedVpns, root.conns, root.ovpnFiles, root.pendingImports,
+                                        { importTried: root.importTried, importDone: root.importDone,
+                                          deleteTried: root.deleteTried });
+        if (step && step.remove) {
+            root.deleteTried[step.remove.uuid] = true;
+            root.run(["nmcli", "connection", "delete", "uuid", step.remove.uuid],
+                     "removing " + step.remove.name + "…", { deleteUuid: step.remove.uuid });
+        } else if (step) {
+            root.importTried[step.add.file] = true;
+            root.run(NetworkData.importCommand(step.add), "importing " + step.add.name + "…",
+                     { importing: step.add });
         }
     }
     onPendingImportsChanged: Qt.callLater(root.importNext)
@@ -253,24 +209,6 @@ Picker {
     // Empty unless something that should be up isn't. Shown in the bottom bar
     // whenever there's no action status competing for it.
     readonly property string warning: NetworkData.warning(root.rows)
-
-    function rowActive(row) {
-        if (row.kind === "ap")    return row.ap.inUse;
-        if (row.kind === "radio") return root.radioOn;
-        if (row.kind === "eth")   return row.active;
-        return row.active === true;
-    }
-
-    // Plugged, unplugged, or up: three states worth telling apart at a glance.
-    function ethIcon(row) { return row.active ? "󰈁" : row.state === "unavailable" ? "󰈂" : "󰈀"; }
-
-    function rowLabel(row) {
-        if (row.kind === "header") return row.label;
-        if (row.kind === "radio")  return "Wi-Fi " + (root.radioOn ? "on" : "off");
-        if (row.kind === "ap")     return row.ap.ssid;
-        if (row.kind === "eth")    return row.name;
-        return row.label || row.name;
-    }
 
     rowHeight: s(36)
     barHeight: s(30)
@@ -282,38 +220,36 @@ Picker {
     // whole point of the status line is watching it succeed or fail.
     property string pwSsid: ""      // non-empty = asking for this SSID's key
 
+    // What the running action was, set by run() for every action, so none of
+    // it can leak from one action into the next.
     Process {
         id: act
-        property string vpnUuid: ""
+        property string vpnUuid: ""  // the `con up` in flight, which `d` can cancel
         property bool cancelling: false
-        property string ssid: ""    // set when the action was an AP join
-        property bool hadKey: false // ...with a password already supplied
-        property string importFile: "" // set when the action was an auto-import
-        property string importName: ""
+        property string ssid: ""     // set when the action was an AP join
+        property bool hadKey: false  // ...with a password already supplied
+        property var importing: null // the ~/VPNs file, when it was an auto-import
         property string deleteUuid: ""
         stdout: StdioCollector { id: actOut }
         stderr: StdioCollector { id: actErr }
         onExited: (code) => {
-            // Remember a successful import for good; the snapshot that would
-            // otherwise vouch for it is still a refresh away.
-            if (code === 0 && act.importFile !== "") {
-                root.importDone[act.importFile] = true;
-                var match = actOut.text.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i);
-                if (match) root.rememberSource(match[0], act.importName, act.importFile);
+            var f = act.importing;
+            if (code === 0 && f) {
+                // Remember a successful import for good; the snapshot that
+                // would otherwise vouch for it is still a refresh away.
+                root.importDone[f.file] = true;
+                var uuid = NetworkData.importedUuid(actOut.text);
+                // Record WHAT was imported, not just where it came from: a file
+                // replaced under the same name is invisible to a name check.
+                if (uuid !== "") root.setSource(uuid, { name: f.name, file: f.file, hash: f.hash });
             }
             if (code === 0 && act.deleteUuid !== "") {
-                var next = Object.assign({}, root.managedVpns);
-                var old = next[act.deleteUuid];
+                var old = root.managedVpns[act.deleteUuid];
                 if (old) { delete root.importDone[old.file]; delete root.importTried[old.file]; }
-                delete next[act.deleteUuid];
-                root.saveSources(next);
+                root.setSource(act.deleteUuid, null);
             }
-            act.deleteUuid = "";
-            act.importName = "";
-            act.importFile = "";
             if (code === 0 || act.cancelling) {
-                root.status = "";
-                root.pwSsid = "";
+                root.clearStatus();
             } else {
                 var err = actErr.text.trim();
                 console.warn("Network action failed (exit " + code + "): " + err);
@@ -333,7 +269,6 @@ Picker {
             nm.refresh();
             scan.refresh();      // the in-use marker moves with a join
             ovpn.refresh();
-            root.importNext();   // several new files import one after another
         }
     }
 
@@ -353,12 +288,17 @@ Picker {
         }
     }
 
-    function run(cmd, note, ssid, hadKey) {
+    // `opts` says what the action is, for onExited: { ssid, hadKey } for a
+    // Wi-Fi join, { importing } or { deleteUuid } for the ~/VPNs mirror.
+    function run(cmd, note, opts) {
         if (act.running || cancelVpn.running) return;
+        opts = opts || {};
         act.vpnUuid = cmd[1] === "connection" && cmd[2] === "up" ? cmd[4] : "";
         act.cancelling = false;
-        act.ssid = ssid || "";
-        act.hadKey = hadKey === true;
+        act.ssid = opts.ssid || "";
+        act.hadKey = opts.hadKey === true;
+        act.importing = opts.importing || null;
+        act.deleteUuid = opts.deleteUuid || "";
         root.status = note;
         act.command = cmd;
         act.running = true;
@@ -372,12 +312,7 @@ Picker {
                      root.radioOn ? "turning Wi-Fi off…" : "turning Wi-Fi on…");
         } else if (row.kind === "ap") {
             if (row.ap.inUse) return;             // already on it; `d` disconnects
-            // `device wifi connect` reuses the saved profile for this SSID if
-            // there is one, which is what keeps eduroam working: its profile is
-            // named "eduroam [a8f5604d]", so matching by connection name would
-            // miss it and try to create a second profile.
-            root.run(["nmcli", "device", "wifi", "connect", row.ap.ssid],
-                     "connecting to " + row.ap.ssid + "…", row.ap.ssid, false);
+            root.join(row.ap.ssid);
         } else if (row.kind === "eth") {
             if (row.active) return;
             // "unavailable" is NM's word for no carrier. `device connect` would
@@ -397,14 +332,20 @@ Picker {
         }
     }
 
-    function connectWithKey(pw) {
-        if (root.pwSsid === "") return;
+    // `device wifi connect` reuses the saved profile for this SSID if there is
+    // one, which is what keeps eduroam working: its profile is named "eduroam
+    // [a8f5604d]", so matching by connection name would miss it and try to
+    // create a second profile.
+    function join(ssid, pw) {
+        var cmd = ["nmcli", "device", "wifi", "connect", ssid];
         // The key rides in argv, where it is readable in /proc for the life of
         // the call. nmcli has no way to take it on stdin or from a file, and
         // NM stores it itself afterwards, so this happens once per network.
-        root.run(["nmcli", "device", "wifi", "connect", root.pwSsid, "password", pw],
-                 "connecting to " + root.pwSsid + "…", root.pwSsid, true);
+        if (pw !== undefined) cmd.push("password", pw);
+        root.run(cmd, "connecting to " + ssid + "…", { ssid: ssid, hadKey: pw !== undefined });
     }
+
+    function clearStatus() { root.status = ""; root.pwSsid = ""; }
 
     function disconnect(i) {
         if (!selectable(i)) return;
@@ -432,18 +373,17 @@ Picker {
             root.importTried = ({});
             root.deleteTried = ({});
         }
-        else { root.pwSsid = ""; root.status = ""; }
+        else root.clearStatus();
     }
 
     box: Component {
-        Item {
-            id: content
-            focus: true
+        PickerList {
+            id: list
+            picker: root
 
-            function reset() { root.pwSsid = ""; }
+            onResetting: root.pwSsid = ""
 
-            Keys.onPressed: function (e) {
-                if (root.navKey(e)) return;
+            onExtraKey: function (e) {
                 var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
                 if (e.key === Qt.Key_D && plain) { root.disconnect(root.selected); }
                 else if (e.key === Qt.Key_R && plain) { root.rescan(); }
@@ -451,144 +391,73 @@ Picker {
                 e.accepted = true;
             }
 
-            Column {
-                anchors.fill: parent
-                anchors.topMargin: root.s(12)
-                anchors.bottomMargin: root.s(12)
-                spacing: 0
+            // Everything a row shows is stamped on it by NetworkData.buildRows.
+            rowDelegate: PickerRow {
+                id: rowItem
+                readonly property bool active: modelData.active === true
 
-                Repeater {
-                    model: root.rows
+                picker: root
+                width: parent.width
+                current: rowItem.active
+                onActivated: root.activate(rowItem.index)
 
-                    PickerRow {
-                        id: rowItem
-                        picker: root
-                        readonly property bool active: !isHeader && root.rowActive(modelData)
-
-                        width: content.width
-                        headerHeight: root.headerHeight
-                        rowHeight: root.rowHeight
-                        current: rowItem.active
-                        onActivated: root.activate(rowItem.index)
-
-                        Row {
-                            visible: !rowItem.isHeader
-                            anchors.fill: parent
-                            anchors.leftMargin: root.s(18)
-                            anchors.rightMargin: root.s(18)
-                            spacing: root.s(12)
-
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(24)
-                                text: {
-                                    var k = rowItem.modelData.kind;
-                                    if (k === "radio") return root.radioOn ? "󰤨" : "󰤮";
-                                    if (k === "eth") return root.ethIcon(rowItem.modelData);
-                                    if (k === "ap") {
-                                        var q = rowItem.modelData.ap.signal;
-                                        return q >= 75 ? "󰤨" : q >= 50 ? "󰤥" : q >= 25 ? "󰤢" : "󰤟";
-                                    }
-                                    return "󰖂";
-                                }
-                                color: rowItem.active ? Theme.mauve : rowItem.sel ? Theme.mauve : Theme.subtext0
-                                font.pixelSize: root.s(17)
-                            }
-
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - root.s(24) - root.s(90) - parent.spacing * 2
-                                elide: Text.ElideRight
-                                text: rowItem.isHeader ? "" : root.rowLabel(rowItem.modelData)
-                                color: rowItem.sel ? Theme.rowSelectFg : Theme.text
-                                font.pixelSize: root.s(15)
-                            }
-
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(90)
-                                horizontalAlignment: Text.AlignRight
-                                text: {
-                                    var m = rowItem.modelData;
-                                    if (m.kind === "ap") return (m.ap.security ? "󰌾 " : "") + m.ap.signal + "%";
-                                    if (m.kind === "eth" && !rowItem.active)
-                                        return m.state === "unavailable" ? "no cable" : m.state;
-                                    // The VPN rows have their own vocabulary —
-                                    // "external", and "down" for a tunnel that
-                                    // was supposed to stay up — shared with the
-                                    // VPN menu so both say the same thing.
-                                    if (m.kind === "nmvpn") return NetworkData.vpnState(m);
-                                    return rowItem.active ? "connected" : "";
-                                }
-                                color: rowItem.active ? Theme.mauve
-                                       : (!rowItem.isHeader && rowItem.modelData.alwaysOn === true) ? Theme.red
-                                       : Theme.subtext0
-                                font.pixelSize: root.s(13)
-                            }
-                        }
-                    }
-                }
+                icon: rowItem.isHeader ? "" : rowItem.modelData.icon
+                iconColor: (rowItem.active || rowItem.sel) ? Theme.mauve : Theme.subtext0
+                label: rowItem.isHeader ? "" : rowItem.modelData.label
+                trailing: rowItem.isHeader ? "" : rowItem.modelData.trailing
+                trailingWidth: root.s(90)
+                // A tunnel that was supposed to stay up and isn't reads red.
+                trailingColor: rowItem.active ? Theme.mauve
+                               : rowItem.modelData.alwaysOn === true ? Theme.red
+                               : Theme.subtext0
             }
 
             // Bottom bar: the key prompt when one is needed, else the status
-            // line, else the keys. Anchored rather than in the Column so a
-            // growing list never pushes it out of the box.
-            Item {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: root.s(18)
-                anchors.rightMargin: root.s(18)
-                height: root.barHeight
+            // line, else the keys.
+            Txt {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.pwSsid === ""
+                text: root.status !== "" ? root.status
+                      : root.warning !== "" ? root.warning
+                      : (root.radioOn && root.aps.length === 0)
+                        ? (root.scanning ? "scanning…" : "no networks in range")
+                      : "enter connect · d disconnect · r rescan"
+                color: root.status !== "" ? Theme.peach
+                       : root.warning !== "" ? Theme.red : Theme.surface1
+                elide: Text.ElideRight
+                width: parent.width
+                font.pixelSize: root.s(13)
+            }
+
+            Row {
+                anchors.fill: parent
+                visible: root.pwSsid !== ""
+                spacing: root.s(8)
 
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: root.pwSsid === ""
-                    text: root.status !== "" ? root.status
-                          : root.warning !== "" ? root.warning
-                          : (root.radioOn && root.aps.length === 0)
-                            ? (root.scanning ? "scanning…" : "no networks in range")
-                          : "enter connect · d disconnect · r rescan"
-                    color: root.status !== "" ? Theme.peach
-                           : root.warning !== "" ? Theme.red : Theme.surface1
-                    elide: Text.ElideRight
-                    width: parent.width
+                    text: "󰌾 " + root.pwSsid
+                    color: Theme.mauve
                     font.pixelSize: root.s(13)
                 }
 
-                Row {
-                    anchors.fill: parent
-                    visible: root.pwSsid !== ""
-                    spacing: root.s(8)
-
-                    Txt {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "󰌾 " + root.pwSsid
-                        color: Theme.mauve
-                        font.pixelSize: root.s(13)
-                    }
-
-                    TextInput {
-                        id: pw
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - root.s(160)
-                        color: Theme.text
-                        font.family: Theme.font
-                        font.pixelSize: root.s(14)
-                        echoMode: TextInput.Password
-                        // The field appears only when NM has asked for a key, so
-                        // it takes focus then and hands it back on the way out —
-                        // the list's keys (d, r, j/k) are letters, and they must
-                        // not eat a password being typed.
-                        onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
-                        onAccepted: { root.connectWithKey(text); text = ""; }
-                        Keys.onPressed: function (e) {
-                            if (e.key === Qt.Key_Escape) {
-                                root.pwSsid = "";
-                                root.status = "";
-                                content.forceActiveFocus();
-                                e.accepted = true;
-                            }
+                Field {
+                    id: pw
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - root.s(160)
+                    font.pixelSize: root.s(14)
+                    echoMode: TextInput.Password
+                    // The field appears only when NM has asked for a key, so
+                    // it takes focus then and hands it back on the way out —
+                    // the list's keys (d, r, j/k) are letters, and they must
+                    // not eat a password being typed.
+                    onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
+                    onAccepted: { if (root.pwSsid !== "") root.join(root.pwSsid, text); text = ""; }
+                    Keys.onPressed: function (e) {
+                        if (e.key === Qt.Key_Escape) {
+                            root.clearStatus();
+                            list.forceActiveFocus();
+                            e.accepted = true;
                         }
                     }
                 }

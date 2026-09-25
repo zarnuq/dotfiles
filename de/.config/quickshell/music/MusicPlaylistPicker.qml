@@ -109,13 +109,10 @@ FocusScope {
                 color: Theme.blue
                 text: "name ›"
             }
-            TextInput {
+            Field {
                 id: nameField
                 anchors.fill: parent
                 anchors.leftMargin: prompt.width + Ui.s(8)
-                verticalAlignment: TextInput.AlignVCenter
-                color: Theme.text
-                font.family: Theme.font
                 font.pixelSize: Ui.fs(13)
                 // Not a `focus:` binding: the container is hidden until
                 // `naming`, and an invisible item refuses focus.

@@ -59,9 +59,7 @@ function createIndex(text, pairs, demoted) {
         var b = lower.slice(lower.lastIndexOf("/") + 1);
         if (b.charCodeAt(0) === 46) b = b.slice(1);   // ".zshrc" is found by "zshrc"
 
-        var depth = 0;
-        for (var j = 0; j < p.length; j++) if (p.charCodeAt(j) === 47) depth++;
-        var pen = depth * 3;                          // shallower is likelier
+        var pen = slashCount(p) * 3;                  // shallower is likelier
         if (lower.indexOf("/.") >= 0) pen += 12;      // dotfile machinery
         for (var k = 0; k < demoted.length; k++)
             if (p.indexOf(demoted[k]) >= 0) { pen += 120; break; }

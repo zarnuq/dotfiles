@@ -150,12 +150,10 @@ Picker {
     }
 
     box: Component {
-        Item {
-            id: content
-            focus: true
+        PickerList {
+            picker: root
 
-            Keys.onPressed: function (e) {
-                if (root.navKey(e)) return;
+            onExtraKey: function (e) {
                 var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
                 if (e.key === Qt.Key_M && plain) { root.toggleMute(root.selected); }
                 else if (e.key === Qt.Key_Right || (e.key === Qt.Key_L && plain)) {
@@ -166,96 +164,63 @@ Picker {
                 e.accepted = true;
             }
 
-            Column {
-                anchors.fill: parent
-                anchors.topMargin: root.s(12)
-                anchors.bottomMargin: root.s(12)
-                spacing: 0
+            rowDelegate: PickerRow {
+                id: rowItem
+                readonly property var audio: isHeader ? null : modelData.node.audio
+                readonly property bool muted: audio ? audio.muted : false
+                readonly property int pct: audio ? Math.round(root.levelOf(modelData.node) * 100) : 0
+                readonly property bool isDefault: !isHeader && root.isDefault(modelData)
 
-                Repeater {
-                    model: root.rows
+                picker: root
+                width: parent.width
+                current: rowItem.isDefault
+                onActivated: root.activate(rowItem.index)
 
-                    PickerRow {
-                        id: rowItem
-                        picker: root
-                        readonly property var audio: isHeader ? null : modelData.node.audio
-                        readonly property bool muted: audio ? audio.muted : false
-                        readonly property int pct: audio ? Math.round(root.levelOf(modelData.node) * 100) : 0
-                        readonly property bool isDefault: !isHeader && root.isDefault(modelData)
+                icon: {
+                    if (rowItem.isHeader) return "";
+                    if (rowItem.modelData.kind === "source") return rowItem.muted ? "󰍭" : "󰍬";
+                    if (rowItem.modelData.kind === "sink")   return "󰓃";
+                    return rowItem.muted ? "󰖁" : "󰕾";
+                }
+                iconSize: root.s(18)
+                iconColor: rowItem.muted ? Theme.red
+                           : rowItem.isDefault ? Theme.mauve
+                           : rowItem.sel ? Theme.mauve : Theme.subtext0
 
-                        width: content.width
-                        headerHeight: root.headerHeight
-                        rowHeight: root.rowHeight
-                        current: rowItem.isDefault
-                        onActivated: root.activate(rowItem.index)
+                label: rowItem.isHeader ? "" : root.label(rowItem.modelData)
 
-                        Row {
-                            visible: !rowItem.isHeader
-                            anchors.fill: parent
-                            anchors.leftMargin: root.s(18)
-                            anchors.rightMargin: root.s(18)
-                            spacing: root.s(12)
+                slotWidth: root.s(150)
 
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(24)
-                                text: {
-                                    if (rowItem.isHeader) return "";
-                                    if (rowItem.modelData.kind === "source") return rowItem.muted ? "󰍭" : "󰍬";
-                                    if (rowItem.modelData.kind === "sink")   return "󰓃";
-                                    return rowItem.muted ? "󰖁" : "󰕾";
-                                }
-                                color: rowItem.muted ? Theme.red
-                                       : rowItem.isDefault ? Theme.mauve
-                                       : rowItem.sel ? Theme.mauve : Theme.subtext0
-                                font.pixelSize: root.s(18)
-                            }
+                trailing: rowItem.isHeader ? "" : rowItem.pct + "%"
+                trailingWidth: root.s(46)
+                trailingSize: root.s(14)
+                trailingColor: rowItem.muted ? Theme.red : Theme.subtext0
 
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - root.s(24) - root.s(150) - root.s(46) - parent.spacing * 3
-                                elide: Text.ElideRight
-                                text: rowItem.isHeader ? "" : root.label(rowItem.modelData)
-                                color: rowItem.sel ? Theme.rowSelectFg : Theme.text
-                                font.pixelSize: root.s(15)
-                            }
+                // The slot's one control: drag anywhere on the track to set
+                // the level. The row makes room for it; this fills that room.
+                Rectangle {
+                    id: track
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    height: root.s(6)
+                    color: Theme.surface0
+                    radius: Theme.borderRadius
 
-                            // Drag anywhere on the track to set the level.
-                            Rectangle {
-                                id: track
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(150)
-                                height: root.s(6)
-                                color: Theme.surface0
-                                radius: Theme.borderRadius
+                    Rectangle {
+                        width: track.width * Math.max(0, Math.min(1, rowItem.pct / 100))
+                        height: parent.height
+                        color: rowItem.muted ? Theme.red
+                               : rowItem.sel ? Theme.mauve : Theme.surface1
+                        radius: Theme.borderRadius
+                    }
 
-                                Rectangle {
-                                    width: track.width * Math.max(0, Math.min(1, rowItem.pct / 100))
-                                    height: parent.height
-                                    color: rowItem.muted ? Theme.red
-                                           : rowItem.sel ? Theme.mauve : Theme.surface1
-                                    radius: Theme.borderRadius
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -root.s(10)   // the track is 6px tall; the grab area shouldn't be
-                                    onPressed: function (e) { root.selected = rowItem.index; set(e.x); }
-                                    onPositionChanged: function (e) { if (pressed) set(e.x); }
-                                    function set(x) {
-                                        root.setVolume(rowItem.modelData, (x - root.s(10)) / track.width);
-                                    }
-                                }
-                            }
-
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(46)
-                                horizontalAlignment: Text.AlignRight
-                                text: rowItem.isHeader ? "" : rowItem.pct + "%"
-                                color: rowItem.muted ? Theme.red : Theme.subtext0
-                                font.pixelSize: root.s(14)
-                            }
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -root.s(10)   // the track is 6px tall; the grab area shouldn't be
+                        onPressed: function (e) { root.selected = rowItem.index; set(e.x); }
+                        onPositionChanged: function (e) { if (pressed) set(e.x); }
+                        function set(x) {
+                            root.setVolume(rowItem.modelData, (x - root.s(10)) / track.width);
                         }
                     }
                 }

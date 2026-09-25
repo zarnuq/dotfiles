@@ -21,17 +21,9 @@ Item {
     // Recomputed from the working copy, so dragging a head past the edge
     // rescales rather than pushing it out of sight.
     readonly property var bounds: {
-        var e = canvas.entries;
-        if (!e || e.length === 0) return { x: 0, y: 0, w: 1920, h: 1080 };
-        var minX = e[0].x, minY = e[0].y;
-        var maxX = e[0].x + view.effW(e[0]), maxY = e[0].y + view.effH(e[0]);
-        for (var i = 1; i < e.length; i++) {
-            minX = Math.min(minX, e[i].x);
-            minY = Math.min(minY, e[i].y);
-            maxX = Math.max(maxX, e[i].x + view.effW(e[i]));
-            maxY = Math.max(maxY, e[i].y + view.effH(e[i]));
-        }
-        return { x: minX, y: minY, w: Math.max(1, maxX - minX), h: Math.max(1, maxY - minY) };
+        var e = view.extent(canvas.entries);
+        if (!e) return { x: 0, y: 0, w: 1920, h: 1080 };
+        return { x: e.minX, y: e.minY, w: Math.max(1, e.maxX - e.minX), h: Math.max(1, e.maxY - e.minY) };
     }
 
     readonly property real pad: view.s(28)
@@ -64,8 +56,14 @@ Item {
             readonly property var mon: canvas.entries[index]
             readonly property bool isSelected: canvas.view.selected === index
 
-            x: canvas.originX + mon.x * canvas.zoom
-            y: canvas.originY + mon.y * canvas.zoom
+            // Mid-drag the rectangle follows the snapped drop point rather than
+            // the model. Choosing it in the binding, instead of assigning x/y from
+            // the drag handler, means there is no binding to break: an assignment
+            // replaces it for good, and a head released that way kept the pixel it
+            // was dropped at while the model held the snapped value — a gap the
+            // layout did not have, drawn until the next reload.
+            x: canvas.originX + (drag.dragging ? drag.dropX : mon.x) * canvas.zoom
+            y: canvas.originY + (drag.dragging ? drag.dropY : mon.y) * canvas.zoom
             width: canvas.view.effW(mon) * canvas.zoom
             height: canvas.view.effH(mon) * canvas.zoom
 
@@ -104,6 +102,7 @@ Item {
             }
 
             MouseArea {
+                id: drag
                 anchors.fill: parent
 
                 // The rectangle is drawn SNAPPED while you drag, not corrected on
@@ -122,7 +121,6 @@ Item {
 
                 onPressed: mouse => {
                     canvas.view.selected = head.index;
-                    dragging = head.mon.included;
                     // Held constant for the whole drag, which is what keeps the
                     // pointer on the same spot of the rectangle. Accumulating
                     // frame deltas cannot: the rect moves by the SNAPPED amount,
@@ -131,6 +129,9 @@ Item {
                     grabDY = mouse.y;
                     dropX = head.mon.x;
                     dropY = head.mon.y;
+                    // Last, so the rect switches to the drop point only once it
+                    // holds where the head already is.
+                    dragging = head.mon.included;
                 }
 
                 onPositionChanged: mouse => {
@@ -141,21 +142,14 @@ Item {
                                             (p.y - grabDY - canvas.originY) / canvas.zoom);
                     dropX = at.x;
                     dropY = at.y;
-                    head.x = canvas.originX + at.x * canvas.zoom;
-                    head.y = canvas.originY + at.y * canvas.zoom;
                 }
 
                 onReleased: {
                     if (!dragging) return;
-                    dragging = false;
+                    // Commit first: dropping `dragging` hands x/y back to the
+                    // model, which must already hold the snapped position.
                     canvas.view.move(head.index, dropX, dropY);
-                    // Restore what the drag broke: assigning x/y above replaced
-                    // their bindings for good, so without this the rectangle keeps
-                    // the pixel it was dropped at while the model holds the snapped
-                    // value — the canvas would draw a gap the layout does not have,
-                    // and go on drawing it until the layout was reloaded.
-                    head.x = Qt.binding(function () { return canvas.originX + head.mon.x * canvas.zoom; });
-                    head.y = Qt.binding(function () { return canvas.originY + head.mon.y * canvas.zoom; });
+                    dragging = false;
                 }
 
                 onDoubleClicked: canvas.view.toggleIncluded(head.index)
@@ -177,27 +171,37 @@ Item {
     function snapFor(index, x, y) {
         var mon = entries[index];
         var w = view.effW(mon), h = view.effH(mon);
+        var others = neighbours(index);
 
         var bestX = { delta: snapPx, value: x }, bestY = { delta: snapPx, value: y };
-        for (var i = 0; i < entries.length; i++) {
-            if (i === index) continue;
-            var o = entries[i];
-            if (!o.included) continue;
-            var ow = view.effW(o), oh = view.effH(o);
-
-            consider(bestX, x, o.x + ow);       // my left  → their right
+        for (var i = 0; i < others.length; i++) {
+            var o = others[i];
+            consider(bestX, x, o.x + o.w);      // my left  → their right
             consider(bestX, x, o.x - w);        // my right → their left
             consider(bestX, x, o.x);            // left edges flush
-            consider(bestX, x, o.x + ow - w);   // right edges flush
+            consider(bestX, x, o.x + o.w - w);  // right edges flush
 
-            consider(bestY, y, o.y + oh);
+            consider(bestY, y, o.y + o.h);
             consider(bestY, y, o.y - h);
             consider(bestY, y, o.y);
-            consider(bestY, y, o.y + oh - h);
+            consider(bestY, y, o.y + o.h - h);
         }
 
-        var at = { x: bestX.value, y: bestY.value };
-        return touches(index, at.x, at.y) ? at : attach(index, at.x, at.y);
+        var at = { x: bestX.value, y: bestY.value, w: w, h: h };
+        return touches(others, at) ? { x: at.x, y: at.y } : attach(others, at);
+    }
+
+    /// Every OTHER head that is in the layout, as a rectangle with its effective
+    /// size — what each stage below measures against. A head merely plugged in is
+    /// not something to line up with.
+    function neighbours(index) {
+        var out = [];
+        for (var i = 0; i < entries.length; i++) {
+            var o = entries[i];
+            if (i !== index && o.included)
+                out.push({ x: o.x, y: o.y, w: view.effW(o), h: view.effH(o) });
+        }
+        return out;
     }
 
     function consider(best, actual, candidate) {
@@ -210,15 +214,11 @@ Item {
 
     /// Does this rectangle meet any other head? Sharing an edge counts (a gap of
     /// exactly 0); meeting only at a corner does not, since nothing can cross it.
-    function touches(index, x, y) {
-        var mon = entries[index], w = view.effW(mon), h = view.effH(mon);
-        for (var i = 0; i < entries.length; i++) {
-            if (i === index) continue;
-            var o = entries[i];
-            if (!o.included) continue;
-            var ow = view.effW(o), oh = view.effH(o);
-            var ox = Math.min(x + w, o.x + ow) - Math.max(x, o.x);
-            var oy = Math.min(y + h, o.y + oh) - Math.max(y, o.y);
+    function touches(others, r) {
+        for (var i = 0; i < others.length; i++) {
+            var o = others[i];
+            var ox = Math.min(r.x + r.w, o.x + o.w) - Math.max(r.x, o.x);
+            var oy = Math.min(r.y + r.h, o.y + o.h) - Math.max(r.y, o.y);
             if (ox >= 0 && oy >= 0 && (ox > 0 || oy > 0)) return true;
         }
         return false;
@@ -229,29 +229,26 @@ Item {
     /// diagonally — that is the side it was dragged toward), then slide the other
     /// axis just far enough to overlap, so the two share an edge rather than
     /// meeting at a corner.
-    function attach(index, x, y) {
-        var mon = entries[index], w = view.effW(mon), h = view.effH(mon);
+    function attach(others, r) {
+        var x = r.x, y = r.y, w = r.w, h = r.h;
 
-        var near = null, nearGap = Infinity, nw = 0, nh = 0;
-        for (var i = 0; i < entries.length; i++) {
-            if (i === index) continue;
-            var o = entries[i];
-            if (!o.included) continue;
-            var ow = view.effW(o), oh = view.effH(o);
-            var d = gap(x, w, o.x, ow) + gap(y, h, o.y, oh);
-            if (d < nearGap) { nearGap = d; near = o; nw = ow; nh = oh; }
+        var near = null, nearGap = Infinity;
+        for (var i = 0; i < others.length; i++) {
+            var o = others[i];
+            var d = gap(x, w, o.x, o.w) + gap(y, h, o.y, o.h);
+            if (d < nearGap) { nearGap = d; near = o; }
         }
         if (!near) return { x: x, y: y };
 
-        var gx = gap(x, w, near.x, nw), gy = gap(y, h, near.y, nh);
+        var gx = gap(x, w, near.x, near.w), gy = gap(y, h, near.y, near.h);
         // Closing an axis that is already overlapping would shove the head out to
         // that neighbour's side for no reason, so only a positive gap is closed.
         if (gy === 0 || (gx > 0 && gx <= gy)) {
-            x = (x + w / 2 < near.x + nw / 2) ? near.x - w : near.x + nw;
-            y = slideInto(y, h, near.y, nh);
+            x = (x + w / 2 < near.x + near.w / 2) ? near.x - w : near.x + near.w;
+            y = slideInto(y, h, near.y, near.h);
         } else {
-            y = (y + h / 2 < near.y + nh / 2) ? near.y - h : near.y + nh;
-            x = slideInto(x, w, near.x, nw);
+            y = (y + h / 2 < near.y + near.h / 2) ? near.y - h : near.y + near.h;
+            x = slideInto(x, w, near.x, near.w);
         }
         return { x: x, y: y };
     }

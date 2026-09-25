@@ -133,6 +133,7 @@ Scope {
                     spacing: root.s(16)
 
                     Txt {
+                        id: iconCell
                         anchors.verticalCenter: parent.verticalCenter
                         width: root.s(30)
                         text: root.icon
@@ -144,7 +145,7 @@ Scope {
                     Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: root.showBar
-                        width: parent.width - root.s(30) - root.s(56) - parent.spacing * 2
+                        width: parent.width - iconCell.width - pct.width - parent.spacing * 2
                         height: root.s(8)
                         color: Theme.surface0
                         radius: Theme.borderRadius
@@ -158,6 +159,7 @@ Scope {
                     }
 
                     Txt {
+                        id: pct
                         anchors.verticalCenter: parent.verticalCenter
                         visible: root.showBar
                         width: root.s(56)
@@ -171,7 +173,7 @@ Scope {
                     Txt {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: !root.showBar
-                        width: parent.width - root.s(30) - parent.spacing
+                        width: parent.width - iconCell.width - parent.spacing
                         elide: Text.ElideRight
                         text: root.label
                         font.pixelSize: root.s(20)

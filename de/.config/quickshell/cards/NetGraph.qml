@@ -82,8 +82,8 @@ Widget {
             width: parent.width
             height: parent.height - header.height - ipList.height - 2 * parent.spacing
 
-            Graph { anchors.fill: parent; value: root.down; lineColor: Theme.blue;  thickness: root.s(2); maxv: 25 }
-            Graph { anchors.fill: parent; value: root.up;   lineColor: Theme.green; thickness: root.s(2); maxv: 25 }
+            Graph { value: root.down; lineColor: Theme.blue; maxv: 25 }
+            Graph { value: root.up;   lineColor: Theme.green; maxv: 25 }
         }
 
         // IP footer.

@@ -9,7 +9,6 @@ Row {
     id: root
 
     required property BarStatusData statusData
-    required property var panelWindow
     required property int fontSize
     required property int trayIconSize
     required property color normalFg
@@ -31,7 +30,6 @@ Row {
     BarTray {
         id: tray
         anchors.verticalCenter: parent.verticalCenter
-        panelWindow: root.panelWindow
         iconSize: root.trayIconSize
     }
     // The tray's padding and this extra gap keep icons clear of the delimiter.

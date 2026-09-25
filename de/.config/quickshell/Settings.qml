@@ -14,8 +14,6 @@ Picker {
 
     ipcTarget: "settings"
 
-    readonly property int footerHeight: s(30)
-
     // Headers are inserted where the group changes, so the catalogue stays a
     // flat list and the menu structure falls out of its order.
     rows: {
@@ -30,7 +28,7 @@ Picker {
     }
 
     boxWidth: s(420)
-    barHeight: footerHeight
+    barHeight: s(30)
 
     function activate(i) {
         if (!selectable(i)) return;
@@ -38,73 +36,40 @@ Picker {
     }
 
     box: Component {
-        Item {
-            id: content
-            focus: true
+        PickerList {
+            picker: root
 
-            Keys.onPressed: function (e) {
-                if (root.navKey(e)) return;
+            // Space is this menu's Return: a switchboard you walk with j/k
+            // wants the same key on every row, not an Enter that launches.
+            onExtraKey: function (e) {
                 if (e.key !== Qt.Key_Space) return;
-                root.activate(root.selected);      // space is this menu's Return
+                root.activate(root.selected);
                 e.accepted = true;
             }
 
-            Column {
-                anchors.fill: parent
-                anchors.topMargin: root.s(12)
-                spacing: 0
+            rowDelegate: PickerRow {
+                id: rowItem
+                readonly property bool on_: !isHeader && Config.on(modelData.key)
 
-                Repeater {
-                    model: root.rows
+                picker: root
+                width: parent.width
+                onActivated: root.activate(rowItem.index)
 
-                    PickerRow {
-                        id: rowItem
-                        picker: root
-                        readonly property bool enabled_: !isHeader && Config.on(modelData.key)
+                icon: rowItem.on_ ? "󰄲" : "󰄱"
+                iconWidth: root.s(20)
+                iconColor: rowItem.on_ ? Theme.mauve : Theme.surface1
+                label: rowItem.isHeader ? "" : rowItem.modelData.label
+                labelColor: !rowItem.on_ ? Theme.surface1
+                            : rowItem.sel ? Theme.rowSelectFg : Theme.text
+            }
 
-                        width: content.width
-                        headerHeight: root.headerHeight
-                        rowHeight: root.rowHeight
-                        onActivated: root.activate(rowItem.index)
-
-                        Row {
-                            visible: !rowItem.isHeader
-                            anchors.fill: parent
-                            anchors.leftMargin: root.s(18)
-                            anchors.rightMargin: root.s(18)
-                            spacing: root.s(12)
-
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(20)
-                                text: rowItem.enabled_ ? "󰄲" : "󰄱"
-                                color: rowItem.enabled_ ? Theme.mauve : Theme.surface1
-                                font.pixelSize: root.s(17)
-                            }
-                            Txt {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: rowItem.isHeader ? "" : rowItem.modelData.label
-                                color: !rowItem.enabled_ ? Theme.surface1
-                                       : rowItem.sel ? Theme.rowSelectFg : Theme.text
-                                font.pixelSize: root.s(15)
-                            }
-                        }
-                    }
-                }
-
-                // Where the answer lives, so a machine's odd behaviour is
-                // traceable to a file rather than to the config in git.
-                Item {
-                    width: parent.width
-                    height: root.footerHeight
-
-                    Txt {
-                        anchors.centerIn: parent
-                        text: "space toggles · saved to " + Config.statePath.replace(Quickshell.env("HOME"), "~")
-                        color: Theme.surface1
-                        font.pixelSize: root.s(11)
-                    }
-                }
+            // Where the answer lives, so a machine's odd behaviour is
+            // traceable to a file rather than to the config in git.
+            Txt {
+                anchors.centerIn: parent
+                text: "space toggles · saved to " + Config.statePath.replace(Quickshell.env("HOME"), "~")
+                color: Theme.surface1
+                font.pixelSize: root.s(11)
             }
         }
     }

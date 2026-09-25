@@ -17,8 +17,7 @@ Item {
 
     readonly property bool inPlaylist: root.opened !== ""
     readonly property var rows: root.inPlaylist ? root.songs : root.playlists
-    readonly property string status: root.busy ? "reading…"
-                                     : (list.count > 0 ? list.cursor + 1 : 0) + " / " + list.count
+    readonly property string status: root.busy ? "reading…" : list.position
 
     function refresh() {
         root.busy = true;
@@ -140,15 +139,8 @@ Item {
         }
     }
 
-    Txt {
+    MusicCrumb {
         id: crumb
-        anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: Ui.s(12)
-        anchors.bottomMargin: 0
-        height: Ui.s(20)
-        elide: Text.ElideRight
-        font.pixelSize: Ui.fs(12)
-        color: Theme.subtext0
         text: root.inPlaylist ? "󰲹 " + root.opened : "playlists    (C-s saves the queue)"
     }
 

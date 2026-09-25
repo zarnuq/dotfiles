@@ -37,17 +37,11 @@ Widget {
             id: header
             width: parent.width
             implicitHeight: headerRow.height + root.s(8)
-            Row {
+            CardHeader {
                 id: headerRow
-                width: parent.width
                 spacing: root.s(8)
-                Txt { text: "󰃭"; color: Theme.blue; font.pixelSize: root.s(16) }
-                Txt {
-                    text: "calendar"; color: Theme.subtext0; font.pixelSize: root.s(14)
-                    width: parent.width - x - refresh.width - parent.spacing; verticalAlignment: Text.AlignVCenter
-                }
+                icon: "󰃭"; iconColor: Theme.blue; iconSize: root.s(16); label: "calendar"
                 HeaderBtn {
-                    id: refresh
                     icon: "󰑓"; size: root.s(14)
                     onClicked: { Quickshell.execDetached([root.script, "refresh"]); poll.refresh(); }
                 }

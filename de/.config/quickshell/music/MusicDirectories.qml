@@ -14,8 +14,7 @@ Item {
     property var entries: []
     property bool busy: false
 
-    readonly property string status: root.busy ? "reading…"
-                                     : (list.count > 0 ? list.cursor + 1 : 0) + " / " + list.count
+    readonly property string status: root.busy ? "reading…" : list.position
 
     // A ".." row whenever we are not at the root, so going up is visible.
     readonly property var rows: root.path === "" ? root.entries
@@ -129,15 +128,9 @@ Item {
 
     Component.onCompleted: root.load("")
 
-    Txt {
+    MusicCrumb {
         id: crumb
-        anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: Ui.s(12)
-        anchors.bottomMargin: 0
-        height: Ui.s(20)
         elide: Text.ElideLeft
-        font.pixelSize: Ui.fs(12)
-        color: Theme.subtext0
         text: root.path === "" ? "/" : "/" + root.path
     }
 

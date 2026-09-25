@@ -235,9 +235,6 @@ Singleton {
         root.send("currentsong", function (lines) { root.song = root.parseKV(lines); });
     }
 
-    // The one expensive call: 4311 songs is 78k lines / 1.8 MB / ~180 ms on this
-    // box. So it is never polled — only the first open and an actual `playlist`
-    // change reach it, and `plchanges` below covers the common small edits.
     // The queue is the one expensive thing this client holds: 6k songs is
     // ~110k protocol lines parsed into 6k objects. Nothing needs it while the
     // window is shut, so it is refcounted — released on close, refetched on
@@ -273,6 +270,9 @@ Singleton {
     /// that must still be announced. `Shift+A` on the library is both at once.
     property bool queueWasBulk: false
 
+    // The one expensive call: 4311 songs is 78k lines / 1.8 MB / ~180 ms on this
+    // box. So it is never polled — only the first open and an actual `playlist`
+    // change reach it, and `plchangesposid` below covers the common small edits.
     /// `bulk` false says this refetch is standing in for an edit idle already
     /// told us about, so the size of it is the user's doing, not a first read.
     function refreshQueue(bulk) {
@@ -490,8 +490,9 @@ Singleton {
     function toggleRepeat()    { root.send("repeat " + (root.repeatOn ? 0 : 1)); }
     function toggleRandom()    { root.send("random " + (root.randomOn ? 0 : 1)); }
     // rmpc cycles these through oneshot, which is MPD 0.24's third value.
-    function toggleConsume()   { root.send("consume " + (root.consumeMode === "0" ? "1" : root.consumeMode === "1" ? "oneshot" : "0")); }
-    function toggleSingle()    { root.send("single " + (root.singleMode === "0" ? "1" : root.singleMode === "1" ? "oneshot" : "0")); }
+    function _cycleMode(mode)  { return mode === "0" ? "1" : mode === "1" ? "oneshot" : "0"; }
+    function toggleConsume()   { root.send("consume " + root._cycleMode(root.consumeMode)); }
+    function toggleSingle()    { root.send("single " + root._cycleMode(root.singleMode)); }
 
     function clearQueue()      { root.send("clear"); }
     /// Rescan changed files. `rescan` would re-read every file regardless of
@@ -542,8 +543,9 @@ Singleton {
     // for `add`, so "add this album" needs no recursion here.
     function addUri(uri)            { root.send("add " + root.q(uri)); }
 
-    /// Add then play it, as one command list so nothing can be queued between
-    /// the two and steal the position we are about to play.
+    /// Add then play it by the Id `addid` answers with. Two round trips, not a
+    /// command list — but playing by Id rather than position means nothing
+    /// queued in between can shift which song that is.
     function addAndPlay(uri) {
         root.send("addid " + root.q(uri), function (lines, err) {
             if (err) return;

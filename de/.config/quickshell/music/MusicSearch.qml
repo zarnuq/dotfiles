@@ -115,13 +115,10 @@ Item {
             text: root.tag + " ›"
         }
 
-        TextInput {
+        Field {
             id: field
             anchors.fill: parent
             anchors.leftMargin: tagLabel.width + Ui.s(8)
-            verticalAlignment: TextInput.AlignVCenter
-            color: Theme.text
-            font.family: Theme.font
             font.pixelSize: Ui.fs(13)
             // Bound, not just set once. forceActiveFocus() on the parent
             // FocusScope delegates straight back to a focused child, so

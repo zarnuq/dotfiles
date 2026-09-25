@@ -1,6 +1,6 @@
 .pragma library
 
-// Pure snapshot parsing and menu data for Network.qml and Vpn.qml. Processes
+// Pure snapshot parsing, menu data and decisions for Network.qml. Processes
 // and mutable state belong to the QML; keeping inputs explicit also keeps its
 // bindings reactive.
 
@@ -90,6 +90,10 @@ function parseVpnFiles(text) {
     return out;
 }
 
+// A tunnel, as far as NM's connection types go: openvpn imports as "vpn",
+// wireguard as its own type.
+function isTunnel(c) { return c.type === "vpn" || c.type === "wireguard"; }
+
 // Name of the connection currently active on a device, or "".
 function connOn(conns, device) {
     for (var i = 0; i < conns.length; i++) {
@@ -103,7 +107,7 @@ function vpnConnections(conns, devStates) {
     var out = [];
     for (var i = 0; i < conns.length; i++) {
         var c = conns[i];
-        if (c.type === "vpn" || c.type === "wireguard") {
+        if (isTunnel(c)) {
             // NM describes wg-quick links through volatile profiles. It marks
             // the DEVICE as "connected (externally)", not the connection.
             var st = devStates[c.device];
@@ -115,6 +119,9 @@ function vpnConnections(conns, devStates) {
     return out;
 }
 
+// The menu's rows. Every row carries what its delegate draws — `active`,
+// `label`, `icon`, `trailing` — decided here, once, when the row is built, so
+// the delegate is plain bindings and no row kind is re-derived at paint time.
 function buildRows(state) {
     var r = [];
     if (state.eths.length > 0) {
@@ -122,29 +129,35 @@ function buildRows(state) {
         for (var e = 0; e < state.eths.length; e++) {
             var d = state.eths[e];
             var on = connOn(state.conns, d.dev);
-            r.push({ kind: "eth", dev: d.dev, state: d.state,
-                     name: on !== "" ? on : d.dev, active: on !== "" });
+            var up = on !== "";
+            r.push({ kind: "eth", dev: d.dev, state: d.state, active: up,
+                     label: up ? on : d.dev,
+                     // Plugged, unplugged, or up: three states worth telling
+                     // apart at a glance.
+                     icon: up ? "󰈁" : d.state === "unavailable" ? "󰈂" : "󰈀",
+                     trailing: up ? "connected" : d.state === "unavailable" ? "no cable" : d.state });
         }
     }
     if (state.wifiDev !== "") {
+        var radio = state.radioOn;
         r.push({ kind: "header", label: "Wi-Fi — " + state.wifiDev });
-        r.push({ kind: "radio" });
-        if (state.radioOn)
-            for (var i = 0; i < state.aps.length; i++)
-                r.push({ kind: "ap", ap: state.aps[i] });
+        r.push({ kind: "radio", active: radio, label: "Wi-Fi " + (radio ? "on" : "off"),
+                 icon: radio ? "󰤨" : "󰤮", trailing: radio ? "connected" : "" });
+        if (radio)
+            for (var i = 0; i < state.aps.length; i++) {
+                var a = state.aps[i];
+                var q = a.signal;
+                r.push({ kind: "ap", ap: a, active: a.inUse, label: a.ssid,
+                         icon: q >= 75 ? "󰤨" : q >= 50 ? "󰤥" : q >= 25 ? "󰤢" : "󰤟",
+                         trailing: (a.security ? "󰌾 " : "") + a.signal + "%" });
+            }
     }
     return r.concat(vpnRows(state.vpnConns));
 }
 
 // ── VPN ──────────────────────────────────────────────────────────────────
-// Everything below is shared by the network menu, where the tunnels are one
-// section among the Wi-Fi and wired rows, and the VPN menu, which is that
-// section on its own. Both list the same two kinds of tunnel and must agree
-// about them: a row grouped one way here and another way there, or brought up
-// by a different command, is the same tunnel behaving differently depending on
-// which menu you happened to open.
 
-// The homelab tunnel is meant to be up all the time; the ~/VPNs/*.ovpn ones are
+// The homelab tunnel is meant to be up all the time; the ~/VPNs configs are
 // brought up for a HackTheBox/TryHackMe box and dropped after. They are now the
 // same kind of object to nmcli — both are NM profiles — so the difference has to
 // be stated here, and nowhere else. Add a name and both the grouping and the
@@ -178,10 +191,14 @@ function vpnRows(vpnConns) {
     // Two NM profiles can share a name; NM's own convention when it has to tell
     // its connections apart is the first 8 of the UUID, so borrow it — an
     // unadorned pair of identical rows is unusable.
-    for (var i = 0; i < all.length; i++)
-        all[i].label = (all[i].kind === "nmvpn" && byName[all[i].name] > 1)
-                       ? all[i].name + " [" + all[i].uuid.substring(0, 8) + "]"
-                       : all[i].name;
+    for (var i = 0; i < all.length; i++) {
+        var row = all[i];
+        row.label = byName[row.name] > 1
+                    ? row.name + " [" + row.uuid.substring(0, 8) + "]"
+                    : row.name;
+        row.icon = "󰖂";
+        row.trailing = vpnState(row);
+    }
 
     var r = [];
     function section(title, wanted) {
@@ -197,7 +214,7 @@ function vpnRows(vpnConns) {
     return r;
 }
 
-// The ~/VPNs/*.ovpn files NM hasn't been given yet, matched by the name NM
+// The ~/VPNs configs NM hasn't been given yet, matched by the name NM
 // would give the profile. Matching this way is what stops a re-import on every
 // tick — `con import` would happily create a duplicate profile each time.
 function pendingImports(vpnConns, ovpnFiles) {
@@ -217,9 +234,16 @@ function adoptSources(managed, conns, files) {
     for (var i = 0; i < files.length; i++) byName[files[i].name] = files[i];
     for (var j = 0; j < conns.length; j++) {
         var c = conns[j];
-        if ((c.type === "vpn" || c.type === "wireguard") && !isAlwaysOn(c.name)
-            && byName[c.name] && !next[c.uuid])
-            next[c.uuid] = { name: c.name, file: byName[c.name].file, hash: byName[c.name].hash };
+        var f = byName[c.name];
+        if (!isTunnel(c) || isAlwaysOn(c.name) || !f) continue;
+        var had = next[c.uuid];
+        if (!had)
+            next[c.uuid] = { name: c.name, file: f.file, hash: f.hash };
+        // An entry recorded before hashes were: stamp the file's hash now, as
+        // staleSources expects, rather than re-importing on a guess. Without
+        // this an old entry was skipped here forever and never change-checked.
+        else if (!had.hash && had.file === f.file && f.hash)
+            next[c.uuid] = Object.assign({}, had, { hash: f.hash });
     }
     return next;
 }
@@ -234,7 +258,7 @@ function staleSources(managed, conns, files) {
     var byFile = {}, live = {}, out = [];
     for (var i = 0; i < files.length; i++) byFile[files[i].file] = files[i].hash;
     for (var j = 0; j < conns.length; j++)
-        if (conns[j].type === "vpn" || conns[j].type === "wireguard")
+        if (isTunnel(conns[j]))
             live[conns[j].uuid] = conns[j].name;
     for (var uuid in managed) {
         var s = managed[uuid];
@@ -257,7 +281,7 @@ function obsoleteSources(managed, conns, files) {
     for (var j = 0; j < conns.length; j++) {
         var c = conns[j];
         if (isAlwaysOn(c.name)) continue;          // never ours to remove
-        if (c.type !== "vpn" && c.type !== "wireguard") continue;
+        if (!isTunnel(c)) continue;
         var source = managed[c.uuid];
         if (source && typeof source.file === "string") {
             // Imported from a file this registry remembers, and that file is gone.
@@ -273,11 +297,74 @@ function obsoleteSources(managed, conns, files) {
     return out;
 }
 
+// The next step of the ~/VPNs mirror, or null when NM already matches it:
+// `{ remove: {uuid, name, file} }` or `{ add: <file> }`. One step at a time,
+// since each is an nmcli write and they queue behind each other in the QML.
+// `tried` holds its guard maps — importTried, importDone, deleteTried — keyed
+// by file path and UUID respectively.
+function syncStep(managed, conns, files, pending, tried) {
+    // A changed file is deleted first and re-imported by the loop below;
+    // an obsolete one is simply gone. Both are the same delete command.
+    var obsolete = obsoleteSources(managed, conns, files)
+                   .concat(staleSources(managed, conns, files));
+    for (var j = 0; j < obsolete.length; j++)
+        if (!tried.deleteTried[obsolete[j].uuid]) return { remove: obsolete[j] };
+    for (var i = 0; i < pending.length; i++) {
+        var f = pending[i];
+        if (!tried.importTried[f.file] && !tried.importDone[f.file]) return { add: f };
+    }
+    return null;
+}
+
+// What nmcli prints for a profile's UUID. One pattern for both readers: the
+// openvpn import's own shell below, and importedUuid() on its stdout.
+var UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+// The UUID of the profile an import just created, or "". It comes from the
+// import's own output, never a name lookup — several profiles can share a name.
+function importedUuid(stdout) {
+    var m = stdout.match(new RegExp("\\b" + UUID + "\\b", "i"));
+    return m ? m[0] : "";
+}
+
+// How a ~/VPNs file is handed to NM. For openvpn: import, then discard the
+// default route the server pushes — one command, because the second half is
+// not optional.
+//
+// HTB pushes `default via <tun gw> metric 50`, which outranks the Wi-Fi
+// default (metric 600), so every packet — DNS included — goes down a tunnel
+// that carries no general internet, and the machine drops off the network the
+// moment a lab connects. `never-default` discards only that default; the lab
+// subnets it also pushes (10.10.x, 10.129.x, …) still get their routes. These
+// are lab configs by definition, so split tunnel is the policy here.
+//
+// stdout is reprinted verbatim so importedUuid() still sees the UUID. `con mod`
+// is avoided everywhere else in the menu (unprivileged, it drops a profile's
+// stored secrets), but a profile created one line earlier has none: an openvpn
+// import stores cert PATHS and `vpn.secrets` is empty.
+//
+// WireGuard imports are a bare `con import`, deliberately. The never-default
+// fix is a `con mod`, and doing that unprivileged to a wireguard profile
+// silently drops the private key it just stored — the config file is the only
+// other copy, and for a peer-generated key there may be none. A wg tunnel takes
+// its routes from AllowedIPs anyway; if one of yours carries 0.0.0.0/0 and you
+// want it split, that is a one-off `doas nmcli con mod <uuid> ipv4.never-default yes`.
+function importCommand(f) {
+    if (f.kind === "wireguard")
+        return ["nmcli", "connection", "import", "type", "wireguard", "file", f.file];
+    return ["sh", "-c",
+            "out=$(nmcli connection import type openvpn file \"$1\") || exit $?; " +
+            "printf '%s\\n' \"$out\"; " +
+            "uuid=$(printf '%s' \"$out\" | grep -oiE '" + UUID + "' | head -1); " +
+            "[ -n \"$uuid\" ] && nmcli connection modify uuid \"$uuid\" " +
+            "ipv4.never-default yes ipv6.never-default yes || true",
+            "sh", f.file];
+}
+
 // How a row goes up or down. NM profiles are acted on by UUID — several
 // connections may share a name, so `con up id <name>` is ambiguous.
 function vpnCommand(row, up) {
-    if (row.kind === "nmvpn") return ["nmcli", "connection", up ? "up" : "down", "uuid", row.uuid];
-    return null;
+    return ["nmcli", "connection", up ? "up" : "down", "uuid", row.uuid];
 }
 
 // What a row's right-hand column says about its state. "external" means the

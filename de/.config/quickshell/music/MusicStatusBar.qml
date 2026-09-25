@@ -50,13 +50,10 @@ Rectangle {
             id: slash
         }
 
-        TextInput {
+        Field {
             id: searchField
             anchors.fill: parent
             anchors.leftMargin: Ui.s(12)
-            verticalAlignment: TextInput.AlignVCenter
-            color: Theme.text
-            font.family: Theme.font
             font.pixelSize: Ui.fs(12)
             focus: root.controller.searching
             onTextChanged: root.controller.updateQuery(text)

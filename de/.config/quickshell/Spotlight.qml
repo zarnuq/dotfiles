@@ -135,7 +135,7 @@ Scope {
             // reach grants focus to every layer surface it can, and several
             // surfaces each acting on the same keystroke is the bug Picker.qml
             // documents.
-            WlrLayershell.keyboardFocus: (root.shown && win.modelData.name === root.activeScreen)
+            WlrLayershell.keyboardFocus: (root.shown && win.holed)
                                          ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
             Item {
                 anchors.fill: parent

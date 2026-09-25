@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Io
 import QtQuick
 import ".."
 
@@ -57,10 +56,26 @@ FocusScope {
             || t === "flipped_90" || t === "flipped_270";
     }
 
+    /// The bounding box of `list` in layout pixels, or null when it is empty.
+    /// The canvas fits its zoom to it, a save normalises against its top-left,
+    /// and an unlisted head is parked past its right edge.
+    function extent(list) {
+        if (!list || list.length === 0) return null;
+        var e = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+        for (var i = 0; i < list.length; i++) {
+            var m = list[i];
+            e.minX = Math.min(e.minX, m.x);
+            e.minY = Math.min(e.minY, m.y);
+            e.maxX = Math.max(e.maxX, m.x + effW(m));
+            e.maxY = Math.max(e.maxY, m.y + effH(m));
+        }
+        return e;
+    }
+
     // ---- loading ------------------------------------------------------------
 
     function reload() {
-        stateProc.running = true;
+        stateProc.refresh();
     }
 
     function applyState(data) {
@@ -96,9 +111,8 @@ FocusScope {
         // of everything the preset places, not at 0,0 — dropped at the origin it
         // sits on top of the first monitor, and two overlapping rectangles is
         // exactly the picture this window exists to prevent.
-        var park = 0;
-        for (var p = 0; p < out.length; p++)
-            park = Math.max(park, out[p].x + root.effW(out[p]));
+        var box = root.extent(out);
+        var park = box ? Math.max(0, box.maxX) : 0;
 
         for (var k = 0; k < root.outputs.length; k++) {
             var o = root.outputs[k];
@@ -128,14 +142,8 @@ FocusScope {
             scale: m.scale || 1.0,
             transform: m.transform || "normal",
             included: included,
-            connected: root.isConnected(m.name)
+            connected: root.outputFor(m.name) !== null
         };
-    }
-
-    function isConnected(name) {
-        for (var i = 0; i < root.outputs.length; i++)
-            if (root.outputs[i].name === name) return true;
-        return false;
     }
 
     function outputFor(name) {
@@ -231,15 +239,11 @@ FocusScope {
             if (root.working[i].included) mons.push(root.working[i]);
         if (mons.length === 0) return [];
 
-        var minX = mons[0].x, minY = mons[0].y;
-        for (var j = 1; j < mons.length; j++) {
-            minX = Math.min(minX, mons[j].x);
-            minY = Math.min(minY, mons[j].y);
-        }
+        var box = root.extent(mons);
         var out = [];
         for (var k = 0; k < mons.length; k++) {
             var m = mons[k];
-            var one = { name: m.name, w: m.w, h: m.h, x: m.x - minX, y: m.y - minY };
+            var one = { name: m.name, w: m.w, h: m.h, x: m.x - box.minX, y: m.y - box.minY };
             if (m.refresh) one.refresh = m.refresh;
             if (m.scale && m.scale !== 1.0) one.scale = m.scale;
             if (m.transform && m.transform !== "normal") one.transform = m.transform;
@@ -253,7 +257,7 @@ FocusScope {
     function run(args, note) {
         root.status = note;
         runProc.command = [root.script].concat(args);
-        runProc.running = true;
+        runProc.refresh();
     }
 
     function save(name) {
@@ -277,32 +281,27 @@ FocusScope {
         else root.activate(name);
     }
 
-    Process {
+    // Both are one-shot: `running: false` parks Poll's timer, so a run happens
+    // only on refresh(). What Poll is borrowed for is the Process + collector +
+    // JSON.parse plumbing, which `onJsonData` hands over as a value or null.
+    Poll {
         id: stateProc
+        running: false
         command: [root.script, "state"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var parsed = null;
-                try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
-                root.applyState(parsed);
-            }
-        }
+        onJsonData: value => root.applyState(value)
     }
 
-    Process {
+    Poll {
         id: runProc
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var reply = null;
-                try { reply = JSON.parse(text); } catch (e) { reply = null; }
-                if (!reply) root.status = "no reply from monitors.py";
-                else if (!reply.ok) root.status = reply.error || "failed";
-                else root.status = reply.reloaded === false ? "saved (reach not running)" : "applied";
-                // Re-read rather than patching the local copy: the script is the
-                // authority on what landed in the file, including a rename or a
-                // refusal that left it unchanged.
-                stateProc.running = true;
-            }
+        running: false
+        onJsonData: reply => {
+            if (!reply) root.status = "no reply from monitors.py";
+            else if (!reply.ok) root.status = reply.error || "failed";
+            else root.status = reply.reloaded === false ? "saved (reach not running)" : "applied";
+            // Re-read rather than patching the local copy: the script is the
+            // authority on what landed in the file, including a rename or a
+            // refusal that left it unchanged.
+            stateProc.refresh();
         }
     }
 
@@ -379,13 +378,10 @@ FocusScope {
                 color: Theme.surface0
                 border.width: 1
                 border.color: newName.activeFocus ? Theme.mauve : Theme.surface1
-                TextInput {
+                Field {
                     id: newName
                     anchors.fill: parent
                     anchors.leftMargin: root.s(8)
-                    verticalAlignment: TextInput.AlignVCenter
-                    color: Theme.text
-                    font.family: Theme.font
                     font.pixelSize: root.s(13)
                     selectByMouse: true
                     onAccepted: if (text.length) { root.save(text); text = ""; }

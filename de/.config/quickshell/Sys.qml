@@ -119,31 +119,28 @@ Singleton {
     FileView { id: nvidiaProbe; path: "/proc/driver/nvidia/version"; blockLoading: true; printErrors: false }
     readonly property bool gpuPresent: nvidiaProbe.text().length > 0
 
-    Process {
-        id: gpuProc
+    // Poll's default interval is the same 2s beat as the /proc reads below.
+    Poll {
+        running: root.gpuPresent
         command: ["nvidia-smi",
                   "--query-gpu=utilization.gpu,temperature.gpu",
                   "--format=csv,noheader,nounits"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var p = text.trim().split(",");
-                root.gpu = Number(p[0]) || 0;
-                root.gpuTemp = Number(p[1]) || 0;
-            }
+        onData: text => {
+            var p = text.trim().split(",");
+            root.gpu = Number(p[0]) || 0;
+            root.gpuTemp = Number(p[1]) || 0;
         }
     }
 
-    Process {
-        id: diskProc
+    Poll {
         command: ["sh", "-c", "df -P / | awk 'NR==2{gsub(\"%\",\"\",$5); print $5}'"]
-        stdout: StdioCollector { onStreamFinished: root.disk = Number(text.trim()) || 0 }
+        onData: text => root.disk = Number(text.trim()) || 0
     }
 
-    Process {
-        id: cpuTempProc
+    Poll {
         command: ["sh", "-c",
             "cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | awk '{s+=$1;n++} END{if(n)printf \"%.0f\", s/n/1000}'"]
-        stdout: StdioCollector { onStreamFinished: root.cpuTemp = Number(text.trim()) || 0 }
+        onData: text => root.cpuTemp = Number(text.trim()) || 0
     }
 
     Timer {
@@ -151,12 +148,6 @@ Singleton {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            root.readCpu();
-            root.readRam();
-            if (root.gpuPresent) gpuProc.running = true;
-            diskProc.running = true;
-            cpuTempProc.running = true;
-        }
+        onTriggered: { root.readCpu(); root.readRam(); }
     }
 }

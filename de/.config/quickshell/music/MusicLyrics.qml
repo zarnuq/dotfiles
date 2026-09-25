@@ -116,15 +116,8 @@ Item {
         }
     }
 
-    Txt {
+    MusicCrumb {
         id: head
-        anchors { top: parent.top; left: parent.left; right: parent.right }
-        anchors.margins: Ui.s(12)
-        anchors.bottomMargin: 0
-        height: Ui.s(20)
-        elide: Text.ElideRight
-        font.pixelSize: Ui.fs(12)
-        color: Theme.subtext0
         text: root.client.song.file !== undefined
               ? root.client.songTitle(root.client.song) + "  ·  " + (root.client.song.Artist || "")
               : ""

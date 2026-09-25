@@ -36,10 +36,10 @@ Widget {
             width: parent.width
             height: parent.height - header.height - parent.spacing
 
-            Graph { anchors.fill: parent; value: Sys.cpu;  lineColor: Theme.text;  thickness: root.s(2) }
-            Graph { anchors.fill: parent; value: Sys.gpu;  lineColor: Theme.blue;  thickness: root.s(3) }
-            Graph { anchors.fill: parent; value: Sys.ram;  lineColor: Theme.green; thickness: root.s(2) }
-            Graph { anchors.fill: parent; value: Sys.disk; lineColor: Theme.peach; thickness: root.s(2) }
+            Graph { value: Sys.cpu;  lineColor: Theme.text }
+            Graph { value: Sys.gpu;  lineColor: Theme.blue;  thickness: root.s(3) }
+            Graph { value: Sys.ram;  lineColor: Theme.green }
+            Graph { value: Sys.disk; lineColor: Theme.peach }
         }
     }
 }

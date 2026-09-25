@@ -46,24 +46,28 @@ Scope {
         return Math.max(h, minBoxHeight);
     }
 
-    // Draw the box on every output instead of just the pointer's. Keyboard
-    // focus still goes to exactly one surface — reach hands it to every layer
-    // surface it can, and if several accepted keys each one would drive the
-    // shared selection, so a single j would jump three rows.
-    property bool allScreens: false
-
     property bool open: false
     property string activeScreen: ""
 
     // ── the selection ────────────────────────────────────────────────────
-    // The list pickers (Settings, Audio, the two Network instances) use a flat
-    // `rows` list containing optional non-selectable group headers. Launcher
-    // and WallpaperPicker leave it empty and drive `selected` against their own
-    // results instead.
+    // The list pickers (Settings, Audio, Network) use a flat `rows` list
+    // containing optional non-selectable group headers, and PickerList draws
+    // it. Launcher, ClipboardPicker and WallpaperPicker leave it empty, draw
+    // their own list and point `count` at it.
     property var rows: []
     property int selected: 0
 
-    function selectable(i) { return i >= 0 && i < root.rows.length && root.rows[i].kind !== "header"; }
+    // How many entries there are to walk. A rows-driven picker leaves this
+    // alone; the three that drive their own list point it at theirs, which is
+    // what lets them share move() instead of each clamping by hand.
+    property int count: rows.length
+
+    // Past the end is never selectable; a header is only a row concept, so a
+    // picker with no `rows` (index >= rows.length) has nothing to skip.
+    function selectable(i) {
+        if (i < 0 || i >= root.count) return false;
+        return i >= root.rows.length || root.rows[i].kind !== "header";
+    }
 
     function firstSelectable() {
         for (var i = 0; i < root.rows.length; i++)
@@ -78,10 +82,18 @@ Scope {
     onRowsChanged: if (!selectable(selected)) selected = firstSelectable();
 
     // Headers aren't stops on the way down the list; step over them.
+    //
+    // A step of more than one row is the wallpaper grid's j/k, where the last
+    // row is usually short — so a multi-row step lands on the end of the list
+    // rather than refusing to move, which is what each of the three
+    // list-driving pickers used to spell out as a Math.max/Math.min clamp.
     function move(delta) {
         var i = root.selected + delta;
-        while (i >= 0 && i < root.rows.length && root.rows[i].kind === "header") i += delta;
-        if (root.selectable(i)) root.selected = i;
+        while (i >= 0 && i < root.count && !root.selectable(i)) i += (delta > 0 ? 1 : -1);
+        if (root.selectable(i)) { root.selected = i; return; }
+        if (Math.abs(delta) <= 1) return;
+        var edge = delta > 0 ? root.count - 1 : 0;
+        if (root.selectable(edge)) root.selected = edge;
     }
 
     // Escape, Return and j/k/arrows are the picker's contract, not any one
@@ -114,9 +126,10 @@ Scope {
     // Hover must not fight the keyboard. Qt delivers a hover move whenever the
     // row *under* the cursor changes — including when arrowing through a list
     // scrolls it past a motionless pointer — so neither `entered` nor
-    // `positionChanged` is evidence that the user pointed at anything. A picker
-    // asks this before letting hover take the selection: true only when the
-    // pointer physically moved in window space since the last hover event.
+    // `positionChanged` is evidence that the user pointed at anything.
+    // PickerHover asks this before letting hover take the selection: true only
+    // when the pointer physically moved in window space since the last hover
+    // event.
     //
     // The first event after opening only records the baseline (pointerSeen is
     // cleared on open), so an overlay mapped under the cursor never preselects
@@ -190,7 +203,7 @@ Scope {
 
             Rectangle {
                 id: boxFrame
-                visible: root.open && (root.allScreens || win.modelData.name === root.activeScreen)
+                visible: root.open && win.modelData.name === root.activeScreen
                 width: root.boxWidth > 0 ? root.boxWidth : Math.round(win.width * root.widthFraction)
                 height: root.boxHeight > 0 ? root.boxHeight : Math.round(win.height * root.heightFraction)
                 anchors.centerIn: parent

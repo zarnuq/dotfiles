@@ -2,8 +2,8 @@ pragma Singleton
 import Quickshell
 import QtQuick
 
-// Catppuccin Mocha palette + shared tokens.
-// Mirrors the $vars at the top of eww.scss so widgets read one source of truth.
+// Catppuccin Mocha palette + shared tokens — the one source of truth every
+// widget reads its colours from.
 Singleton {
     readonly property color base:     "#1e1e2e"
     readonly property color surface0: "#313244"
@@ -21,6 +21,7 @@ Singleton {
     readonly property color crust:    "#11111b"
     readonly property color subtext1: "#bac2de"
     readonly property color overlay0: "#6c7086"   // recessive text: a third rank under subtext0
+    readonly property color overlay1: "#7f849c"   // the bar's unselected desktop labels
 
     // The selected row in a picker list: a flat dark band, and a label lifted
     // just off the normal text colour. Named because four pickers were each

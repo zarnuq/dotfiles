@@ -49,7 +49,7 @@ Scope {
     readonly property int trayIconSize: root.barHeight - root.s(6)
 
     // reach's bar colours (config.zon `.bar`), so the two look identical.
-    readonly property color normalFg: "#7f849c"
+    readonly property color normalFg: Theme.overlay1
     readonly property color selectFg: "#ffffff"
     readonly property color selectBg: Theme.mauve
 
@@ -139,7 +139,6 @@ Scope {
             BarStatus {
                 id: status
                 statusData: sharedStatus
-                panelWindow: bar
                 fontSize: root.fontSize
                 trayIconSize: root.trayIconSize
                 normalFg: root.normalFg

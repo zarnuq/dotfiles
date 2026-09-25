@@ -20,19 +20,23 @@ Singleton {
         objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource]
     }
 
-    readonly property int volume: (sink && sink.audio) ? Math.round(sink.audio.volume * 100) : 0
-    readonly property bool muted: (sink && sink.audio) ? sink.audio.muted : false
+    // null until the node is bound, which is every reader's "not yet" case.
+    readonly property var _sinkAudio: sink ? sink.audio : null
+    readonly property var _sourceAudio: source ? source.audio : null
 
-    readonly property int micVolume: (source && source.audio) ? Math.round(source.audio.volume * 100) : 0
+    readonly property int volume: _sinkAudio ? Math.round(_sinkAudio.volume * 100) : 0
+    readonly property bool muted: _sinkAudio ? _sinkAudio.muted : false
+
+    readonly property int micVolume: _sourceAudio ? Math.round(_sourceAudio.volume * 100) : 0
     // Muted is the safe default: an unmuted mic is what the bar flags in red, so
     // a source we can't read yet must not spend a frame claiming the room is live.
-    readonly property bool micMuted: (source && source.audio) ? source.audio.muted : true
+    readonly property bool micMuted: _sourceAudio ? _sourceAudio.muted : true
 
     // The device's own name, unformatted — the bar trims ALSA's boilerplate out
     // of it for its status block, the OSD shows it as-is.
     readonly property string sinkName:
         sink ? (sink.description || sink.nickname || sink.name || "") : ""
 
-    function toggleMute()    { if (sink && sink.audio) sink.audio.muted = !sink.audio.muted; }
-    function toggleMicMute() { if (source && source.audio) source.audio.muted = !source.audio.muted; }
+    function toggleMute()    { if (_sinkAudio) _sinkAudio.muted = !_sinkAudio.muted; }
+    function toggleMicMute() { if (_sourceAudio) _sourceAudio.muted = !_sourceAudio.muted; }
 }

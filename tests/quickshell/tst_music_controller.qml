@@ -22,6 +22,9 @@ TestCase {
             function songTitle(song) { return song ? (song.Title || song.file || "") : ""; }
             // Added alongside queueWasBulk, which announceAdded() consults.
             property bool queueWasBulk: false
+            // The controller listens for `database` on this; without the
+            // signal every case logs "no signal of the target matches".
+            signal changed(string subsystem)
             function toggle() { record("toggle"); }
             function stop() { record("stop"); }
             function next() { record("next"); }

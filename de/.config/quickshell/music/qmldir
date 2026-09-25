@@ -16,6 +16,7 @@ singleton Ui        Ui.qml
 Music                Music.qml
 MusicBanner          MusicBanner.qml
 MusicController      MusicController.qml
+MusicCrumb           MusicCrumb.qml
 MusicDirectories     MusicDirectories.qml
 MusicHeader          MusicHeader.qml
 MusicList            MusicList.qml
@@ -25,6 +26,7 @@ MusicPlaylists       MusicPlaylists.qml
 MusicPlaylistPicker  MusicPlaylistPicker.qml
 MusicQueue           MusicQueue.qml
 MusicRow             MusicRow.qml
+MusicRowChrome       MusicRowChrome.qml
 MusicScrollBar       MusicScrollBar.qml
 MusicSearch          MusicSearch.qml
 MusicStatusBar       MusicStatusBar.qml

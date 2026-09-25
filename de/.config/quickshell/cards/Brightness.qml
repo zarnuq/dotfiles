@@ -29,33 +29,21 @@ Widget {
         anchors.fill: parent
         spacing: root.s(8)
 
-        Row {
-            width: parent.width
-            spacing: root.s(10)
-            Txt { text: "󰃟"; color: Theme.yellow; font.pixelSize: root.s(18) }
-            Txt {
-                text: "brightness"; color: Theme.subtext0; font.pixelSize: root.s(14)
-                width: parent.width - x - value.width - parent.spacing; verticalAlignment: Text.AlignVCenter
-            }
-            Txt { id: value; text: root.level + "%"; font.pixelSize: root.s(14) }
+        CardHeader {
+            icon: "󰃟"; iconColor: Theme.yellow; label: "brightness"
+            Txt { text: root.level + "%"; font.pixelSize: root.s(14) }
         }
 
-        // Flat gauge: surface0 track, yellow fill.
+        // Flat gauge: surface0 track, yellow fill, centred in a taller strip.
         Item {
             width: parent.width
             height: root.s(16)
 
-            Rectangle {
-                id: track
-                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
-                height: root.s(8)
-                color: Theme.surface0
-                Rectangle {
-                    height: parent.height
-                    width: parent.width * (root.level - 10) / 90
-                    color: Theme.yellow
-                    Behavior on width { NumberAnimation { duration: 90 } }
-                }
+            Gauge {
+                anchors.verticalCenter: parent.verticalCenter
+                fraction: (root.level - 10) / 90
+                fillColor: Theme.yellow
+                animated: true
             }
         }
     }

@@ -48,8 +48,6 @@ Item {
         // mode is shown and left alone rather than being reset to something this
         // machine happens to support.
         Stepper {
-            anchors.verticalCenter: parent.verticalCenter
-            view: root.view
             caption: "Mode"
             value: !root.mon ? "—"
                  : (root.mon.w ? root.mon.w + "×" + root.mon.h : "preferred")
@@ -59,8 +57,6 @@ Item {
         }
 
         Stepper {
-            anchors.verticalCenter: parent.verticalCenter
-            view: root.view
             caption: "Scale"
             value: root.mon ? root.mon.scale.toFixed(2) : "—"
             enabled: !!root.mon
@@ -68,8 +64,6 @@ Item {
         }
 
         Stepper {
-            anchors.verticalCenter: parent.verticalCenter
-            view: root.view
             caption: "Rotation"
             value: !root.mon ? "—" : ({
                 "normal": "0°", "rotate_90": "90°", "rotate_180": "180°", "rotate_270": "270°",
@@ -101,51 +95,48 @@ Item {
     component Stepper: Column {
         id: stepper
 
-        required property var view
         property string caption: ""
         property string value: ""
         property bool enabled: true
         signal step(int direction)
 
-        spacing: stepper.view.s(2)
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Config.s(2)
 
         Txt {
             text: stepper.caption
             color: Theme.overlay0
-            font.pixelSize: stepper.view.s(10)
+            font.pixelSize: Config.s(10)
         }
 
         Row {
-            spacing: stepper.view.s(6)
+            spacing: Config.s(6)
 
-            Txt {
-                text: "◀"
-                color: stepper.enabled ? Theme.subtext0 : Theme.surface1
-                font.pixelSize: stepper.view.s(12)
-                anchors.verticalCenter: parent.verticalCenter
-                TapHandler {
-                    enabled: stepper.enabled
-                    onTapped: stepper.step(-1)
-                }
-            }
+            StepArrow { owner: stepper; direction: -1 }
             Txt {
                 text: stepper.value
                 color: stepper.enabled ? Theme.text : Theme.overlay0
-                font.pixelSize: stepper.view.s(13)
+                font.pixelSize: Config.s(13)
                 horizontalAlignment: Text.AlignHCenter
-                width: stepper.view.s(108)
+                width: Config.s(108)
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Txt {
-                text: "▶"
-                color: stepper.enabled ? Theme.subtext0 : Theme.surface1
-                font.pixelSize: stepper.view.s(12)
-                anchors.verticalCenter: parent.verticalCenter
-                TapHandler {
-                    enabled: stepper.enabled
-                    onTapped: stepper.step(1)
-                }
-            }
+            StepArrow { owner: stepper; direction: 1 }
+        }
+    }
+
+    component StepArrow: Txt {
+        id: arrow
+        required property var owner      // the Stepper this steps
+        required property int direction
+
+        text: direction < 0 ? "◀" : "▶"
+        color: owner.enabled ? Theme.subtext0 : Theme.surface1
+        font.pixelSize: Config.s(12)
+        anchors.verticalCenter: parent.verticalCenter
+        TapHandler {
+            enabled: arrow.owner.enabled
+            onTapped: arrow.owner.step(arrow.direction)
         }
     }
 }

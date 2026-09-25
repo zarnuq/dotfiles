@@ -1,6 +1,5 @@
 import Quickshell
-// The music player is a subdirectory of its own; this makes `Music` resolve.
-// The big clusters each live in their own folder.
+// The big clusters each live in their own folder; these make their types resolve.
 import "bar"
 import "launcher"
 import "cards"

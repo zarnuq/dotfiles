@@ -27,6 +27,11 @@ Picker {
     property var results: []    // `all` filtered to the selected category
     property int columns: 1     // set by the grid; j/k step by this
 
+    // What the keys walk. j/k step by a whole grid row, and Picker.move()
+    // clamps such a step to the end of the list — the last row is usually
+    // short, and refusing to move would leave its tiles unreachable.
+    count: root.results.length
+
     property var dims: ({})     // path -> "WxH", memoized so revisits never re-probe
     property string curDim: ""
 
@@ -73,10 +78,6 @@ Picker {
         if (root.cats.length === 0) return;
         root.catIndex = (i + root.cats.length) % root.cats.length;
         root.refresh();
-    }
-    function move(d) {
-        if (root.results.length === 0) return;
-        root.selected = Math.max(0, Math.min(root.results.length - 1, root.selected + d));
     }
     // close=false applies without dismissing, so you can flip through live.
     function apply(close) {
@@ -137,9 +138,6 @@ Picker {
         Item {
             id: keys
             focus: true
-
-            // Called by Picker each time the box appears on an output.
-            function reset() { keys.forceActiveFocus(); }
 
             Keys.onPressed: function (e) {
                 var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
@@ -210,90 +208,84 @@ Picker {
                         width: parent.width
                         height: parent.height - 34
 
-                    GridView {
-                        id: grid
-                        anchors.fill: parent
-                        clip: true
-                        model: root.results
-                        currentIndex: root.selected
-                        boundsBehavior: Flickable.StopAtBounds
+                        GridView {
+                            id: grid
+                            anchors.fill: parent
+                            clip: true
+                            model: root.results
+                            currentIndex: root.selected
+                            boundsBehavior: Flickable.StopAtBounds
 
-                        // ~250px tiles, whole number of columns, 16:9.
-                        readonly property int cols: Math.max(1, Math.floor(width / 250))
-                        cellWidth: Math.floor(width / cols)
-                        cellHeight: Math.round(cellWidth * 9 / 16)
-                        onColsChanged: root.columns = cols
-                        Component.onCompleted: root.columns = cols
+                            // ~250px tiles, whole number of columns, 16:9.
+                            readonly property int cols: Math.max(1, Math.floor(width / 250))
+                            cellWidth: Math.floor(width / cols)
+                            cellHeight: Math.round(cellWidth * 9 / 16)
+                            onColsChanged: root.columns = cols
+                            Component.onCompleted: root.columns = cols
 
-                        // Four extra rows kept alive around the viewport -- enough
-                        // that a fast wheel scroll never outruns the decoders,
-                        // still a bounded number of 400x225 pixmaps.
-                        cacheBuffer: cellHeight * 4
+                            // Four extra rows kept alive around the viewport -- enough
+                            // that a fast wheel scroll never outruns the decoders,
+                            // still a bounded number of 400x225 pixmaps.
+                            cacheBuffer: cellHeight * 4
 
-                        flickDeceleration: 3000
-                        maximumFlickVelocity: 6000
+                            flickDeceleration: 3000
+                            maximumFlickVelocity: 6000
 
-                        onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
+                            onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
 
-                        delegate: Item {
-                            required property var modelData
-                            required property int index
-                            width: grid.cellWidth
-                            height: grid.cellHeight
+                            delegate: Item {
+                                required property var modelData
+                                required property int index
+                                width: grid.cellWidth
+                                height: grid.cellHeight
 
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 3
-                                color: Theme.surface0
-                                border.width: 2
-                                border.color: index === root.selected ? Theme.mauve : "transparent"
-
-                                Image {
+                                Rectangle {
                                     anchors.fill: parent
-                                    anchors.margins: 2
-                                    source: "file://" + modelData.thumb
-                                    // Thumbs are natively 400x225, so this is a 1:1
-                                    // decode with no rescale. Deliberately NOT
-                                    // Wallpaper.decodeSize -- that value is the
-                                    // full-screen shared-buffer size and pointing
-                                    // tiles at it would decode originals-sized
-                                    // pixmaps and blow up the wallpaper layer.
-                                    sourceSize.width: 400
-                                    sourceSize.height: 225
-                                    fillMode: Image.PreserveAspectCrop
-                                    asynchronous: true   // never block the UI thread on scroll
-                                    cache: true
-                                    clip: true
-                                }
+                                    anchors.margins: 3
+                                    color: Theme.surface0
+                                    border.width: 2
+                                    border.color: index === root.selected ? Theme.mauve : "transparent"
 
-                                // hoverMoved, not entered: arrowing through the
-                                // grid scrolls it, sliding a different tile under
-                                // a motionless cursor — which used to hand the
-                                // selection straight back to whatever landed there.
-                                MouseArea {
-                                    id: hover
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onPositionChanged: function (e) { if (root.hoverMoved(hover, e)) root.selected = index; }
-                                    onClicked: { root.selected = index; root.apply(true); }
+                                    Image {
+                                        anchors.fill: parent
+                                        anchors.margins: 2
+                                        source: "file://" + modelData.thumb
+                                        // Thumbs are natively 400x225, so this is a 1:1
+                                        // decode with no rescale. Deliberately NOT
+                                        // Wallpaper.decodeSize -- that value is the
+                                        // full-screen shared-buffer size and pointing
+                                        // tiles at it would decode originals-sized
+                                        // pixmaps and blow up the wallpaper layer.
+                                        sourceSize.width: 400
+                                        sourceSize.height: 225
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true   // never block the UI thread on scroll
+                                        cache: true
+                                        clip: true
+                                    }
+
+                                    PickerHover {
+                                        picker: root
+                                        row: index
+                                        onActivated: root.apply(true)
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Flickable's default wheel step is a few pixels (barely moves
-                    // on a 250px tile grid); a full row per notch overshoots. Half a
-                    // row sits between. NoButton so clicks/hover still reach tiles.
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.NoButton
-                        onWheel: function (w) {
-                            var step = grid.cellHeight * ((w.modifiers & Qt.ShiftModifier) ? 2 : 0.5);
-                            var max = Math.max(0, grid.contentHeight - grid.height);
-                            grid.contentY = Math.max(0, Math.min(max,
-                                grid.contentY + (w.angleDelta.y > 0 ? -step : step)));
+                        // Flickable's default wheel step is a few pixels (barely moves
+                        // on a 250px tile grid); a full row per notch overshoots. Half a
+                        // row sits between. NoButton so clicks/hover still reach tiles.
+                        MouseArea {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.NoButton
+                            onWheel: function (w) {
+                                var step = grid.cellHeight * ((w.modifiers & Qt.ShiftModifier) ? 2 : 0.5);
+                                var max = Math.max(0, grid.contentHeight - grid.height);
+                                grid.contentY = Math.max(0, Math.min(max,
+                                    grid.contentY + (w.angleDelta.y > 0 ? -step : step)));
+                            }
                         }
-                    }
                     }
 
                     // Footer: what's selected, where you are, and the keys.

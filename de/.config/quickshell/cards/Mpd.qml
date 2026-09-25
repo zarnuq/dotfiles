@@ -26,9 +26,7 @@ Widget {
         var ps = Mpris.players ? Mpris.players.values : [];
         if (ps.length === 0) return null;
         for (var i = 0; i < ps.length; i++) if (ps[i].isPlaying) return ps[i];
-        for (var j = 0; j < ps.length; j++)
-            if ((ps[j].dbusName || "").toLowerCase().indexOf("mpd") >= 0) return ps[j];
-        return ps[0];
+        return root.mpdPlayer || ps[0];
     }
 
     // ── MPD specifically — media keys target MPD, never the active player.
@@ -102,10 +100,7 @@ Widget {
             }
 
             // Progress.
-            Rectangle {
-                width: parent.width; height: root.s(4); radius: root.s(3); color: Theme.surface0
-                Rectangle { width: parent.width * root.progress / 100; height: parent.height; radius: root.s(3); color: Theme.mauve }
-            }
+            Gauge { height: root.s(4); radius: root.s(3); fraction: root.progress / 100; fillColor: Theme.mauve }
 
             // Volume: output + mic, click to mute-toggle.
             Row {
@@ -126,14 +121,7 @@ Widget {
     }
 
     // --- local button flavours (kept inline: used only by this widget) ---
-    component MpdBtn: MouseArea {
-        property string icon: ""
-        property real size: 18
-        implicitHeight: size * 1.3
-        hoverEnabled: true
-        Txt { anchors.centerIn: parent; text: parent.icon
-              color: parent.containsMouse ? Theme.text : Theme.subtext0; font.pixelSize: parent.size }
-    }
+    component MpdBtn: HeaderBtn { centered: true; implicitHeight: size * 1.3 }
     component VolBtn: MouseArea {
         id: vbtn
         property string icon: ""

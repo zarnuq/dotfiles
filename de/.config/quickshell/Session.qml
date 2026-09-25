@@ -147,11 +147,10 @@ Scope {
                     border.width: 2
                     border.color: pam.active ? Theme.peach : Theme.mauve
 
-                    TextInput {
+                    Field {
                         id: field
                         anchors.fill: parent; anchors.margins: 12
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: Theme.text; font.family: Theme.font; font.pixelSize: 18
+                        font.pixelSize: 18
                         echoMode: TextInput.Password
                         focus: true
                         enabled: !pam.active

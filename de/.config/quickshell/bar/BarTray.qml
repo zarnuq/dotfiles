@@ -10,7 +10,6 @@ import ".."
 Row {
     id: root
 
-    required property var panelWindow
     required property int iconSize
 
     spacing: Config.s(4)
@@ -19,7 +18,9 @@ Row {
 
     TrayMenu {
         id: menu
-        anchor.window: root.panelWindow
+        // The bar this row sits in, found through the window attached
+        // property rather than handed down through BarStatus.
+        anchor.window: root.QsWindow.window
         anchor.edges: Edges.Bottom
         anchor.gravity: Edges.Bottom | Edges.Left
 

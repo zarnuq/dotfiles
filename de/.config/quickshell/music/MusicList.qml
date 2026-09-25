@@ -19,6 +19,8 @@ Item {
     readonly property int viewportRows: Math.max(1, Math.floor(list.height / Ui.rowH))
     readonly property var current: root.cursor >= 0 && root.cursor < root.count
                                    ? root.rows[root.cursor] : null
+    // "3 / 120" — what a browse pane's status bar reads when it is idle.
+    readonly property string position: (root.count > 0 ? root.cursor + 1 : 0) + " / " + root.count
 
     signal activated(int index)
 

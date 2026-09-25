@@ -77,36 +77,17 @@ Widget {
         anchors.fill: parent
         spacing: root.s(8)
 
-        Row {
-            width: parent.width
-            spacing: root.s(10)
-            Txt {
-                text: root.charging ? "󰂄"
-                    : root.low ? "󰂃"
-                    : root.onAc ? "󰚥"
-                    : "󰁹"
-                color: root.tint
-                font.pixelSize: root.s(18)
-            }
-            Txt {
-                text: root.charging ? "charging" : root.onAc ? "plugged in" : "battery"
-                color: Theme.subtext0; font.pixelSize: root.s(14)
-                width: parent.width - x - value.width - parent.spacing
-                verticalAlignment: Text.AlignVCenter
-            }
-            Txt { id: value; text: root.level + "%"; color: root.tint; font.pixelSize: root.s(14) }
+        CardHeader {
+            icon: root.charging ? "󰂄"
+                : root.low ? "󰂃"
+                : root.onAc ? "󰚥"
+                : "󰁹"
+            iconColor: root.tint
+            label: root.charging ? "charging" : root.onAc ? "plugged in" : "battery"
+            Txt { text: root.level + "%"; color: root.tint; font.pixelSize: root.s(14) }
         }
 
-        // Flat gauge, same shape as the brightness slider but read-only.
-        Rectangle {
-            width: parent.width
-            height: root.s(8)
-            color: Theme.surface0
-            Rectangle {
-                height: parent.height
-                width: parent.width * root.level / 100
-                color: root.tint
-            }
-        }
+        // Flat gauge, same shape as the brightness one.
+        Gauge { fraction: root.level / 100; fillColor: root.tint }
     }
 }

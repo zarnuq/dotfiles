@@ -38,6 +38,10 @@ Picker {
     }
     onQueryChanged: root.selected = 0
 
+    // What j/k walk: Picker's own move() clamps against this, so the picker
+    // doesn't carry its own copy of that arithmetic.
+    count: root.results.length
+
     readonly property var cur: (root.selected >= 0 && root.selected < root.results.length)
                                ? root.results[root.selected] : null
 
@@ -176,195 +180,137 @@ Picker {
         onExited: root.reload()
     }
 
-    function move(d) {
-        if (root.results.length === 0) return;
-        root.selected = Math.max(0, Math.min(root.results.length - 1, root.selected + d));
-    }
-
     box: Component {
-        Item {
-            id: content
-            focus: true
+        Column {
+            spacing: 0
 
             // Called by Picker each time the box appears on an output.
-            function reset() { field.text = ""; root.query = ""; field.forceActiveFocus(); }
+            function reset() { search.reset(); root.query = ""; }
 
-            Column {
-                anchors.fill: parent
+            PickerSearch {
+                id: search
+                picker: root
+                width: parent.width
+                height: root.queryHeight
+                margin: root.s(12)
+                fontSize: root.s(19)
+                placeholder: "Clipboard…"
+                onTextChanged: root.query = text
+
+                onSubmitted: root.copy()
+                onExtraKey: function (e) {
+                    if (e.key !== Qt.Key_D || !(e.modifiers & Qt.ControlModifier)) return;
+                    root.remove();
+                    e.accepted = true;
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
+
+            Row {
+                width: parent.width
+                height: parent.height - root.queryHeight - root.footerHeight - 2
                 spacing: 0
 
-                // Query row. Typing filters; every navigation key is handled
-                // here because the field keeps focus the whole time (bare j/k
-                // belong to the query, so Picker.navKey can't be used).
+                // History list.
+                PickerResults {
+                    id: list
+                    picker: root
+                    width: Math.round(parent.width / 2)
+                    height: parent.height
+                    model: root.results
+                    emptyText: root.entries.length === 0 ? "clipboard history empty" : "no matches"
+                    emptySize: root.s(14)
+
+                    delegate: PickerRow {
+                        id: rowItem
+                        picker: root
+                        width: list.width
+                        rowHeight: root.listRowHeight
+                        onActivated: root.copy()
+
+                        hMargin: root.s(12)
+                        cellSpacing: root.s(10)
+
+                        icon: rowItem.modelData.isImage ? "" : ""
+                        iconWidth: root.s(18)
+                        iconSize: root.s(14)
+                        iconAlign: Text.AlignHCenter
+                        iconColor: rowItem.modelData.isImage ? Theme.blue : Theme.subtext0
+
+                        // An image entry has no text to show, so its
+                        // size and format stand in for a preview.
+                        label: rowItem.modelData.isImage
+                               ? rowItem.modelData.meta : rowItem.modelData.preview
+                        labelSize: root.s(14)
+                        labelColor: rowItem.modelData.isImage ? Theme.subtext0
+                                    : rowItem.sel ? Theme.rowSelectFg : Theme.text
+                    }
+                }
+
+                Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
+
+                // Preview.
                 Item {
-                    width: parent.width
-                    height: root.queryHeight
+                    id: pane
+                    width: parent.width - Math.round(parent.width / 2) - 1
+                    height: parent.height
+                    clip: true
 
-                    TextInput {
-                        id: field
+                    Image {
                         anchors.fill: parent
-                        anchors.leftMargin: root.s(12)
-                        anchors.rightMargin: root.s(12)
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: Theme.text
-                        font.family: Theme.font
-                        font.pixelSize: root.s(19)
-                        focus: true
-                        onTextChanged: root.query = text
-
-                        Keys.onPressed: function (e) {
-                            var ctrl = e.modifiers & Qt.ControlModifier;
-                            if (e.key === Qt.Key_Escape) root.hide();
-                            else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) root.copy();
-                            else if (e.key === Qt.Key_D && ctrl) root.remove();
-                            else if (e.key === Qt.Key_Down || (e.key === Qt.Key_J && ctrl)) root.move(1);
-                            else if (e.key === Qt.Key_Up || (e.key === Qt.Key_K && ctrl)) root.move(-1);
-                            else return;
-                            e.accepted = true;
-                        }
+                        anchors.margins: root.s(10)
+                        visible: root.previewImage !== "" && status === Image.Ready
+                        source: root.previewImage === "" ? "" : "file://" + root.previewImage
+                        // Bounded on purpose: under QT_QUICK_BACKEND=software
+                        // every pixel of this is decoded and scaled on the
+                        // CPU, so it is decoded at pane size, never at the
+                        // source's (a full-resolution screenshot would be
+                        // several hundred MB of pixmap for a 600px pane).
+                        sourceSize.width: pane.width
+                        sourceSize.height: pane.height
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        // The path is reused whenever an id comes back
+                        // around, so a cached pixmap could outlive its file.
+                        cache: false
                     }
 
                     Txt {
                         anchors.fill: parent
-                        anchors.leftMargin: root.s(12)
-                        verticalAlignment: Text.AlignVCenter
-                        visible: field.text === ""
-                        text: "Clipboard…"
+                        anchors.margins: root.s(12)
+                        visible: root.previewImage === ""
+                        text: root.previewText
                         color: Theme.subtext0
-                        font.pixelSize: root.s(19)
+                        font.pixelSize: root.s(13)
+                        wrapMode: Text.Wrap
+                        elide: Text.ElideRight
                     }
                 }
+            }
 
-                Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
+            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
 
-                Row {
-                    width: parent.width
-                    height: parent.height - root.queryHeight - root.footerHeight - 2
-                    spacing: 0
+            Item {
+                width: parent.width
+                height: root.footerHeight
 
-                    // History list.
-                    Item {
-                        width: Math.round(parent.width / 2)
-                        height: parent.height
-
-                        Txt {
-                            anchors.centerIn: parent
-                            visible: root.results.length === 0
-                            text: root.entries.length === 0 ? "clipboard history empty" : "no matches"
-                            color: Theme.subtext0
-                            font.pixelSize: root.s(14)
-                        }
-
-                        ListView {
-                            id: list
-                            anchors.fill: parent
-                            clip: true
-                            model: root.results
-                            currentIndex: root.selected
-                            onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
-                            boundsBehavior: Flickable.StopAtBounds
-
-                            delegate: PickerRow {
-                                id: rowItem
-                                picker: root
-                                width: list.width
-                                rowHeight: root.listRowHeight
-                                onActivated: root.copy()
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: root.s(12)
-                                    anchors.rightMargin: root.s(12)
-                                    spacing: root.s(10)
-
-                                    Txt {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: root.s(18)
-                                        horizontalAlignment: Text.AlignHCenter
-                                        text: rowItem.modelData.isImage ? "" : ""
-                                        color: rowItem.modelData.isImage ? Theme.blue : Theme.subtext0
-                                        font.pixelSize: root.s(14)
-                                    }
-
-                                    Txt {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: parent.width - root.s(18) - parent.spacing
-                                        elide: Text.ElideRight
-                                        text: rowItem.modelData.isImage
-                                              ? rowItem.modelData.meta : rowItem.modelData.preview
-                                        color: rowItem.modelData.isImage ? Theme.subtext0
-                                               : rowItem.sel ? Theme.rowSelectFg : Theme.text
-                                        font.pixelSize: root.s(14)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
-
-                    // Preview.
-                    Item {
-                        id: pane
-                        width: parent.width - Math.round(parent.width / 2) - 1
-                        height: parent.height
-                        clip: true
-
-                        Image {
-                            anchors.fill: parent
-                            anchors.margins: root.s(10)
-                            visible: root.previewImage !== "" && status === Image.Ready
-                            source: root.previewImage === "" ? "" : "file://" + root.previewImage
-                            // Bounded on purpose: under QT_QUICK_BACKEND=software
-                            // every pixel of this is decoded and scaled on the
-                            // CPU, so it is decoded at pane size, never at the
-                            // source's (a full-resolution screenshot would be
-                            // several hundred MB of pixmap for a 600px pane).
-                            sourceSize.width: pane.width
-                            sourceSize.height: pane.height
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true
-                            // The path is reused whenever an id comes back
-                            // around, so a cached pixmap could outlive its file.
-                            cache: false
-                        }
-
-                        Txt {
-                            anchors.fill: parent
-                            anchors.margins: root.s(12)
-                            visible: root.previewImage === ""
-                            text: root.previewText
-                            color: Theme.subtext0
-                            font.pixelSize: root.s(13)
-                            wrapMode: Text.Wrap
-                            elide: Text.ElideRight
-                        }
-                    }
+                Txt {
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.s(12)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0"
+                    color: Theme.surface1
+                    font.pixelSize: root.s(11)
                 }
 
-                Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
-
-                Item {
-                    width: parent.width
-                    height: root.footerHeight
-
-                    Txt {
-                        anchors.left: parent.left
-                        anchors.leftMargin: root.s(12)
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0"
-                        color: Theme.surface1
-                        font.pixelSize: root.s(11)
-                    }
-
-                    Txt {
-                        anchors.right: parent.right
-                        anchors.rightMargin: root.s(12)
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "⏎ copy   ^d delete"
-                        color: Theme.surface1
-                        font.pixelSize: root.s(11)
-                    }
+                Txt {
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.s(12)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "⏎ copy   ^d delete"
+                    color: Theme.surface1
+                    font.pixelSize: root.s(11)
                 }
             }
         }
