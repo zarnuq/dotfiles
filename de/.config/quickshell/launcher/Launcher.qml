@@ -4,9 +4,12 @@ import QtQuick
 // level up; a QML file does not see its parent directory implicitly.
 import ".."
 
-// Minimal drun-style app launcher (replaces `rofi -show drun`), plus a file
-// mode: a query beginning with "/" searches $HOME instead of the app list and
-// opens the hit in nvim (directories in yazi).
+// Minimal drun-style app launcher (replaces `rofi -show drun`), plus two
+// sigil modes on the same query: "/" searches $HOME instead of the app list and
+// opens the hit in nvim (directories in yazi), and ">" lists the shell's own
+// menus and actions — the one place that answers "what can this thing open?"
+// without knowing a keybind. Both cost nothing to add, since no app name
+// begins with either character.
 // Triggered by IPC so the reach keybind is just `qs ipc call launcher toggle`.
 // Picker owns the overlay, the IPC target and the focused-monitor logic; this
 // file is just the query, the list, and the keys. The corpus and the ranking
@@ -23,11 +26,17 @@ Picker {
 
     property string query: ""
 
-    // "/" as the first character switches modes; the rest is the file query.
-    // No app's name starts with a slash, so the sigil costs nothing.
+    // The first character picks the mode; the rest is that mode's query.
+    // No app's name starts with a slash or an angle bracket, so the sigils cost
+    // nothing — an empty sigil is a valid query meaning "show me everything".
     readonly property bool fileMode: root.query.charAt(0) === "/"
     readonly property string fileQuery: root.fileMode ? root.query.slice(1) : ""
     property var fileResults: []
+
+    // ">" is the menu list (Commands.qml). Eleven rows off a literal array, so
+    // unlike file mode there is nothing to index, debounce or release.
+    readonly property bool cmdMode: root.query.charAt(0) === ">"
+    readonly property string cmdQuery: root.cmdMode ? root.query.slice(1) : ""
 
     // The index is ~10 MB of JS strings, so it's built when file mode is first
     // entered rather than at startup, and dropped once the launcher has been
@@ -61,6 +70,7 @@ Picker {
     // fills the list that's already on screen.
     readonly property var results: {
         if (root.fileMode) return root.fileResults;
+        if (root.cmdMode) return Commands.search(root.cmdQuery);
         var q = root.query.toLowerCase();
         var vals = DesktopEntries.applications.values;
         var out = [];
@@ -92,6 +102,15 @@ Picker {
     function launch(action) {
         if (root.selected < 0 || root.selected >= root.results.length) return;
         var hit = root.results[root.selected];
+
+        if (root.cmdMode) {
+            // Hide FIRST: the launcher is a full-screen overlay on every
+            // output, and the surface being summoned has to come up over an
+            // empty screen rather than under this one.
+            root.hide();
+            Commands.run(hit);
+            return;
+        }
 
         if (!root.fileMode) {
             hit.execute();
@@ -167,10 +186,12 @@ Picker {
                     anchors.leftMargin: 12 + (field.text === "" ? 0 : field.contentWidth + 10)
                     anchors.rightMargin: 12
                     verticalAlignment: Text.AlignVCenter
-                    text: field.text === "/" ? "Find file…" : "Search…  ( / for files)"
+                    text: field.text === "/" ? "Find file…"
+                          : field.text === ">" ? "Open menu…"
+                          : "Search…  ( / files, > menus)"
                     color: Theme.subtext0
                     font.pixelSize: 24
-                    visible: field.text === "" || field.text === "/"
+                    visible: field.text === "" || field.text === "/" || field.text === ">"
                 }
             }
 
@@ -182,7 +203,8 @@ Picker {
                 Txt {
                     anchors.centerIn: parent
                     visible: root.results.length === 0
-                    text: !root.fileMode ? (root.query === "" ? "no applications found" : "no matches")
+                    text: root.cmdMode ? "no matches"
+                          : !root.fileMode ? (root.query === "" ? "no applications found" : "no matches")
                           : !FileIndex.ready ? "indexing…"
                           : root.fileQuery === "" ? FileIndex.count + " files"
                           : "no matches"
@@ -229,7 +251,7 @@ Picker {
                             anchors.leftMargin: 12; anchors.rightMargin: 12
 
                             Image {
-                                visible: !root.fileMode
+                                visible: !root.fileMode && !root.cmdMode
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 26; height: 26
                                 sourceSize.width: 26; sourceSize.height: 26
@@ -239,24 +261,46 @@ Picker {
                             }
 
                             Txt {
-                                visible: root.fileMode
+                                visible: root.fileMode || root.cmdMode
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 26
                                 horizontalAlignment: Text.AlignHCenter
-                                text: (root.fileMode && modelData.isDir) ? "\uf07b" : "\uf15b"
-                                color: (root.fileMode && modelData.isDir) ? Theme.blue : Theme.subtext0
+                                text: root.cmdMode ? modelData.glyph
+                                      : (root.fileMode && modelData.isDir) ? "\uf07b" : "\uf15b"
+                                color: root.cmdMode ? Theme.mauve
+                                       : (root.fileMode && modelData.isDir) ? Theme.blue : Theme.subtext0
                                 font.pixelSize: 16
+                            }
+
+                            // The key that also does this, read out of
+                            // config.zon by Commands — the point of the list is
+                            // to teach the binding, not to replace it. Anchored
+                            // outermost and never elided: on a narrow output
+                            // the gloss is what should give way.
+                            Txt {
+                                id: keyLabel
+                                visible: root.cmdMode && modelData.key !== ""
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.cmdMode ? modelData.key : ""
+                                color: Theme.overlay0
+                                font.pixelSize: 15
                             }
 
                             Txt {
                                 id: dirLabel
-                                visible: root.fileMode
-                                anchors.right: parent.right
+                                visible: root.fileMode || root.cmdMode
+                                anchors.right: keyLabel.visible ? keyLabel.left : parent.right
+                                anchors.rightMargin: keyLabel.visible ? 14 : 0
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Math.min(implicitWidth, parent.width * 0.55)
-                                elide: Text.ElideLeft
+                                // Elided from the LEFT for a path (the deep end
+                                // is what tells four .zshrc hits apart) but from
+                                // the RIGHT for a gloss, which reads forwards.
+                                elide: root.cmdMode ? Text.ElideRight : Text.ElideLeft
                                 horizontalAlignment: Text.AlignRight
-                                text: root.fileMode ? modelData.dir : ""
+                                text: root.cmdMode ? modelData.desc
+                                      : root.fileMode ? modelData.dir : ""
                                 color: Theme.subtext0
                                 font.pixelSize: 15
                             }
@@ -264,7 +308,7 @@ Picker {
                             Txt {
                                 anchors.left: parent.left
                                 anchors.leftMargin: 34
-                                anchors.right: root.fileMode ? dirLabel.left : parent.right
+                                anchors.right: (root.fileMode || root.cmdMode) ? dirLabel.left : parent.right
                                 anchors.rightMargin: 8
                                 anchors.verticalCenter: parent.verticalCenter
                                 elide: Text.ElideRight

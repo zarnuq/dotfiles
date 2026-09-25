@@ -153,6 +153,11 @@ Scope {
         target: root.ipcTarget
         function toggle(): void { root.toggle(); }
         function hide(): void   { root.hide(); }
+        // `open`, not `show` — same function, a name the CLI does not swallow.
+        // It exists because `toggle` is the wrong verb for a caller that wants
+        // this surface up regardless: the launcher's ">" menu list would
+        // otherwise CLOSE whatever was already open when you picked it.
+        function open(): void   { root.show(); }
     }
 
     Variants {

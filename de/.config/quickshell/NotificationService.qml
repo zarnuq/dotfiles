@@ -36,9 +36,14 @@ Singleton {
 
     function toggleDnd() { root.paused = !root.paused; }
 
-    // Clear on-screen popups (mako parity: the widget's clear = dismiss -a).
+    // Clear the on-screen popups AND the history list. The only caller is the
+    // trash button in the Notifications panel's header, which sits directly on
+    // top of the rows `history` draws — so dismissing the live popups alone
+    // (mako parity: `dismiss -a`) left every visible row in place and read as a
+    // button that does nothing, on the one widget where you can see it fail.
     function clear() {
         var v = server.trackedNotifications.values;
         for (var i = v.length - 1; i >= 0; i--) v[i].dismiss();
+        root.history = [];
     }
 }

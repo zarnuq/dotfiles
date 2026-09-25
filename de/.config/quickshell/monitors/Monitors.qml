@@ -30,6 +30,10 @@ Scope {
         target: "monitors"
         function toggle(): void { root.open = !root.open; }
         function hide(): void   { root.open = false; }
+        // See Picker: `open` is the non-colliding name for "up regardless",
+        // which is what the launcher's ">" menu list needs — a window really
+        // can be sitting open behind the launcher, and toggle would shut it.
+        function open(): void   { root.open = true; }
     }
 
     FloatingWindow {

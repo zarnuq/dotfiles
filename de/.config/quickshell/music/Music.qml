@@ -21,6 +21,11 @@ Scope {
         target: "music"
         function toggle(): void { root.open = !root.open; }
         function hide(): void   { root.open = false; }
+        // See Picker: `open` is the non-colliding name for "up regardless",
+        // which is what the launcher's ">" menu list needs. The window is the
+        // case that makes it matter — unlike an overlay it really can be
+        // sitting open behind the launcher.
+        function open(): void   { root.open = true; }
     }
 
     FloatingWindow {

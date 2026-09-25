@@ -4,5 +4,6 @@
 # config ROOT, not in a subdirectory.
 
 singleton FileIndex FileIndex.qml
+singleton Commands  Commands.qml
 
 Launcher             Launcher.qml
