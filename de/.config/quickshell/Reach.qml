@@ -40,6 +40,32 @@ Singleton {
         return root.outputs[name] || null;
     }
 
+    // Which output the POINTER is over, when we can tell — set by the per-output
+    // wallpaper surfaces' hover, "" when nothing reports it.
+    //
+    // reach cannot answer this on its own beat, and not for want of trying:
+    // river only reports the pointer position inside a manage sequence, and
+    // motion alone must never start one. So the socket's `focused` is right at
+    // the moment it MATTERS (a keybind is a manage sequence) but stands still
+    // while you merely move the mouse across a bare desktop — which is exactly
+    // when you are looking at the bar to see where you are.
+    //
+    // Hover on a surface we already own is the one signal that arrives live. It
+    // is only available over bare desktop: above a window the wallpaper gets
+    // nothing, and that is precisely the case reach's own `pointer_enter` does
+    // see, so the two halves cover the screen between them.
+    property string hoveredOutput: ""
+
+    /// Is `name` the selected output — the one the desktop keys act on? Live
+    /// hover wins where we have it, the socket answers everywhere else. Both
+    /// follow the same rule (sloppy focus selects the monitor under the mouse),
+    /// so this predicts what reach will conclude rather than contradicting it.
+    function selected(name) {
+        if (root.hoveredOutput !== "") return root.hoveredOutput === name;
+        var o = root.outputs[name];
+        return !!(o && o.focused);
+    }
+
     Socket {
         id: sock
         path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/reach.sock"

@@ -1,6 +1,8 @@
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
+// Parent import: the Reach singleton, which this tells where the pointer is.
+import ".."
 
 // One background-layer surface per output, all showing Wallpaper.current.
 // Switching crossfades between two layers so it never flashes black: the new
@@ -24,6 +26,20 @@ Variants {
         exclusiveZone: 0
         color: "black"
         anchors { top: true; bottom: true; left: true; right: true }
+
+        // The wallpaper is the only surface covering a WHOLE output, which makes
+        // it the only place hover can answer "which screen is the mouse on" for
+        // the bar's highlight (see Reach.hoveredOutput). Hover only — it takes no
+        // clicks and changes no focus; reach ignores shell-surface interaction
+        // anyway, so a click on the desktop still does nothing.
+        HoverHandler {
+            onHoveredChanged: {
+                if (hovered)
+                    Reach.hoveredOutput = modelData.name;
+                else if (Reach.hoveredOutput === modelData.name)
+                    Reach.hoveredOutput = "";
+            }
+        }
 
         Item {
             id: bg

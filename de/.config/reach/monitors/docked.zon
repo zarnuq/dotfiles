@@ -20,11 +20,8 @@
 // swaps them in the layout.
 .{
     .monitors = .{
-        // External on a stand above the panel, portrait head to the right.
-        // DP-3 is 1920x1080 and occupies 1080x1920, so anything right of it
-        // would start at .x = 1920 + 1080.
         .{ .name = "DP-5", .w = 1920, .h = 1080, .x = 0, .y = 0 },
         .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1080 },
-        .{ .name = "DP-3", .w = 1920, .h = 1080, .x = 1920, .y = 0, .transform = .rotate_270 },
+        .{ .name = "DP-3", .w = 1920, .h = 1080, .x = 1920, .y = 360, .transform = .rotate_90 },
     },
 }

@@ -73,6 +73,12 @@ Scope {
             // clock rather than to nothing.
             readonly property var wm: Reach.forScreen(modelData.name)
 
+            // Not `wm.focused` directly: that is the socket's answer, and the
+            // socket cannot move while the mouse merely crosses onto a monitor
+            // with nothing under the cursor. Reach.selected() layers live hover
+            // over it (see Reach.qml).
+            readonly property bool isSelected: Reach.selected(modelData.name)
+
             screen: modelData
             anchors {
                 top: true
@@ -154,9 +160,9 @@ Scope {
                     top: parent.top
                     bottom: parent.bottom
                 }
-                color: (bar.wm && bar.wm.focused) ? root.selectBg : Theme.base
+                color: bar.isSelected ? root.selectBg : Theme.base
 
-                readonly property color fg: (bar.wm && bar.wm.focused) ? root.selectFg : root.normalFg
+                readonly property color fg: bar.isSelected ? root.selectFg : root.normalFg
 
                 Txt {
                     anchors {
