@@ -1,4 +1,4 @@
-export PATH=/usr/bin:/usr/sbin:/bin:/sbin:$HOME/.local/bin:/usr/local/bin:$HOME/.config/emacs/bin:/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin
+export PATH=/home/miles/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/home/miles/.local/bin:/usr/local/bin:/usr/bin:/bin
 # /etc/zsh/zshenv sources nix-daemon.sh (which sets __ETC_PROFILE_NIX_SOURCED=1
 # and adds nix to PATH). Then /etc/zsh/zprofile sources /etc/profile.env, whose
 # baselayout `export PATH=...` wipes nix out — and the nix.sh re-run later in
