@@ -290,11 +290,12 @@ Picker {
     }
 
     // `opts` says what the action is, for onExited: { ssid, hadKey } for a
-    // Wi-Fi join, { importing } or { deleteUuid } for the ~/VPNs mirror.
+    // Wi-Fi join, { vpnUuid } for a VPN `con up` (the one `d` can cancel),
+    // { importing } or { deleteUuid } for the ~/VPNs mirror.
     function run(cmd, note, opts): void {
         if (act.running || cancelVpn.running) return;
         opts = opts || {};
-        act.vpnUuid = cmd[1] === "connection" && cmd[2] === "up" ? cmd[4] : "";
+        act.vpnUuid = opts.vpnUuid || "";
         act.cancelling = false;
         act.ssid = opts.ssid || "";
         act.hadKey = opts.hadKey === true;
@@ -329,7 +330,8 @@ Picker {
             // stray keystroke from being dropped, and the two keys read the same
             // on a row whose state you weren't looking at.
             if (row.active || row.connecting) return;
-            root.run(NetworkData.vpnCommand(row, true), "connecting " + row.name + "…");
+            root.run(NetworkData.vpnCommand(row, true), "connecting " + row.name + "…",
+                     { vpnUuid: row.uuid });
         }
     }
 

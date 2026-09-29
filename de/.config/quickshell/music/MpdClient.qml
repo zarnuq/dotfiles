@@ -181,8 +181,8 @@ Singleton {
         return out;
     }
 
-    /// Artist — Title for a song record, falling back to its path. A file with
-    /// no tags at all is common enough in a library this size to be worth it.
+    /// A song record's Title, falling back to its file name. A file with no
+    /// tags at all is common enough in a library this size to be worth it.
     function songTitle(s) {
         if (!s) return "";
         if (s.Title) return s.Title;
@@ -271,9 +271,10 @@ Singleton {
     /// that must still be announced. `Shift+A` on the library is both at once.
     property bool queueWasBulk: false
 
-    // The one expensive call: 4311 songs is 78k lines / 1.8 MB / ~180 ms on this
-    // box. So it is never polled — only the first open and an actual `playlist`
-    // change reach it, and `plchangesposid` below covers the common small edits.
+    // The one expensive call: the 6k-song queue here is ~110k lines / 2.67 MB /
+    // ~250 ms. So it is never polled — only the first open and an actual
+    // `playlist` change reach it, and `plchangesposid` below covers the common
+    // small edits.
     /// `bulk` false says this refetch is standing in for an edit idle already
     /// told us about, so the size of it is the user's doing, not a first read.
     function refreshQueue(bulk) {
@@ -284,10 +285,11 @@ Singleton {
         });
     }
 
-    // A queue edit bumps MPD's playlist version; plchanges returns only entries
-    // at or after the version given, which for the usual one-song add is a
-    // handful of lines instead of the full 1.8 MB. Anything that moves more than
-    // it would cost to refetch falls back to the full list.
+    // A queue edit bumps MPD's playlist version; plchangesposid returns only the
+    // positions changed since the version given, which for the usual one-song
+    // add is a handful of lines instead of the full 2.67 MB. Anything it cannot
+    // express, or that adds more than it would cost to refetch, falls back to
+    // the full list.
     function syncQueue() {
         var from = root.queueVersion;
         var newVersion = parseInt(root.status.playlist || "-1");
@@ -563,17 +565,17 @@ Singleton {
     /// does not exist, which is what lets the picker's "new playlist" row be
     /// this same command with a typed name. A directory URI adds everything
     /// beneath it, as `add` does to the queue (checked against MPD 0.24).
-    function playlistAdd(name, uris, cb): void {
+    function playlistAdd(name, uris): void {
         var qn = root.q(name), cmds = [];
         for (var i = 0; i < uris.length; i++)
             cmds.push("playlistadd " + qn + " " + root.q(uris[i]));
-        root.sendList(cmds, cb);
+        root.sendList(cmds);
     }
 
     /// Remove one song from a stored playlist BY POSITION — the only handle
     /// MPD offers here, so the caller passes the row index it drew.
-    function playlistRemoveAt(name, pos, cb): void {
-        root.send("playlistdelete " + root.q(name) + " " + pos, cb);
+    function playlistRemoveAt(name, pos): void {
+        root.send("playlistdelete " + root.q(name) + " " + pos);
     }
 
     // ── Sockets ──────────────────────────────────────────────────────────

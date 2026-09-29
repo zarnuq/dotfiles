@@ -1,9 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Top-left, flush under the bar.
 // Time/date computed natively (was `date` polled at 1s/60s).
@@ -17,19 +14,14 @@ Widget {
     property string timeStr: ""
     property string dateStr: ""
 
-    readonly property var months: ["January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"]
-
-    function pad2(n) { return ("" + n).padStart(2, "0"); }
-
     Timer {
         interval: 1000; running: true; repeat: true; triggeredOnStart: true
         onTriggered: {
             var d = new Date();
-            // eww used +%H:%M:%S %p -> 24h clock with an AM/PM suffix.
-            root.timeStr = root.pad2(d.getHours()) + ":" + root.pad2(d.getMinutes())
-                         + ":" + root.pad2(d.getSeconds()) + " " + (d.getHours() < 12 ? "AM" : "PM");
-            root.dateStr = root.months[d.getMonth()] + " " + root.pad2(d.getDate()) + ", " + d.getFullYear();
+            // eww used +%H:%M:%S %p -> 24h clock with an AM/PM suffix. `HH`
+            // stays 24-hour even with `AP` in the format (`hh` would not).
+            root.timeStr = Qt.formatDateTime(d, "HH:mm:ss AP");
+            root.dateStr = Qt.formatDateTime(d, "MMMM dd, yyyy");
         }
     }
 

@@ -1,10 +1,7 @@
 pragma ComponentBehavior: Bound
 import Quickshell
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,
-// Volume, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // One set of status readings for all outputs, owned by Bar's feature loader.
 Scope {
@@ -16,18 +13,8 @@ Scope {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: {
-            // date '+%a %m/%d %I:%M %p'
-            var d = new Date();
-            var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            var h12 = d.getHours() % 12;
-            if (h12 === 0)
-                h12 = 12;
-            root.clock = days[d.getDay()] + " " + root.p2(d.getMonth() + 1) + "/" + root.p2(d.getDate()) + " " + root.p2(h12) + ":" + root.p2(d.getMinutes()) + " " + (d.getHours() < 12 ? "AM" : "PM");
-        }
-    }
-    function p2(n) {
-        return ("" + n).padStart(2, "0");
+        // date '+%a %m/%d %I:%M %p' — `hh` is 12-hour because `AP` is present.
+        onTriggered: root.clock = Qt.formatDateTime(new Date(), "ddd MM/dd hh:mm AP")
     }
 
     // audio.sh's sed, ported: drop the parenthetical, then the boilerplate words
@@ -45,22 +32,22 @@ Scope {
         onData: text => root.ip = text.trim()
     }
 
-    // Sys owns the battery poll shared with the battery card.
+    // Power owns the battery read shared with the battery card.
     //
     // The glyph tracks the LEVEL; whether a charger is in is carried by the
     // color in BarStatus (green charging, teal held on mains). The old branch
     // here drew a FULL battery for every state that wasn't `Discharging`, so a
     // charge-threshold hold at 30% on AC read as a full battery.
     readonly property string batteryGlyph: {
-        if (Sys.charging)
+        if (Power.charging)
             return "";
-        if (Sys.batteryLevel <= 10)
+        if (Power.level <= 10)
             return "";
-        if (Sys.batteryLevel <= 25)
+        if (Power.level <= 25)
             return "";
-        if (Sys.batteryLevel <= 50)
+        if (Power.level <= 50)
             return "";
-        if (Sys.batteryLevel <= 75)
+        if (Power.level <= 75)
             return "";
         return "";
     }

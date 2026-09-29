@@ -2,10 +2,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Base window for every eww-style widget.
 //
@@ -24,7 +21,7 @@ PanelWindow {
     property int pad: 10                     // inner padding, unscaled (s() applied)
     property color bg: Theme.base
     property color borderColor: Theme.surface0
-    property int stackLayer: WlrLayer.Bottom // eww "bottom"; tray overrides to Overlay
+    property int stackLayer: WlrLayer.Bottom // eww "bottom"; Battery raises itself to Overlay when low
 
     // Pin to the main screen, falling back to the first output — which on the
     // laptop is the only one there is.

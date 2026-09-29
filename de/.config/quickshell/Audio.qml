@@ -60,12 +60,12 @@ Picker {
         if (row.kind === "stream")
             return root.app(n) + (n.properties && n.properties["media.name"]
                                   ? " — " + n.properties["media.name"] : "");
-        return n.description || n.nickname || n.name;
+        return Volume.nameOf(n);
     }
 
     function isDefault(row) {
-        if (row.kind === "sink")   return Pipewire.defaultAudioSink === row.node;
-        if (row.kind === "source") return Pipewire.defaultAudioSource === row.node;
+        if (row.kind === "sink")   return Volume.sink === row.node;
+        if (row.kind === "source") return Volume.source === row.node;
         return false;
     }
 
@@ -199,21 +199,14 @@ Picker {
 
                 // The slot's one control: drag anywhere on the track to set
                 // the level. The row makes room for it; this fills that room.
-                Rectangle {
+                Gauge {
                     id: track
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
                     height: root.s(6)
-                    color: Theme.surface0
-                    radius: Theme.borderRadius
-
-                    Rectangle {
-                        width: track.width * Math.max(0, Math.min(1, rowItem.pct / 100))
-                        height: parent.height
-                        color: rowItem.muted ? Theme.red
+                    fraction: Math.max(0, Math.min(1, rowItem.pct / 100))
+                    fillColor: rowItem.muted ? Theme.red
                                : rowItem.sel ? Theme.mauve : Theme.surface1
-                        radius: Theme.borderRadius
-                    }
 
                     MouseArea {
                         anchors.fill: parent

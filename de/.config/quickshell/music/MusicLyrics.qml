@@ -23,10 +23,13 @@ Item {
         return root.musicDir + (dot > slash ? file.substring(0, dot) : file) + ".lrc";
     }
 
-    property var lines: []          // [{ t: seconds or -1, text }]
+    // [{ t, text, untimed, i }], sorted by t (seconds) then i (file order).
+    // A stamped line has untimed false and t >= 0; an untagged one inherits
+    // the last stamp above it (-1 before any), so only `untimed` says which.
+    property var lines: []
     readonly property bool synced: {
         for (var i = 0; i < root.lines.length; i++)
-            if (root.lines[i].t >= 0 && !root.lines[i].untimed) return true;
+            if (!root.lines[i].untimed) return true;
         return false;
     }
     readonly property string status: {
@@ -41,7 +44,7 @@ Item {
         var now = root.client.elapsed;
         var hit = -1;
         for (var i = 0; i < root.lines.length; i++) {
-            if (root.lines[i].t < 0 || root.lines[i].untimed) continue;
+            if (root.lines[i].untimed) continue;
             if (root.lines[i].t <= now) hit = i; else break;
         }
         return hit;
@@ -90,10 +93,10 @@ Item {
 
     function handleKey(event) {
         switch (event.key) {
-        case Qt.Key_J: view.contentY = Math.min(view.contentY + Ui.s(31),
+        case Qt.Key_J: view.contentY = Math.min(view.contentY + Ui.rowH,
                                                 Math.max(0, view.contentHeight - view.height));
             return true;
-        case Qt.Key_K: view.contentY = Math.max(view.contentY - Ui.s(31), 0); return true;
+        case Qt.Key_K: view.contentY = Math.max(view.contentY - Ui.rowH, 0); return true;
         }
         return false;
     }
@@ -154,11 +157,8 @@ Item {
         }
     }
 
-    Txt {
-        anchors.centerIn: parent
+    MusicEmpty {
         visible: root.lines.length === 0
-        color: Theme.surface1
-        font.pixelSize: Ui.fs(13)
         text: root.client.song.file === undefined ? "nothing playing" : "no lyrics for this track"
     }
 }

@@ -34,7 +34,7 @@ Picker {
     readonly property string fileQuery: root.fileMode ? root.query.slice(1) : ""
     property var fileResults: []
 
-    // ">" is the menu list (Commands.qml). Eleven rows off a literal array, so
+    // ">" is the menu list (Commands.qml). A dozen rows off a literal array, so
     // unlike file mode there is nothing to index, debounce or release.
     readonly property bool cmdMode: root.query.charAt(0) === ">"
     readonly property string cmdQuery: root.cmdMode ? root.query.slice(1) : ""

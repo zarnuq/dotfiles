@@ -25,7 +25,6 @@ FocusScope {
     property string activeName: ""
     property var outputs: []        // wlr-randr: what is plugged in, with modes
     property string linkPath: ""
-    property string presetDir: ""
     // The link names a layout whose file is gone. reach reads that as no file at
     // all, so it is worth saying out loud rather than showing an empty canvas.
     property bool activeMissing: false
@@ -88,7 +87,6 @@ FocusScope {
         root.activeName = data.active || "";
         root.outputs = data.outputs || [];
         root.linkPath = data.link || "";
-        root.presetDir = data.dir || "";
         root.activeMissing = !!data.activeMissing;
         root.loadPreset(root.activeName);
     }
@@ -339,21 +337,15 @@ FocusScope {
 
             Repeater {
                 model: root.presets
-                Rectangle {
+                MonitorButton {
+                    id: layoutBtn
                     required property var modelData
-                    readonly property bool isActive: modelData.name === root.activeName
-                    width: label.implicitWidth + root.s(22)
-                    height: root.s(30)
-                    color: isActive ? Theme.mauve : (hover.hovered ? Theme.surface1 : Theme.surface0)
-                    Txt {
-                        id: label
-                        anchors.centerIn: parent
-                        text: parent.modelData.name
-                        color: parent.isActive ? Theme.crust : Theme.text
-                        font.pixelSize: root.s(13)
-                    }
-                    HoverHandler { id: hover }
-                    TapHandler { onTapped: root.pick(parent.modelData.name) }
+                    readonly property bool isActive: layoutBtn.modelData.name === root.activeName
+                    label: layoutBtn.modelData.name
+                    accent: layoutBtn.isActive
+                    accentHover: false
+                    hPad: root.s(22)
+                    onClicked: root.pick(layoutBtn.modelData.name)
 
                     // Delete, on hover, and never on the active layout: removing
                     // it would leave monitors.zon dangling. The script refuses
@@ -363,10 +355,10 @@ FocusScope {
                         anchors.rightMargin: root.s(4)
                         anchors.top: parent.top
                         text: "×"
-                        visible: hover.hovered && !parent.isActive
+                        visible: layoutBtn.hovered && !layoutBtn.isActive
                         color: Theme.red
                         font.pixelSize: root.s(12)
-                        TapHandler { onTapped: root.removePreset(parent.parent.modelData.name) }
+                        TapHandler { onTapped: root.removePreset(layoutBtn.modelData.name) }
                     }
                 }
             }

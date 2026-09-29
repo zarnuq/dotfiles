@@ -57,7 +57,7 @@ Rectangle {
     }
 
     visible: root.mode !== ""
-    color: Qt.rgba(Theme.base.r, Theme.base.g, Theme.base.b, 0.96)
+    color: Theme.alpha(Theme.base, 0.96)
 
     MouseArea { anchors.fill: parent; onClicked: root.dismissed() }
     Page {

@@ -22,7 +22,7 @@ Item {
     required property var modelData
     required property int index
     // The picker's, which is what its boxHeight was summed from; a row that
-    // isn't in `rows` (the clipboard history) sets its own.
+    // isn't in `rows` (the clipboard history) gets its own from its picker.
     property int headerHeight: picker.headerHeight
     property int rowHeight: picker.rowHeight
     property bool current: false
@@ -64,7 +64,7 @@ Item {
         anchors.fill: parent
         visible: root.sel || root.current
         color: root.current
-               ? Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, root.sel ? 0.22 : 0.12)
+               ? Theme.currentWash(root.sel)
                : Theme.rowSelectBg
     }
 

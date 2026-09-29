@@ -1,9 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Reach, Sys,
-// Volume, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Blocks in reach's config.zon order, joined by the same "|" delimiter.
 Row {
@@ -64,16 +61,16 @@ Row {
         text: root.statusData.clock
     }
     Delim {
-        visible: Sys.batteryPresent
+        visible: Power.present
     }
     Block {
-        visible: Sys.batteryPresent
-        text: root.statusData.batteryGlyph + " " + Sys.batteryLevel + "%"
+        visible: Power.present
+        text: root.statusData.batteryGlyph + " " + Power.level + "%"
         // Red only when actually off mains: `Not charging` on AC under 20% is a
         // threshold hold, not a battery about to die (same reason the card's
-        // warning is gated on Sys.onAc).
-        color: Sys.charging ? Theme.green
-             : Sys.onAc ? Theme.teal
-             : (Sys.batteryLevel < 20 ? Theme.red : root.normalFg)
+        // warning is gated on Power.onAc).
+        color: Power.charging ? Theme.green
+             : Power.onAc ? Theme.teal
+             : (Power.level < 20 ? Theme.red : root.normalFg)
     }
 }

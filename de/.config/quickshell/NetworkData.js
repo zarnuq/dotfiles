@@ -103,6 +103,9 @@ function connOn(conns, device) {
     return "";
 }
 
+// Every tunnel NM knows about, as a VPN row minus its display fields (vpnRows
+// stamps those and groups them). `alwaysOn` is decided here, by connection
+// name, since this is where a tunnel first becomes a row.
 function vpnConnections(conns, devStates) {
     var out = [];
     for (var i = 0; i < conns.length; i++) {
@@ -111,9 +114,11 @@ function vpnConnections(conns, devStates) {
             // NM describes wg-quick links through volatile profiles. It marks
             // the DEVICE as "connected (externally)", not the connection.
             var st = devStates[c.device];
-            out.push({ name: c.name, uuid: c.uuid, active: c.state === "activated",
+            out.push({ kind: "nmvpn", name: c.name, uuid: c.uuid,
+                       active: c.state === "activated",
                        connecting: c.state === "activating",
-                       external: st !== undefined && st.indexOf("external") !== -1 });
+                       external: st !== undefined && st.indexOf("external") !== -1,
+                       alwaysOn: isAlwaysOn(c.name) });
         }
     }
     return out;
@@ -170,22 +175,21 @@ var ALWAYS_ON = ["wireguard"];
 
 function isAlwaysOn(name) { return ALWAYS_ON.indexOf(name) !== -1; }
 
-// Every tunnel NM knows about, grouped by purpose. Each row carries everything
+// vpnConnections' tunnels, grouped by purpose. Each row carries everything
 // the menu needs to draw and act on it: its `label`, whether it is `alwaysOn`,
-// and the identity its command is built from. Those two are stamped here rather
-// than asked later, because both are decided exactly once — when the row is
-// built — and a delegate that re-derives them per frame has to be handed the
-// whole list to do it. `warning()` below is the other reason: matching an
-// always-on tunnel by NAME across every row would count a wired connection
-// called "wireguard" as the homelab tunnel.
+// and the identity its command is built from. Those two are stamped when the
+// row is built rather than asked later, because both are decided exactly once
+// and a delegate that re-derives them per frame has to be handed the whole
+// list to do it. `warning()` below is the other reason: matching an always-on
+// tunnel by NAME across every row would count a wired connection called
+// "wireguard" as the homelab tunnel.
 function vpnRows(vpnConns) {
     var all = [], byName = {};
     for (var j = 0; j < vpnConns.length; j++) {
         var c = vpnConns[j];
         byName[c.name] = (byName[c.name] || 0) + 1;
-        all.push({ kind: "nmvpn", name: c.name, uuid: c.uuid, active: c.active,
-                   connecting: c.connecting === true,
-                   external: c.external, alwaysOn: isAlwaysOn(c.name) });
+        // A copy: the display fields below are this menu's, not the input's.
+        all.push(Object.assign({}, c));
     }
 
     // Two NM profiles can share a name; NM's own convention when it has to tell
@@ -225,10 +229,8 @@ function pendingImports(vpnConns, ovpnFiles) {
     return out;
 }
 
-// The VPN section is a MIRROR of ~/VPNs (plus the always-on tunnels): a file
-// with no profile gets imported, a profile with no file gets deleted. Both
-// halves are gated on a listing that actually succeeded — `filesSeen` — so an
-// unreadable ~/VPNs never reads as "delete everything".
+// The source registry with every tunnel that a ~/VPNs file would produce
+// (matched by name) recorded against its UUID — the always-on ones excepted.
 function adoptSources(managed, conns, files) {
     var next = Object.assign({}, managed), byName = {};
     for (var i = 0; i < files.length; i++) byName[files[i].name] = files[i];
@@ -297,7 +299,12 @@ function obsoleteSources(managed, conns, files) {
     return out;
 }
 
-// The next step of the ~/VPNs mirror, or null when NM already matches it:
+// The VPN section is a MIRROR of ~/VPNs (plus the always-on tunnels): a file
+// with no profile gets imported, a profile with no file gets deleted. Both
+// halves are gated on a listing that actually succeeded — `filesSeen` — so an
+// unreadable ~/VPNs never reads as "delete everything".
+//
+// The next step of that mirror, or null when NM already matches it:
 // `{ remove: {uuid, name, file} }` or `{ add: <file> }`. One step at a time,
 // since each is an nmcli write and they queue behind each other in the QML.
 // `tried` holds its guard maps — importTried, importDone, deleteTried — keyed

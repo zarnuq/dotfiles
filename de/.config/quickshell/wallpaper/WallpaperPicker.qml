@@ -82,8 +82,9 @@ Picker {
     }
     // close=false applies without dismissing, so you can flip through live.
     function apply(close): void {
-        if (root.selected < 0 || root.selected >= root.results.length) return;
-        Wallpaper.set(root.results[root.selected].path);
+        var p = root.curPath();
+        if (p === "") return;
+        Wallpaper.set(p);
         if (close) root.hide();
     }
 

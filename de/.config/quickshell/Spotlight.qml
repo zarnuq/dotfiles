@@ -6,7 +6,7 @@ import QtQuick
 
 // "Where is my cursor" — the screen dims and a clear circle stays around the
 // pointer (PowerToys' Find My Mouse). Replaces reach's shake-to-grow-the-cursor,
-// which reach now only *detects*: it spawns `qs ipc call spotlight show` and
+// which reach now only *detects*: it spawns `qs ipc call spotlight flash` and
 // this file does the rest.
 //
 // WHY THIS LIVES HERE AND NOT IN REACH: reach is river's window-management
@@ -44,8 +44,6 @@ Scope {
     readonly property int radius: Config.s(95)
     readonly property int openRadius: Config.s(320)
     property real curR: radius
-
-    readonly property color shade: Qt.rgba(0, 0, 0, 0.55)
 
     // The shadow closes in rather than snapping to size: a ring of dark
     // contracting onto the cursor is what makes the eye find it, which is the
@@ -177,25 +175,25 @@ Scope {
             // The wash, as four solid rectangles around the hole's square. Solid
             // colour, so moving them costs no painting at all.
             Rectangle {
-                color: root.shade
+                color: Theme.scrim
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 height: win.holed ? win.hy : parent.height
             }
             Rectangle {
                 visible: win.holed
-                color: root.shade
+                color: Theme.scrim
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: parent.height - win.hy - 2 * win.r
             }
             Rectangle {
                 visible: win.holed
-                color: root.shade
+                color: Theme.scrim
                 x: 0; y: win.hy
                 width: win.hx; height: 2 * win.r
             }
             Rectangle {
                 visible: win.holed
-                color: root.shade
+                color: Theme.scrim
                 x: win.hx + 2 * win.r; y: win.hy
                 width: parent.width - win.hx - 2 * win.r; height: 2 * win.r
             }
@@ -224,7 +222,7 @@ Scope {
 
                     ctx.reset();
                     ctx.clearRect(0, 0, width, height);
-                    ctx.fillStyle = root.shade;
+                    ctx.fillStyle = Theme.scrim;
                     ctx.fillRect(0, 0, width, height);
 
                     // Soft edge: fully clear to ~80% of the radius, then ramp

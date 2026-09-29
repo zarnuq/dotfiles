@@ -21,10 +21,12 @@ Picker {
     ipcTarget: "clipboard"
     widthFraction: 0.6
     heightFraction: 0.6
+    // The history rows' height. No `rows` here, so boxHeight never reads it —
+    // the box stays heightFraction tall — and PickerRow picks it up by default.
+    rowHeight: s(32)
 
     readonly property int queryHeight: s(46)
     readonly property int footerHeight: s(28)
-    readonly property int listRowHeight: s(32)
 
     property var entries: []      // [{id, raw, preview, isImage, meta}]
     property string query: ""
@@ -227,7 +229,6 @@ Picker {
                         id: rowItem
                         picker: root
                         width: list.width
-                        rowHeight: root.listRowHeight
                         onActivated: root.copy()
 
                         hMargin: root.s(12)

@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import ".."
 
 // Tab 5 — search the library. The matching is MPD's, not ours: `search` is
 // case-insensitive substring, server-side, which is exactly rmpc's Contains
@@ -68,7 +67,7 @@ Item {
         root.client.sendList(commands);
     }
 
-    function focusField(): void { root.typing = true; field.forceActiveFocus(); }
+    function focusField(): void { root.typing = true; bar.field.forceActiveFocus(); }
 
     /// Hand the keyboard back. `typing = false` alone was not enough: nothing
     /// moved focus off the TextInput, so every subsequent key still went into
@@ -100,60 +99,39 @@ Item {
 
     Timer { id: debounce; interval: 180; onTriggered: root.run() }
 
-    Item {
+    MusicPromptField {
         id: bar
         anchors { top: parent.top; left: parent.left; right: parent.right }
         anchors.margins: Ui.s(12)
         anchors.bottomMargin: 0
         height: Ui.s(24)
-
-        Txt {
-            id: tagLabel
-            anchors.verticalCenter: parent.verticalCenter
-            font.pixelSize: Ui.fs(12)
-            color: Theme.mauve
-            text: root.tag + " ›"
+        prompt: root.tag + " ›"
+        placeholder: "search the library"
+        // Bound, not just set once. forceActiveFocus() on the parent
+        // FocusScope delegates straight back to a focused child, so
+        // releasing has to clear this — the same shape MusicStatusBar uses
+        // for the queue's search field.
+        field.focus: root.typing
+        text: root.query
+        onTextChanged: {
+            root.query = bar.text;
+            if (bar.text === "") { root.results = []; debounce.stop(); }
+            else debounce.restart();
         }
-
-        Field {
-            id: field
-            anchors.fill: parent
-            anchors.leftMargin: tagLabel.width + Ui.s(8)
-            font.pixelSize: Ui.fs(13)
-            // Bound, not just set once. forceActiveFocus() on the parent
-            // FocusScope delegates straight back to a focused child, so
-            // releasing has to clear this — the same shape MusicStatusBar uses
-            // for the queue's search field.
-            focus: root.typing
-            text: root.query
-            onTextChanged: {
-                root.query = text;
-                if (text === "") { root.results = []; debounce.stop(); }
-                else debounce.restart();
-            }
-            Keys.onPressed: event => {
-                // Escape always returns to normal mode — never straight out of
-                // the window, which is what makes a second Escape close it.
-                if (event.key === Qt.Key_Escape || event.key === Qt.Key_Down) {
-                    root.leaveField();
-                    event.accepted = true;
-                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                    debounce.stop();
-                    root.run();
-                    root.leaveField();
-                    event.accepted = true;
-                } else if (event.key === Qt.Key_T && (event.modifiers & Qt.ControlModifier)) {
-                    root.cycleTag(1);
-                    event.accepted = true;
-                }
-            }
-
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: field.text === ""
-                color: Theme.surface1
-                font.pixelSize: Ui.fs(13)
-                text: "search the library"
+        onKeyPressed: event => {
+            // Escape always returns to normal mode — never straight out of
+            // the window, which is what makes a second Escape close it.
+            if (event.key === Qt.Key_Escape || event.key === Qt.Key_Down) {
+                root.leaveField();
+                event.accepted = true;
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                debounce.stop();
+                root.run();
+                root.leaveField();
+                event.accepted = true;
+            } else if (event.key === Qt.Key_T && (event.modifiers & Qt.ControlModifier)) {
+                root.cycleTag(1);
+                event.accepted = true;
             }
         }
     }
@@ -168,14 +146,12 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
-            required property var modelData
             list: list
             icon: "󰝚"
             label: root.client.songTitle(modelData)
             detail: modelData.Artist || ""
             current: root.client.song.file !== undefined
                      && modelData.file === root.client.song.file
-            onActivated: root.activate(index)
         }
     }
 }

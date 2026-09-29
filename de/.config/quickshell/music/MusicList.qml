@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import ".."
 
 // Shared browse list for the non-queue tabs: virtualized rows, keyboard cursor,
 // hover guard. The queue keeps its own incremental row model because it is
@@ -19,8 +18,10 @@ Item {
     readonly property int viewportRows: Math.max(1, Math.floor(list.height / Ui.rowH))
     readonly property var current: root.cursor >= 0 && root.cursor < root.count
                                    ? root.rows[root.cursor] : null
-    // "3 / 120" — what a browse pane's status bar reads when it is idle.
-    readonly property string position: (root.count > 0 ? root.cursor + 1 : 0) + " / " + root.count
+    // What a browse pane's status bar reads: "3 / 120", or "reading…" while
+    // the rows are being fetched.
+    readonly property string status: root.busy ? "reading…"
+                                     : (root.count > 0 ? root.cursor + 1 : 0) + " / " + root.count
 
     signal activated(int index)
 
@@ -39,6 +40,14 @@ Item {
     function resetCursor(): void {
         root.cursor = 0;
         list.positionViewAtBeginning();
+    }
+
+    // After new rows land. `keep` is for re-reading the list already in view:
+    // moveTo clamps, so one that shrank underneath cannot leave the cursor
+    // past the end. Anything else is a fresh list and starts at the top.
+    function settle(keep): void {
+        if (keep) root.moveTo(root.cursor);
+        else root.resetCursor();
     }
 
     onCursorChanged: root.reveal()
@@ -76,11 +85,8 @@ Item {
         MusicScrollBar { view: list }
     }
 
-    Txt {
-        anchors.centerIn: parent
+    MusicEmpty {
         visible: root.count === 0
-        color: Theme.surface1
-        font.pixelSize: Ui.fs(13)
         text: root.busy ? "loading…" : root.emptyText
     }
 }

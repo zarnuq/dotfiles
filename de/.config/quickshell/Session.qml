@@ -116,10 +116,7 @@ Scope {
     // Clock ticks only while locked.
     Timer {
         interval: 1000; repeat: true; running: sessionLock.locked; triggeredOnStart: true
-        onTriggered: {
-            var d = new Date();
-            root.timeStr = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-        }
+        onTriggered: root.timeStr = Qt.formatDateTime(new Date(), "HH:mm")
     }
 
     WlSessionLock {

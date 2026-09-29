@@ -13,8 +13,8 @@ import Quickshell.Io
 // content, so they are written once, here, next to the target they name.
 //
 // Shaped like the other two launcher row types: `name` is what the row draws
-// and what the query matches, `desc` is the dimmed right-hand label file mode
-// uses for the parent directory.
+// and what the query matches, `desc` is the dimmed right-hand label — the slot
+// file mode fills with `dir`, the parent directory.
 Singleton {
     id: root
 
@@ -139,7 +139,7 @@ Singleton {
     }
 
     /// Case-insensitive substring over the label, then the gloss — the list is
-    /// eleven rows, so there is nothing here worth the launcher's file-mode
+    /// a dozen rows, so there is nothing here worth the launcher's file-mode
     /// ranking machinery.
     function search(query) {
         var q = query.toLowerCase().trim();

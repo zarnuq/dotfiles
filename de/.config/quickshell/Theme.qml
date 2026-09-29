@@ -35,6 +35,19 @@ Singleton {
     // over from reach's own bar (config.zon `.bar`) — not a palette colour.
     readonly property color barSelectFg: "#ffffff"
 
+    /// `c` at opacity `a` — a palette colour as a wash rather than a new token.
+    function alpha(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
+
+    // The current device / playing song: a mauve wash that brightens under the
+    // cursor instead of being covered by the selection band. PickerRow and the
+    // music player's rows both draw it, so the two strengths live here.
+    function currentWash(selected) { return root.alpha(root.mauve, selected ? 0.22 : 0.12); }
+
+    // The dimming laid over the whole screen around Spotlight's hole: plain
+    // black at partial opacity, so it darkens whatever is under it without
+    // tinting it.
+    readonly property color scrim: Qt.rgba(0, 0, 0, 0.55)
+
     readonly property string font: "JetBrains Mono Nerd Font"
     readonly property int borderRadius: 0   // flat/sharp everywhere
 }

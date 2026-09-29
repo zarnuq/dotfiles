@@ -1,14 +1,11 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
 
-// Flat read-only gauge: a surface0 track with a `fillColor` bar over
-// `fraction` (0..1) of it. Battery, Brightness and the Mpd progress bar each
-// drew this pair of rectangles by hand. A `radius` set on the track is carried
-// onto the fill, so the two keep the same shape.
+// Flat gauge: a surface0 track with a `fillColor` bar over
+// `fraction` (0..1) of it. Battery, Brightness, the Mpd progress bar, the OSD
+// and the audio mixer's volume track each drew this pair of rectangles by hand.
+// A `radius` set on the track is carried onto the fill, so the two keep the
+// same shape. Children land above the fill (the mixer's drag MouseArea).
 Rectangle {
     id: root
 

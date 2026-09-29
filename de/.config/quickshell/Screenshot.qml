@@ -19,11 +19,10 @@ Picker {
 
     ipcTarget: "screenshot"
 
-    readonly property int footerHeight: s(30)
     readonly property string script: Quickshell.env("HOME") + "/.local/bin/screenshot.sh"
 
     boxWidth: s(460)
-    barHeight: footerHeight
+    barHeight: s(30)
 
     // Applies to whole-output captures only, which is the case it exists for:
     // photographing a menu that a full-screen picker would have dismissed.
@@ -94,87 +93,46 @@ Picker {
     }
 
     box: Component {
-        Item {
-            id: content
-            focus: true
+        PickerList {
+            picker: root
 
-            function reset(): void { root.delayed = false; }
+            onResetting: root.delayed = false
 
-            Keys.onPressed: function (e) {
-                if (root.navKey(e)) return;
+            onExtraKey: function (e) {
                 if (e.key !== Qt.Key_D) return;
                 root.delayed = !root.delayed;       // `d` is this menu's extra key
                 e.accepted = true;
             }
 
-            Column {
-                anchors.fill: parent
-                anchors.topMargin: root.s(12)
-                spacing: 0
+            rowDelegate: PickerRow {
+                id: rowItem
+                readonly property bool delayedOut: root.delayed && !rowItem.isHeader
+                                                   && rowItem.modelData.kind === "out"
 
-                Repeater {
-                    model: root.rows
+                picker: root
+                width: parent.width
+                onActivated: root.activate(rowItem.index)
 
-                    PickerRow {
-                        id: rowItem
-                        picker: root
-                        width: content.width
-                        headerHeight: root.headerHeight
-                        rowHeight: root.rowHeight
-                        onActivated: root.activate(rowItem.index)
+                cellSpacing: root.s(10)
+                icon: rowItem.isHeader ? "" : rowItem.modelData.glyph
+                iconWidth: root.s(22)
+                iconSize: root.s(15)
+                iconColor: Theme.mauve
+                label: rowItem.isHeader ? "" : rowItem.modelData.label
+                trailing: rowItem.isHeader ? ""
+                          : (rowItem.delayedOut ? root.delaySeconds + "s · " : "")
+                            + rowItem.modelData.hint
+                trailingWidth: root.s(130)
+                trailingColor: rowItem.delayedOut ? Theme.peach : Theme.overlay0
+            }
 
-                        Item {
-                            visible: !rowItem.isHeader
-                            anchors.fill: parent
-                            anchors.leftMargin: root.s(18)
-                            anchors.rightMargin: root.s(18)
-
-                            Txt {
-                                id: glyph
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: root.s(22)
-                                text: rowItem.isHeader ? "" : rowItem.modelData.glyph
-                                color: Theme.mauve
-                                font.pixelSize: root.s(15)
-                            }
-
-                            Txt {
-                                anchors.left: glyph.right
-                                anchors.leftMargin: root.s(10)
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: rowItem.isHeader ? "" : rowItem.modelData.label
-                                color: rowItem.sel ? Theme.rowSelectFg : Theme.text
-                                font.pixelSize: root.s(15)
-                            }
-
-                            Txt {
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: rowItem.isHeader ? ""
-                                      : (root.delayed && rowItem.modelData.kind === "out"
-                                         ? root.delaySeconds + "s · " + rowItem.modelData.hint
-                                         : rowItem.modelData.hint)
-                                color: root.delayed && !rowItem.isHeader && rowItem.modelData.kind === "out"
-                                       ? Theme.peach : Theme.overlay0
-                                font.pixelSize: root.s(13)
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    width: parent.width
-                    height: root.footerHeight
-
-                    Txt {
-                        anchors.centerIn: parent
-                        text: root.delayed
-                              ? "d · " + root.delaySeconds + "s delay on output captures"
-                              : "d · delay an output capture"
-                        color: root.delayed ? Theme.peach : Theme.surface1
-                        font.pixelSize: root.s(11)
-                    }
-                }
+            Txt {
+                anchors.centerIn: parent
+                text: root.delayed
+                      ? "d · " + root.delaySeconds + "s delay on output captures"
+                      : "d · delay an output capture"
+                color: root.delayed ? Theme.peach : Theme.surface1
+                font.pixelSize: root.s(11)
             }
         }
     }

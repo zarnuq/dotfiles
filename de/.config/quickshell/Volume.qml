@@ -33,10 +33,10 @@ Singleton {
     // a source we can't read yet must not spend a frame claiming the room is live.
     readonly property bool micMuted: _sourceAudio ? _sourceAudio.muted : true
 
-    // The device's own name, unformatted — the bar trims ALSA's boilerplate out
-    // of it for its status block, the OSD shows it as-is.
-    readonly property string sinkName:
-        sink ? (sink.description || sink.nickname || sink.name || "") : ""
+    // A device's own name, unformatted — the bar trims ALSA's boilerplate out
+    // of it for its status block, the OSD and the mixer show it as-is.
+    function nameOf(n) { return n ? (n.description || n.nickname || n.name || "") : ""; }
+    readonly property string sinkName: nameOf(sink)
 
     function toggleMute(): void    { if (_sinkAudio) _sinkAudio.muted = !_sinkAudio.muted; }
     function toggleMicMute(): void { if (_sourceAudio) _sourceAudio.muted = !_sourceAudio.muted; }

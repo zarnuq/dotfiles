@@ -6,7 +6,7 @@ import QtQuick
 // file does NOT see its parent directory implicitly — only its own.
 import ".."
 
-// Music window (Super+Shift+M / `qs ipc call music toggle`). Reach tiles this
+// Music window (Super+W / `qs ipc call music toggle`). Reach tiles this
 // toplevel using its org.quickshell app_id; additional toplevels would need a
 // title-specific rule. The service disables Qt's window decorations.
 // The Loader releases the queue delegates and controller when the window closes.

@@ -27,9 +27,9 @@ Item {
         anchors.fill: parent
         visible: root.selected || root.current || root.marked
         color: root.current
-               ? Qt.rgba(Theme.mauve.r, Theme.mauve.g, Theme.mauve.b, root.selected ? 0.22 : 0.12)
+               ? Theme.currentWash(root.selected)
                : root.marked
-                 ? Qt.rgba(Theme.blue.r, Theme.blue.g, Theme.blue.b, root.selected ? 0.24 : 0.10)
+                 ? Theme.alpha(Theme.blue, root.selected ? 0.24 : 0.10)
                  : Theme.rowSelectBg
     }
 

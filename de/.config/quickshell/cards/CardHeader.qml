@@ -1,14 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // A card's title row: icon, a subtext0 label, then whatever the card puts
-// inside it (a value readout, a HeaderBtn) pinned to the right edge. The label
+// inside it (a value readout, HeaderBtns) pinned to the right edge. The label
 // fills what the icon and that trailing slot leave — each card used to compute
-// that width itself by subtracting its neighbours by id.
+// that width itself by subtracting its neighbours by id. No `icon` drops the
+// icon slot entirely (Notifications); trailing items are `spacing` apart.
 Row {
     id: root
 
@@ -21,10 +19,10 @@ Row {
     width: parent.width
     spacing: Config.s(10)
 
-    Txt { text: root.icon; color: root.iconColor; font.pixelSize: root.iconSize }
+    Txt { visible: root.icon !== ""; text: root.icon; color: root.iconColor; font.pixelSize: root.iconSize }
     Txt {
         text: root.label; color: Theme.subtext0; font.pixelSize: Config.s(14)
         width: parent.width - x - tail.width - parent.spacing; verticalAlignment: Text.AlignVCenter
     }
-    Row { id: tail }
+    Row { id: tail; spacing: root.spacing }
 }

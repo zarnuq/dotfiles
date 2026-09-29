@@ -346,7 +346,6 @@ def cmd_state():
         presets.append({"name": name, "monitors": monitors})
     active = active_name()
     emit({
-        "dir": presets_dir(),
         "link": link_path(),
         "active": active,
         # A link pointing at a file that is gone: the choice is recorded but

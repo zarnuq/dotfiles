@@ -14,7 +14,7 @@ Item {
     property var entries: []
     property bool busy: false
 
-    readonly property string status: root.busy ? "reading…" : list.position
+    readonly property string status: list.status
 
     // A ".." row whenever we are not at the root, so going up is visible.
     readonly property var rows: root.path === "" ? root.entries
@@ -39,10 +39,7 @@ Item {
             // sorting those by date would scramble the record.
             dirs.sort(root.byNewest);
             root.entries = dirs.concat(lists, files);
-            // moveTo clamps, so a level that shrank under us cannot leave the
-            // cursor past the end.
-            if (keepCursor) list.moveTo(list.cursor);
-            else list.resetCursor();
+            list.settle(keepCursor);
         });
     }
 
@@ -144,7 +141,6 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
-            required property var modelData
             list: list
             icon: modelData._type === "up" ? "󰁍"
                   : modelData._type === "directory" ? "󰉋"
@@ -152,7 +148,6 @@ Item {
             iconColor: modelData._type === "file" ? Theme.overlay0 : Theme.blue
             label: modelData._type === "up" ? ".." : root.nameOf(modelData)
             detail: modelData._type === "file" ? (modelData.Artist || "") : ""
-            onActivated: root.activate(index)
         }
     }
 }

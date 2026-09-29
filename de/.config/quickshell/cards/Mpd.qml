@@ -2,18 +2,16 @@ pragma ComponentBehavior: Bound
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Now-playing + volume widget, bottom-left stack (above the two graphs).
 //
 // Native throughout — no subprocess polling:
 //   - transport/metadata/art/progress via Quickshell.Services.Mpris (was `mpc`,
 //     forked 4×/s). Follows the active MPRIS player, so it also drives Zen etc.,
-//     defaulting to MPD. mpd-mpris/mpDris2 is what puts MPD on the MPRIS bus.
-//   - volume/mute via Quickshell.Services.Pipewire (was `wpctl`, polled 2×/s).
+//     defaulting to MPD. mpd-mpris is what puts MPD on the MPRIS bus.
+//   - volume/mute of the default sink/source via the Volume singleton (which
+//     wraps Quickshell.Services.Pipewire; was `wpctl`, polled 2×/s).
 Widget {
     id: root
     anchors { bottom: true; left: true }
@@ -61,8 +59,6 @@ Widget {
             ? Math.min(100, Math.max(0, player.position / player.length * 100)) : 0;
     }
 
-    // ── Audio: the default sink/source, from the Volume singleton. ──
-
     Row {
         anchors.fill: parent
         spacing: root.s(10)
@@ -72,8 +68,8 @@ Widget {
             visible: root.art !== ""
             width: root.s(120); height: root.s(120)
             // Capped like every other Image here: under QT_QUICK_BACKEND=software
-            // both the decode and the downscale are CPU work, and rmpc allows
-            // artwork up to 1200px.
+            // both the decode and the downscale are CPU work, and cover art runs
+            // large (the old rmpc config allowed up to 1200px).
             sourceSize.width: root.s(120) * 2
             sourceSize.height: root.s(120) * 2
             fillMode: Image.PreserveAspectCrop

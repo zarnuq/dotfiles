@@ -34,7 +34,10 @@ These are properties of this box, not style preferences. Breaking one fails sile
   `running: root.open`; picker content is built only while its box is visible
   (Picker's Loader does this); features are `LazyLoader`s so an off switch means
   never built. Don't fork a subprocess per tick for something `/proc`, `/sys` or a
-  Quickshell service can answer.
+  Quickshell service can answer. A singleton is built whole on its first
+  reference, so don't put state an always-on surface reads (the bar) in the same
+  singleton as polls only an optional card needs — that is why `Power` is not
+  part of `Sys`.
 
 ## Code conventions
 
@@ -69,7 +72,7 @@ Every file follows these; qmllint enforces most of them.
 
 | You're adding… | Base | Location |
 |---|---|---|
-| an ambient desktop card | `Widget` (+ `CardHeader`, `Gauge`, `Graph`) | `cards/` — then fit it into the **Card layout** chain in `de/.config/quickshell/CLAUDE.md`, which moves the cards around it |
+| an ambient desktop card | `Widget` (+ `CardHeader`, `Graph`, and the root `Gauge`) | `cards/` — then fit it into the **Card layout** chain in `de/.config/quickshell/CLAUDE.md`, which moves the cards around it |
 | a full-screen menu / picker | `Picker` + `PickerList` + `PickerRow` (or `PickerSearch` + `PickerResults` for type-to-filter) | root |
 | a surface you sit in and resize | `Scope` + `IpcHandler` + `FloatingWindow` (see `monitors/Monitors.qml`) | own folder if it has helpers |
 | shared state read by several files | a `Singleton` | **root** — Quickshell auto-registers singletons only there |
@@ -104,7 +107,9 @@ Templates for each row are in [templates.md](templates.md).
 | text / text input | `Txt`, `Field` (font + colour baked in) |
 | a command on an interval | `Poll` — `onData` (raw) / `onJsonData` (parsed or null), `refresh()`, `running` |
 | volume, mic, default devices | `Volume` singleton |
-| CPU/RAM/disk/GPU/battery | `Sys` singleton |
+| CPU/RAM/disk/GPU | `Sys` singleton (only the CPU card reads it — referencing it builds its polls) |
+| battery / on mains | `Power` singleton |
+| a palette colour at some opacity | `Theme.alpha(c, a)`; the current-row wash is `Theme.currentWash(selected)` |
 | desktops, focused output, brightness, temperature | `Reach` singleton (reach's socket, write-only — you can't send it commands) |
 | notifications | `NotificationService` (`live`, `history`, `paused` = DND) |
 | which output / scale | `Config.screen(name)`, `Config.pinScreen`, `Config.onLaptop`, `Config.s()` |

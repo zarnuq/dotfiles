@@ -84,11 +84,8 @@ ListView {
         }
     }
 
-    Txt {
-        anchors.centerIn: parent
+    MusicEmpty {
         visible: root.controller.queue.length === 0
-        color: Theme.surface1
-        font.pixelSize: Ui.fs(13)
         text: root.controller.client.connected ? "queue is empty" : "connecting to mpd…"
     }
 }

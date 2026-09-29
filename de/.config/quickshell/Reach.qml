@@ -34,8 +34,6 @@ Singleton {
     property int brightness: 100
     property int temperature: 6500
 
-    readonly property bool connected: sock.connected
-
     /// State for one output, or null if reach hasn't mentioned it (or isn't up).
     function forScreen(name) {
         return root.outputs[name] || null;

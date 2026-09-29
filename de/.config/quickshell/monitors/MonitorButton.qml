@@ -10,13 +10,18 @@ Rectangle {
 
     property string label: ""
     property bool accent: false
+    // An accent button lightens to lavender on hover; the layout bar's active
+    // layout turns that off, since it marks a state rather than an action.
+    property bool accentHover: true
+    property real hPad: Config.s(24)     // left + right, around the label
+    readonly property alias hovered: hover.hovered
     signal clicked()
 
-    width: text.implicitWidth + Config.s(24)
+    width: text.implicitWidth + root.hPad
     height: Config.s(30)
 
     color: !root.enabled ? Theme.surface0
-         : root.accent ? (hover.hovered ? Theme.lavender : Theme.mauve)
+         : root.accent ? (hover.hovered && root.accentHover ? Theme.lavender : Theme.mauve)
          : (hover.hovered ? Theme.surface1 : Theme.surface0)
 
     Txt {

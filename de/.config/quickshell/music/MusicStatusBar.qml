@@ -33,7 +33,8 @@ Rectangle {
             return position + " / " + root.controller.queue.length;
         }
     }
-    Item {
+    MusicPromptField {
+        id: searchField
         anchors.left: parent.left
         anchors.leftMargin: Ui.s(12)
         anchors.right: parent.right
@@ -41,40 +42,21 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         height: Ui.s(18)
         visible: root.controller.searching
-
-        Txt {
-            anchors.verticalCenter: parent.verticalCenter
-            font.pixelSize: Ui.fs(12)
-            color: Theme.mauve
-            text: "/"
-            id: slash
-        }
-
-        Field {
-            id: searchField
-            anchors.fill: parent
-            anchors.leftMargin: Ui.s(12)
-            font.pixelSize: Ui.fs(12)
-            focus: root.controller.searching
-            onTextChanged: root.controller.updateQuery(text)
-            onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
-            Keys.onPressed: function (e) {
-                if (e.key === Qt.Key_Escape
-                    || (e.key === Qt.Key_C && (e.modifiers & Qt.ControlModifier))) {
-                    root.controller.finishSearch(true);
-                    e.accepted = true;
-                } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
-                    root.controller.finishSearch(false);
-                    e.accepted = true;
-                }
-            }
-
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: searchField.text === ""
-                color: Theme.surface1
-                font.pixelSize: Ui.fs(12)
-                text: "search the queue"
+        prompt: "/"
+        fieldOffset: Ui.s(12)
+        textSize: Ui.fs(12)
+        placeholder: "search the queue"
+        field.focus: root.controller.searching
+        onTextChanged: root.controller.updateQuery(searchField.text)
+        onVisibleChanged: if (searchField.visible) { searchField.text = ""; searchField.field.forceActiveFocus(); }
+        onKeyPressed: function (e) {
+            if (e.key === Qt.Key_Escape
+                || (e.key === Qt.Key_C && (e.modifiers & Qt.ControlModifier))) {
+                root.controller.finishSearch(true);
+                e.accepted = true;
+            } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                root.controller.finishSearch(false);
+                e.accepted = true;
             }
         }
     }

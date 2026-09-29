@@ -7,7 +7,8 @@ import ".."
 // over the whole window rather than in a pane.
 //
 // A new playlist is the same `playlistadd` with a name that does not exist yet,
-// so the top row is a text field rather than a separate command path.
+// so the "new playlist…" row (the last one) opens a name field rather than a
+// separate command path.
 FocusScope {
     id: root
 
@@ -53,7 +54,7 @@ FocusScope {
     function activate(i): void {
         var row = root.rows[i];
         if (!row) return;
-        if (row._new) { root.naming = true; nameField.forceActiveFocus(); return; }
+        if (row._new) { root.naming = true; nameRow.field.forceActiveFocus(); return; }
         root.commit(row.playlist);
     }
 
@@ -64,7 +65,7 @@ FocusScope {
     }
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(Theme.base.r, Theme.base.g, Theme.base.b, 0.7)
+        color: Theme.alpha(Theme.base, 0.7)
     }
 
     Rectangle {
@@ -72,7 +73,7 @@ FocusScope {
         anchors.centerIn: parent
         width: Math.min(parent.width - Ui.s(80), Ui.s(460))
         height: Math.min(parent.height - Ui.s(80),
-                         header.height + field.height + Ui.rowH * root.rows.length
+                         header.height + nameRow.height + Ui.rowH * root.rows.length
                          + Ui.s(24))
         color: Theme.base
         border.width: 1
@@ -93,45 +94,33 @@ FocusScope {
             text: "add " + (root.uris.length === 1 ? "this" : root.uris.length + " songs") + " to a playlist"
         }
 
-        Item {
-            id: field
+        MusicPromptField {
+            id: nameRow
             anchors { top: header.bottom; left: parent.left; right: parent.right }
             anchors.leftMargin: Ui.s(12)
             anchors.rightMargin: Ui.s(12)
             height: root.naming ? Ui.s(26) : 0
             visible: root.naming
             clip: true
-
-            Txt {
-                id: prompt
-                anchors.verticalCenter: parent.verticalCenter
-                font.pixelSize: Ui.fs(12)
-                color: Theme.blue
-                text: "name ›"
-            }
-            Field {
-                id: nameField
-                anchors.fill: parent
-                anchors.leftMargin: prompt.width + Ui.s(8)
-                font.pixelSize: Ui.fs(13)
-                // Not a `focus:` binding: the container is hidden until
-                // `naming`, and an invisible item refuses focus.
-                Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Escape) {
-                        root.naming = false;
-                        root.forceActiveFocus();
-                        event.accepted = true;
-                    } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                        root.commit(nameField.text);
-                        event.accepted = true;
-                    }
+            prompt: "name ›"
+            promptColor: Theme.blue
+            // No `field.focus:` binding: this is hidden until `naming`, and an
+            // invisible item refuses focus.
+            onKeyPressed: event => {
+                if (event.key === Qt.Key_Escape) {
+                    root.naming = false;
+                    root.forceActiveFocus();
+                    event.accepted = true;
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    root.commit(nameRow.text);
+                    event.accepted = true;
                 }
             }
         }
 
         MusicList {
             id: list
-            anchors { top: field.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
+            anchors { top: nameRow.bottom; left: parent.left; right: parent.right; bottom: parent.bottom }
             anchors.topMargin: Ui.s(4)
             anchors.bottomMargin: Ui.s(12)
             rows: root.rows
@@ -139,12 +128,10 @@ FocusScope {
             onActivated: i => root.activate(i)
 
             rowDelegate: MusicRow {
-                required property var modelData
                 list: list
                 icon: modelData._new ? "󰐕" : "󰲹"
                 iconColor: modelData._new ? Theme.green : Theme.blue
                 label: modelData._new ? "new playlist…" : modelData.playlist
-                onActivated: root.activate(index)
             }
         }
     }

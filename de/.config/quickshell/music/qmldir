@@ -7,8 +7,8 @@
 # singletons found in the config ROOT, but not in a subdirectory, and without
 # these entries MpdClient and Ui resolve to nothing.
 #
-# Every file here also carries `import ".."` — a QML file does not see its
-# parent directory implicitly, and Txt/Theme/Config live up there.
+# A file that uses Txt/Field/Theme/Config also carries `import ".."` — a QML
+# file does not see its parent directory implicitly, and those live up there.
 
 singleton MpdClient MpdClient.qml
 singleton Ui        Ui.qml
@@ -18,12 +18,14 @@ MusicBanner          MusicBanner.qml
 MusicController      MusicController.qml
 MusicCrumb           MusicCrumb.qml
 MusicDirectories     MusicDirectories.qml
+MusicEmpty           MusicEmpty.qml
 MusicHeader          MusicHeader.qml
 MusicList            MusicList.qml
 MusicLyrics          MusicLyrics.qml
 MusicOverlay         MusicOverlay.qml
 MusicPlaylists       MusicPlaylists.qml
 MusicPlaylistPicker  MusicPlaylistPicker.qml
+MusicPromptField     MusicPromptField.qml
 MusicQueue           MusicQueue.qml
 MusicRow             MusicRow.qml
 MusicRowChrome       MusicRowChrome.qml

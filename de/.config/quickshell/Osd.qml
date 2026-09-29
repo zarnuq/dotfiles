@@ -115,7 +115,7 @@ Scope {
             color: "transparent"
             exclusiveZone: 0
             WlrLayershell.layer: WlrLayer.Overlay
-            // Top-right, cleared of reach's status bar along the top edge.
+            // Top-right, cleared of quickshell's bar along the top edge.
             anchors { top: true; right: true }
             margins { top: root.s(44); right: root.s(24) }
             implicitWidth: root.s(360)
@@ -143,20 +143,12 @@ Scope {
                     }
 
                     // Level modes: track + fill + percentage.
-                    Rectangle {
+                    Gauge {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: root.showBar
                         width: parent.width - iconCell.width - pct.width - parent.spacing * 2
-                        height: root.s(8)
-                        color: Theme.surface0
-                        radius: Theme.borderRadius
-
-                        Rectangle {
-                            width: parent.width * Math.max(0, Math.min(100, root.level)) / 100
-                            height: parent.height
-                            color: root.muted ? Theme.red : Theme.mauve
-                            radius: Theme.borderRadius
-                        }
+                        fraction: Math.max(0, Math.min(100, root.level)) / 100
+                        fillColor: root.muted ? Theme.red : Theme.mauve
                     }
 
                     Txt {

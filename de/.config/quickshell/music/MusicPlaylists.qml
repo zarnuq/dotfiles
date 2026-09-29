@@ -17,7 +17,7 @@ Item {
 
     readonly property bool inPlaylist: root.opened !== ""
     readonly property var rows: root.inPlaylist ? root.songs : root.playlists
-    readonly property string status: root.busy ? "reading…" : list.position
+    readonly property string status: list.status
 
     function refresh() {
         root.busy = true;
@@ -44,8 +44,7 @@ Item {
         root.client.playlistSongs(root.opened, function (records) {
             root.busy = false;
             root.songs = records;
-            if (keepCursor) list.moveTo(list.cursor);
-            else list.resetCursor();
+            list.settle(keepCursor);
         });
     }
 
@@ -154,13 +153,11 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
-            required property var modelData
             list: list
             icon: root.inPlaylist ? "󰝚" : "󰲹"
             iconColor: root.inPlaylist ? Theme.overlay0 : Theme.blue
             label: root.inPlaylist ? root.client.songTitle(modelData) : modelData.playlist
             detail: root.inPlaylist ? (modelData.Artist || "") : ""
-            onActivated: root.activate(index)
         }
     }
 }

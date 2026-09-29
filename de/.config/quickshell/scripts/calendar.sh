@@ -65,17 +65,6 @@ def fetch_calendar():
 
 def parse_events(ics_data):
     """Parse ICS and expand recurring events."""
-    # Rainbow colors by days from today
-    DAY_COLORS = [
-        "#f38ba8",  # red - today
-        "#fab387",  # orange - tomorrow
-        "#f9e2af",  # yellow
-        "#a6e3a1",  # green
-        "#89b4fa",  # blue
-        "#b4befe",  # indigo
-        "#cba6f7",  # violet
-    ]
-
     try:
         calendar = icalendar.Calendar.from_ical(ics_data)
     except Exception:
@@ -83,6 +72,7 @@ def parse_events(ics_data):
 
     now = datetime.now()
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_date = today.date()
     week_later = today + timedelta(days=7)
 
     # Get all events in the next 7 days (expanded from recurrences)
@@ -103,49 +93,41 @@ def parse_events(ics_data):
             start = dtstart.dt
             end = dtend.dt if dtend else None
 
-            # Check if all-day event
-            all_day = not isinstance(start, datetime)
-
-            if all_day:
-                start_dt = datetime.combine(start, datetime.min.time())
-                time_str = "All day"
-                event_date = start.strftime("%Y%m%d")
-            else:
+            # An all-day event's DTSTART is a date; normalise it to midnight so
+            # everything below handles one type.
+            if isinstance(start, datetime):
                 start_dt = start
-                event_date = start.strftime("%Y%m%d")
-
                 # Format time in 12-hour format
                 time_str = start.strftime("%-I:%M %p")
                 if end and isinstance(end, datetime):
                     time_str += " - " + end.strftime("%-I:%M %p")
-
-            # Determine day label
-            event_day = start_dt.date() if isinstance(start_dt, datetime) else start
-            today_date = today.date()
-            tomorrow_date = (today + timedelta(days=1)).date()
-
-            if event_day == today_date:
-                day_label = "Today"
-                days_from_today = 0
-            elif event_day == tomorrow_date:
-                day_label = "Tomorrow"
-                days_from_today = 1
             else:
-                day_label = start_dt.strftime("%A") if isinstance(start_dt, datetime) else start.strftime("%A")
-                days_from_today = (event_day - today_date).days
+                start_dt = datetime.combine(start, datetime.min.time())
+                time_str = "All day"
 
-            # Get color based on days from today (rainbow)
-            color = DAY_COLORS[min(days_from_today, len(DAY_COLORS) - 1)]
+            # Day label, and the day offset Calendar.qml colours by (a rainbow
+            # of Theme tokens, today red through violet).
+            days_from_today = (start_dt.date() - today_date).days
+            if days_from_today == 0:
+                day_label = "Today"
+            elif days_from_today == 1:
+                day_label = "Tomorrow"
+            else:
+                day_label = start_dt.strftime("%A")
+
+            # A multi-day event that began more than a week ago: the old
+            # 7-entry colour table raised IndexError on this and the event was
+            # dropped. Kept, so the agenda lists exactly what it always has.
+            if days_from_today < -7:
+                continue
 
             result.append({
                 "summary": summary,
                 "time": time_str,
                 "day": day_label,
-                "date": event_date,
                 "location": location,
-                "allday": all_day,
-                "color": color,
-                "_sort": start_dt.timestamp() if isinstance(start_dt, datetime) else datetime.combine(start, datetime.min.time()).timestamp()
+                "days_from_today": days_from_today,
+                "_sort": start_dt.timestamp(),
             })
         except Exception:
             continue
@@ -174,26 +156,16 @@ def main():
 
     cmd = sys.argv[1]
 
-    if cmd == "events":
-        ics_data = fetch_calendar()
-        if ics_data:
-            events = parse_events(ics_data)
-            print(json.dumps(events))
-        else:
-            print("[]")
-
-    elif cmd == "status":
+    if cmd == "status":
         print(get_status())
 
-    elif cmd == "refresh":
-        if CACHE_FILE.exists():
+    elif cmd in ("events", "refresh"):
+        # refresh = events with the cache thrown away first, so it prints the
+        # same JSON (Calendar.qml's refresh button reads it directly).
+        if cmd == "refresh" and CACHE_FILE.exists():
             CACHE_FILE.unlink()
         ics_data = fetch_calendar()
-        if ics_data:
-            events = parse_events(ics_data)
-            print(json.dumps(events))
-        else:
-            print("[]")
+        print(json.dumps(parse_events(ics_data)) if ics_data else "[]")
 
     else:
         print("Usage: calendar.sh {events|status|refresh}")

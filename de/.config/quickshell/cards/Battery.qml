@@ -2,18 +2,15 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Wayland
 import QtQuick
-// Parent import: Theme/Config/Txt/Poll and the data singletons (Sys, Volume,
-// Reach, NotificationService) live one level up, and a QML file does not
-// see its parent directory implicitly.
-import ".."
+import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Bottom-right: charge level + state, read from Sys (which owns the BAT0 sysfs
+// Bottom-right: charge level + state, read from Power (which owns the BAT0 sysfs
 // poll, since the bar's battery block needs the same two files).
 //
 // Three states, and they come from two different files: `charging` is BAT0
 // reporting charge actually moving, `onAc` is the mains supply being online.
 // A laptop with charge thresholds spends most of a plugged-in session in
-// neither `Charging` nor `Discharging` (see Sys), so "plugged in" has to be its
+// neither `Charging` nor `Discharging` (see Power), so "plugged in" has to be its
 // own state or the card claims to be on battery while the charger is in.
 //
 // Below `lowAt` while OFF mains the readout turns red and one critical
@@ -45,13 +42,13 @@ Widget {
     readonly property int lowAt: 20      // warn below this
     readonly property int clearAt: 25    // re-arm the warning above this
 
-    // The reading is Sys's — the bar's battery block wants the same two sysfs
+    // The reading is Power's — the bar's battery block wants the same two sysfs
     // files. What stays here is the part that is this card's: the tint, and the
     // latch that keeps one toast from firing over and over on the threshold.
-    readonly property bool present: Sys.batteryPresent
-    readonly property int level: Sys.batteryLevel
-    readonly property bool charging: Sys.charging
-    readonly property bool onAc: Sys.onAc
+    readonly property bool present: Power.present
+    readonly property int level: Power.level
+    readonly property bool charging: Power.charging
+    readonly property bool onAc: Power.onAc
     readonly property bool low: present && !onAc && level < lowAt
     readonly property color tint: low ? Theme.red
                                 : charging ? Theme.green
