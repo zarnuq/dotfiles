@@ -50,25 +50,12 @@
     },
 
     // --- startup programs (dwl autostart) ----------------------------------
-    // Each is run via /bin/sh -c, so $HOME / pipes / & all work.
+    // Each is run via /bin/sh -c, so $HOME / pipes / & all work — and so the
+    // path below expands the same way reach's own config lookup resolves, which
+    // prefers $XDG_CONFIG_HOME over ~/.config.
     .autostart = .{
-        "$HOME/.config/reach/autostart.sh",
+        "${XDG_CONFIG_HOME:-$HOME/.config}/reach/autostart.sh",
     },
-    .monitors = .{
-        // Server room
-        //.{ .name = "DP-5", .w = 1920, .h = 1080, .x = 0, .y = 0 },
-        //.{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1080 },
-        //.{ .name = "DP-3", .w = 1920, .h = 1080, .x = 1920, .y = 0, .transform = .rotate_270 },
-
-        //.{ .name = "DP-1", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .refresh = 60000 },
-        //.{ .name = "HDMI-A-1", .w = 3840, .h = 2160, .refresh = 60000, .x = 5000, .y = 0 },
-
-        // Desktop
-        .{ .name = "DP-3", .w = 3440, .h = 1440, .x = 0, .y = 0, .transform = .rotate_180 },
-        .{ .name = "DP-2", .w = 3440, .h = 1440, .x = 0, .y = 1440 },
-        .{ .name = "DP-1", .w = 1920, .h = 1080, .refresh = 165000, .x = 3440, .y = 1440, .transform = .rotate_270 },
-    },
-
     // --- window rules ------------------------------------------
     .rules = .{
         // app_id is the process's, so the title is what picks out the player.
@@ -115,6 +102,9 @@
         } },
 
         .{ .key = "Super+s", .chord = .{
+            // The menu lists the heads THIS machine has; the digits below name
+            // outputs literally, so half of them are dead on either box.
+            .{ .key = "a", .action = .{ .spawn = "qs ipc call screenshot toggle" } },
             .{ .key = "s", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh ss && notify-send Screenshot 'Quick capture saved!'" } },
             .{ .key = "d", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh section && notify-send Screenshot 'Section saved!'" } },
             .{ .key = "0", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh eDP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
