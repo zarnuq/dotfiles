@@ -16,3 +16,11 @@ export EDITOR=nvim
 export BROWSER=zen-browser
 export ZPLUG_HOME=$XDG_DATA_HOME/zplug
 export PULSE_COOKIE=$XDG_CONFIG_HOME/pulse/cookie
+
+# home-manager exports home.sessionVariables here, but this zsh isn't hm-managed
+# and nothing else sources it — so those vars (e.g. OCL_ICD_VENDORS +
+# RUSTICL_ENABLE, which give hashcat its OpenCL/rusticl GPU backend) never reach
+# the shell. Source it so anything set via home.sessionVariables takes effect.
+if [ -e "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+fi

@@ -19,7 +19,7 @@ import ".."
 Widget {
     id: root
     anchors { bottom: true; left: true }
-    margins { bottom: s(600) }            // a slot in the card chain — see CLAUDE.md
+    margins { bottom: s(600) }            // a slot in the card chain — quickshell/CLAUDE.md
     implicitWidth: s(420)
     implicitHeight: s(150)
 

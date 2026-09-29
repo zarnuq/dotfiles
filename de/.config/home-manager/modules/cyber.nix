@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # Merged into home.nix's python3.withPackages (one env avoids a bin/python3 collision).
@@ -52,6 +52,15 @@
     ];
   };
 
+  # Give nix's hashcat an OpenCL backend on this AMD APU:
+  #  - OCL_ICD_VENDORS: point the ocl-icd loader at the profile's ICD dir
+  #    (where mesa.opencl installs rusticl.icd).
+  #  - RUSTICL_ENABLE: rusticl only exposes drivers named here; radeonsi = the iGPU.
+  config.home.sessionVariables = {
+    OCL_ICD_VENDORS = "${config.home.profileDirectory}/etc/OpenCL/vendors";
+    RUSTICL_ENABLE = "radeonsi";
+  };
+
   config.home.packages = with pkgs; [
 
     # RECON & OSINT
@@ -82,7 +91,9 @@
 
     # PASSWORD ATTACKS
     john                      # password cracker (john the ripper)
-    hashcat                   # — use system /usr/bin/hashcat for OpenCL drivers
+    hashcat                   # GPU cracker — OpenCL backend via rusticl (mesa.opencl) below
+    mesa.opencl               # rusticl OpenCL ICD -> drives the AMD iGPU for hashcat
+    hashid
 
     # WIRELESS
     aircrack-ng               # wireless WEP/WPA cracking suite
@@ -136,5 +147,6 @@
     qFlipper
     yt-dlp
     postgresql
+    chisel
   ];
 }
