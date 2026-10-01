@@ -24,9 +24,10 @@ alias cs='claude --dangerously-skip-permissions'
 alias cr='claude --resume'
 alias x='codex'
 alias :q='exit'
+
 function y() {
-  local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-  yazi "$@" --cwd-file="$tmp"
+  local tmp="$(mktemp -t "lazi-cwd.XXXXXX")" cwd
+  lazi "$@" --cwd-file="$tmp"
   if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
     cd -- "$cwd"
   fi
