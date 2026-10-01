@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import QtQuick
 // Parent import: Theme/Config/Txt live one level up, and a QML file does not see
 // its parent directory implicitly.
@@ -35,6 +36,71 @@ Scope {
         // which is what the launcher's ">" menu list needs — a window really
         // can be sitting open behind the launcher, and toggle would shut it.
         function open(): void   { root.open = true; }
+        function identify(): void { root.identify(); }
+    }
+
+    // ---- identify -----------------------------------------------------------
+    // Windows' "Identify": every head shows its output name — what the canvas
+    // boxes are labelled with — for a few seconds. Works with the window closed
+    // too, via IPC.
+    property bool identifying: false
+    function identify(): void {
+        root.identifying = true;
+        identifyTimer.restart();
+    }
+    Timer {
+        id: identifyTimer
+        interval: 3000
+        onTriggered: root.identifying = false
+    }
+
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            id: badge
+            required property var modelData
+            screen: modelData
+            visible: root.identifying
+
+            color: "transparent"
+            exclusiveZone: 0
+            WlrLayershell.layer: WlrLayer.Overlay
+            // No anchors: layer-shell centres an unanchored surface. An empty
+            // mask makes it click-through, so it can't eat the click that
+            // follows — it is a label, not a dialog.
+            mask: Region {}
+            // Sized to the name: "eDP-1" and "HDMI-A-1" are very different widths.
+            implicitWidth: label.implicitWidth + Config.s(80)
+            implicitHeight: label.implicitHeight + Config.s(60)
+
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.base
+                border.color: Theme.mauve
+                border.width: Config.s(2)
+                radius: Theme.borderRadius
+
+                Column {
+                    id: label
+                    anchors.centerIn: parent
+                    spacing: Config.s(4)
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: badge.modelData.name
+                        color: Theme.mauve
+                        font.pixelSize: Config.s(72)
+                        font.bold: true
+                    }
+                    Txt {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: badge.modelData.width + "×" + badge.modelData.height
+                        color: Theme.subtext0
+                        font.pixelSize: Config.s(13)
+                    }
+                }
+            }
+        }
     }
 
     FloatingWindow {
@@ -60,6 +126,7 @@ Scope {
             active: root.open
             sourceComponent: MonitorsView {
                 onCloseRequested: root.open = false
+                onIdentifyRequested: root.identify()
             }
             onLoaded: item.reload()
         }

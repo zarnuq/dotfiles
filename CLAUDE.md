@@ -112,7 +112,6 @@ Flat (`border-radius: 0` global, enforced in `gtk-3.0/gtk.css`). GTK3/GTK4 are *
 
 ## Custom Scripts (`de/.local/bin/`)
 
-- **screenshot.sh** — `ss` (region → clipboard), `section` (region → file → satty), `region` (region → file), `<output>` (any name grim accepts → file → satty). Output `~/Pictures/screenshot-*.png`. **Exits non-zero whenever nothing was captured** (a cancelled `slurp` included) — both the `Super+S` chord and `Screenshot.qml` chain `&& notify-send`, so a cancel must stay silent. The chord still names outputs literally (`0`→eDP-1, `1`–`3`→DP-1..3); the quickshell menu is the per-machine way.
 - **flip.sh** — no args cycles the default sink between the two EQ sinks; `set <sink>` switches to a named one (including the raw `alsa_output.*` sinks the cycle steps over) for the quickshell audio menu. Both paths set the USB2.0 card to `iec958-stereo` first so the optical chain's `target.object` resolves, migrate playing streams (only those with an `application.name` — never the filter chains' own inputs). `Alt+[`. (No longer signals reach — the bar's sink name comes from Pipewire now, so it updates on its own.)
 - **wallpaper-thumbs** — pre-renders 400x225 JPEG thumbnails of `~/Pictures/bgs` into `$XDG_CACHE_HOME/wallpaper-thumbs` for the quickshell picker; idempotent (only missing/stale files are rendered), fans out via `xargs` re-entering itself as a worker. `--list` emits `category<TAB>source<TAB>thumb` — the picker's only source of thumb paths.
 - **killfzf** — `ps --forest` → fzf; Enter=SIGTERM, Ctrl-K=SIGKILL, Tab=multi. `Super+X`.

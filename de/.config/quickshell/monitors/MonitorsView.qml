@@ -17,6 +17,7 @@ FocusScope {
     id: root
 
     signal closeRequested()
+    signal identifyRequested()
 
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/monitors.py"
 
@@ -309,6 +310,7 @@ FocusScope {
     focus: true
     Keys.onPressed: event => {
         if (event.key === Qt.Key_Escape) { root.closeRequested(); event.accepted = true; }
+        else if (event.key === Qt.Key_I) { root.identifyRequested(); event.accepted = true; }
         else if (event.key === Qt.Key_R && root.working.length) { root.cycleTransform(root.selected); event.accepted = true; }
         else if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier)) { root.save(root.activeName); event.accepted = true; }
         else if (event.key === Qt.Key_Tab && root.working.length) {
@@ -413,7 +415,7 @@ FocusScope {
             Txt {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - root.s(260)
+                width: parent.width - root.s(360)
                 elide: Text.ElideRight
                 text: root.status !== "" ? root.status
                     : root.activeName !== "" ? root.linkPath + " → monitors/" + root.activeName + ".zon"
@@ -427,6 +429,10 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: root.s(8)
 
+                MonitorButton {
+                    label: "Identify"
+                    onClicked: root.identifyRequested()
+                }
                 MonitorButton {
                     label: "Revert"
                     enabled: root.dirty

@@ -135,7 +135,6 @@
     nfs-utils
     zip
     penelope
-    httpie
     samba
     openldap
     remmina
@@ -146,7 +145,7 @@
     websocat
     qFlipper
     yt-dlp
-    postgresql
-    chisel
+    ligolo-ng
+    avalonia-ilspy
   ];
 }

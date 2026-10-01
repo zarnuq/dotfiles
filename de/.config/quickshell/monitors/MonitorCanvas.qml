@@ -79,7 +79,10 @@ Item {
                 spacing: root.view.s(2)
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: head.mon.name
+                    // The number Identify paints on the physical head, so the
+                    // box and the screen can be matched by eye.
+                    readonly property int num: Config.displayNumber(head.mon.name)
+                    text: (num ? num + " · " : "") + head.mon.name
                     color: head.mon.included ? Theme.text : Theme.overlay0
                     font.pixelSize: root.view.s(14)
                 }

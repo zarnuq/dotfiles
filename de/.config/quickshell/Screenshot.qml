@@ -1,139 +1,68 @@
 pragma ComponentBehavior: Bound
 import Quickshell
+import Quickshell.Io
 import QtQuick
 
-// Screenshot menu. `qs ipc call screenshot open`, or ">" → Screenshot in the
-// launcher.
+// Screenshots. No surface — just the `capture` IPC target the Super+S chord
+// calls:
 //
-// What it is for: the `Super+S` chord names outputs LITERALLY (0→eDP-1,
-// 1→DP-1, 2→DP-2, 3→DP-3), which is a desktop list on the desktop and a laptop
-// list nowhere — `0` is dead here, `1`/`2` are dead on the laptop. The rows
-// below come from `Quickshell.screens`, so there is no output name in this file
-// or in the script, and each machine lists exactly the heads it has.
+//   qs ipc call capture region         slurp a region
+//   qs ipc call capture display <n>    whole display n, 1-based left to right
+//   qs ipc call capture output <name>  whole output by name
+//   qs ipc call capture annotate       clipboard image → satty
 //
-// screenshot.sh still owns where a file goes and what annotates it, the way
-// wallpaper-thumbs owns the thumbnail naming rule: this is a menu, not a second
-// opinion about ~/Pictures.
-Picker {
+// Every capture goes to the clipboard, never a file; `annotate` pulls the
+// image back off into satty, whose save is the only thing that writes to
+// ~/Pictures. Switching "Screenshots" off in settings takes the chord with it.
+Scope {
     id: root
 
-    ipcTarget: "screenshot"
-
-    readonly property string script: Quickshell.env("HOME") + "/.local/bin/screenshot.sh"
-
-    boxWidth: s(460)
-    barHeight: s(30)
-
-    // Applies to whole-output captures only, which is the case it exists for:
-    // photographing a menu that a full-screen picker would have dismissed.
-    // A delay on a region capture would only postpone slurp's crosshair, which
-    // is not what anybody means by it.
-    property bool delayed: false
-    readonly property int delaySeconds: 3
-
-    rows: {
-        var r = [{ kind: "header", label: "Region" },
-                 { kind: "act", label: "Copy to clipboard", hint: "→ wl-copy",    glyph: "󰆏", arg: "ss",      note: "Copied" },
-                 { kind: "act", label: "Save and edit",     hint: "→ satty",      glyph: "󰏬", arg: "section", note: "Saved" },
-                 { kind: "act", label: "Save",              hint: "→ ~/Pictures", glyph: "󰆓", arg: "region",  note: "Saved" },
-                 { kind: "header", label: "Whole output" }];
-
-        var screens = Quickshell.screens;
-        for (var i = 0; i < screens.length; i++) {
-            var sc = screens[i];
-            // These are the sizes as laid out, so a rotated head reads
-            // 1080×1920 rather than its 1920×1080 mode — which is the number
-            // that describes the image you are about to get.
-            r.push({ kind: "out", label: sc.name, hint: sc.width + "×" + sc.height,
-                     glyph: "󰍹", arg: sc.name, note: "Saved" });
-        }
-        return r;
+    IpcHandler {
+        target: "capture"
+        function region(): void { root.region(); }
+        function display(n: int): void { root.display(n); }
+        function output(name: string): void { root.output(name); }
+        function annotate(): void { root.annotate(); }
     }
 
-    // ── firing ───────────────────────────────────────────────────────────
-    // The picker is a full-screen overlay on EVERY output, so it is IN the
-    // shot. Hiding is not enough by itself: a Wayland client can ask for its
-    // surface to go away but cannot observe the compositor repainting without
-    // it, so there is no event to wait on and a timer is the honest answer.
-    // 200ms clears a frame at any refresh rate here. This matters more than
-    // the launcher's hide-before-dispatch — there the mistake lasts a frame,
-    // here it is written into the PNG.
-    readonly property int unmapDelay: 200
-
-    property var pendingRow: null
-
-    function activate(i): void {
-        if (!selectable(i)) return;
-        var row = root.rows[i];
-        root.pendingRow = row;
-        shot.interval = root.unmapDelay
-                        + (root.delayed && row.kind === "out" ? root.delaySeconds * 1000 : 0);
-        root.hide();
-        shot.restart();
-    }
-
-    /// POSIX single-quoting, since a row's argument reaches a shell.
+    /// POSIX single-quoting, since an output name reaches a shell.
     function sq(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'"; }
 
-    Timer {
-        id: shot
-        onTriggered: {
-            var row = root.pendingRow;
-            root.pendingRow = null;
-            if (!row) return;
-            // The `&&` is the point: screenshot.sh now fails when the capture
-            // fails, so a cancelled selection says nothing instead of claiming
-            // a save. Composed here rather than moved into the script, because
-            // the Super+S chord appends its own notify-send and would then
-            // fire two.
-            Quickshell.execDetached(["sh", "-c",
-                root.sq(root.script) + " " + root.sq(row.arg)
-                + " && notify-send Screenshot " + root.sq(row.note + "!")]);
-        }
+    // bash, not sh, for pipefail: a pipeline otherwise reports its LAST
+    // command, so `grim … | wl-copy` returned wl-copy's status and the `&&`
+    // tested the paste rather than the capture — a failed grim still announced
+    // "Copied!". A cancelled slurp is caught before the pipeline even starts,
+    // so a cancel stays silent. execDetached because wl-copy forks a daemon to
+    // serve the selection, and that has to outlive the call.
+    function run(cmd): void {
+        Quickshell.execDetached(["bash", "-c", "set -o pipefail; " + cmd]);
+    }
+    readonly property string copied: " | wl-copy --type image/png && notify-send Screenshot 'Copied!'"
+
+    function region(): void {
+        root.run("g=$(slurp) || exit 1; grim -g \"$g\" -" + root.copied);
     }
 
-    box: Component {
-        PickerList {
-            picker: root
+    // Config.displays' numbering — the one the Displays window's Identify
+    // shows. A number past the heads this machine has does nothing.
+    function display(n): void {
+        if (n >= 1 && n <= Config.displays.length) root.output(Config.displays[n - 1].name);
+    }
 
-            onResetting: root.delayed = false
+    // Any output grim knows — it rejects a name it does not, and says which.
+    function output(name): void {
+        root.run("grim -o " + root.sq(name) + " -" + root.copied);
+    }
 
-            onExtraKey: function (e) {
-                if (e.key !== Qt.Key_D) return;
-                root.delayed = !root.delayed;       // `d` is this menu's extra key
-                e.accepted = true;
-            }
-
-            rowDelegate: PickerRow {
-                id: rowItem
-                readonly property bool delayedOut: root.delayed && !rowItem.isHeader
-                                                   && rowItem.modelData.kind === "out"
-
-                picker: root
-                width: parent.width
-                onActivated: root.activate(rowItem.index)
-
-                cellSpacing: root.s(10)
-                icon: rowItem.isHeader ? "" : rowItem.modelData.glyph
-                iconWidth: root.s(22)
-                iconSize: root.s(15)
-                iconColor: Theme.mauve
-                label: rowItem.isHeader ? "" : rowItem.modelData.label
-                trailing: rowItem.isHeader ? ""
-                          : (rowItem.delayedOut ? root.delaySeconds + "s · " : "")
-                            + rowItem.modelData.hint
-                trailingWidth: root.s(130)
-                trailingColor: rowItem.delayedOut ? Theme.peach : Theme.overlay0
-            }
-
-            Txt {
-                anchors.centerIn: parent
-                text: root.delayed
-                      ? "d · " + root.delaySeconds + "s delay on output captures"
-                      : "d · delay an output capture"
-                color: root.delayed ? Theme.peach : Theme.surface1
-                font.pixelSize: root.s(11)
-            }
-        }
+    // First image type on offer, since not every source advertises png.
+    // --copy-command because satty's own GTK clipboard empties when it exits,
+    // so copy-then-close would paste nothing; satty expands the `~` and the
+    // strftime fields in the output name itself.
+    function annotate(): void {
+        root.run("t=$(wl-paste --list-types 2>/dev/null | grep -m1 '^image/')"
+                 + " || { notify-send Screenshot 'No image on the clipboard'; exit 1; }; "
+                 + "wl-paste --no-newline --type \"$t\" | satty --filename -"
+                 + " --output-filename '~/Pictures/screenshot-%Y-%m-%d_%H-%M-%S.png'"
+                 + " --copy-command wl-copy");
     }
 }

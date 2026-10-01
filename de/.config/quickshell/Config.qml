@@ -49,6 +49,22 @@ Singleton {
 
     readonly property bool onLaptop: root.screen(mainScreen) === null
 
+    /// Connected outputs numbered left to right (ties top-down) — display 1 is
+    /// displays[0]. Super+S 1–3 capture by it and the Displays window's Identify
+    /// paints it on each head, so the two can't disagree about which is "2".
+    /// Position rather than name so the numbers mean the same on every machine.
+    readonly property var displays: {
+        var all = [];
+        for (var i = 0; i < Quickshell.screens.length; i++) all.push(Quickshell.screens[i]);
+        return all.sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+    }
+    /// 1-based display number for an output name, or 0 if it isn't connected.
+    function displayNumber(name) {
+        for (var i = 0; i < root.displays.length; i++)
+            if (root.displays[i].name === name) return i + 1;
+        return 0;
+    }
+
     // The shell's one scale factor: the laptop's smaller panel gets everything
     // at 0.85, the desktop at 1.0. Widget applies it to its own children, and
     // the surfaces that aren't Widgets (bar, OSD, pickers) each used to carry a
@@ -77,7 +93,7 @@ Singleton {
         { key: "network",             group: "Session",     label: "Network menu" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
-        { key: "screenshot",          group: "Session",     label: "Screenshot menu" },
+        { key: "screenshot",          group: "Session",     label: "Screenshots" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "clock",               group: "Panel",       label: "Clock" },

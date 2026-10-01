@@ -60,6 +60,7 @@
     .rules = .{
         // app_id is the process's, so the title is what picks out the player.
         .{ .app_id = "org.quickshell", .title = "Music", .desktop = 1, .monitor = 2 },
+        .{ .app_id = "obsidian", .desktop = 2 },
         .{ .app_id = "zen", .desktop = 3, .switchto = true },
         .{ .app_id = "^steam", .desktop = 5 },
         .{ .app_id = "signal", .desktop = 4 },
@@ -102,15 +103,13 @@
         } },
 
         .{ .key = "Super+s", .chord = .{
-            // The menu lists the heads THIS machine has; the digits below name
-            // outputs literally, so half of them are dead on either box.
-            .{ .key = "a", .action = .{ .spawn = "qs ipc call screenshot toggle" } },
-            .{ .key = "s", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh ss && notify-send Screenshot 'Quick capture saved!'" } },
-            .{ .key = "d", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh section && notify-send Screenshot 'Section saved!'" } },
-            .{ .key = "0", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh eDP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
-            .{ .key = "1", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-1 && notify-send Screenshot 'Fullscreen saved!'" } },
-            .{ .key = "2", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-2 && notify-send Screenshot 'Fullscreen saved!'" } },
-            .{ .key = "3", .action = .{ .spawn = "$HOME/.local/bin/screenshot.sh DP-3 && notify-send Screenshot 'Fullscreen saved!'" } },
+            // Digits are displays counted left to right, so they mean the
+            // same thing on every machine.
+            .{ .key = "s", .action = .{ .spawn = "qs ipc call capture region" } },
+            .{ .key = "d", .action = .{ .spawn = "qs ipc call capture annotate" } },
+            .{ .key = "1", .action = .{ .spawn = "qs ipc call capture display 1" } },
+            .{ .key = "2", .action = .{ .spawn = "qs ipc call capture display 2" } },
+            .{ .key = "3", .action = .{ .spawn = "qs ipc call capture display 3" } },
         } },
 
         // media / volume / mic

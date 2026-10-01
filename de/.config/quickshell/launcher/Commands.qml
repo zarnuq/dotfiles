@@ -30,10 +30,10 @@ Singleton {
         { name: "Wallpaper picker", desc: "thumbnail grid",      glyph: "󰋩", args: ["wallpaperpicker", "open"] },
         { name: "Music",            desc: "MPD client",          glyph: "󰝚", args: ["music",           "open"] },
         { name: "Settings",         desc: "feature switches",    glyph: "󰒓", args: ["settings",        "open"] },
-        { name: "Screenshot",       desc: "region or output",    glyph: "󰄀", args: ["screenshot",      "open"] },
 
         { name: "Lock screen",      desc: "and session menu",    glyph: "󰌾", args: ["lock",      "lock"] },
         { name: "Random wallpaper", desc: "from ~/Pictures/bgs", glyph: "󰊠", args: ["wallpaper", "random"] },
+        { name: "Annotate clipboard", desc: "image → satty",     glyph: "󰏬", args: ["capture",   "annotate"] },
         { name: "Flash cursor",     desc: "spotlight",           glyph: "󰍉", args: ["spotlight", "flash"] },
         { name: "Play / pause",     desc: "MPD",                 glyph: "󰐊", args: ["media",     "playpause"] }
     ]
