@@ -342,9 +342,7 @@ Singleton {
             // one bulk read, so stop being clever.
             if (missing.length > 64) { root.refreshQueue(false); return; }
 
-            var cmds = [];
-            for (var m = 0; m < missing.length; m++) cmds.push("playlistid " + missing[m].id);
-            root.sendList(cmds, function (lines2, err2) {
+            root.sendList(missing.map(m => "playlistid " + m.id), function (lines2, err2) {
                 if (err2) { root.refreshQueue(false); return; }
                 var songs = root.parseRecords(lines2, ["file"]);
                 if (songs.length !== missing.length) { root.refreshQueue(false); return; }
@@ -387,10 +385,10 @@ Singleton {
         return Math.max(0, Math.min(end, sec));
     }
 
-    /// Move the LOCAL clock now and let the flush below send it. Both entry
-    /// points come through here so the guard and the repaint cannot be set in
-    /// one of them and forgotten in the other.
-    function _seek(sec): void {
+    /// Move the LOCAL clock now and let the flush below send it. seekBy comes
+    /// through here too, so the guard and the repaint cannot be set in one
+    /// entry point and forgotten in the other.
+    function seekTo(sec): void {
         if (root.duration <= 0) return;
         root._seekPending = true;
         root._seekGuardUntil = Date.now() + root._seekGuardMs;
@@ -399,8 +397,6 @@ Singleton {
         root._tick++;                       // repaint now, not on the next second
         seekFlush.restart();
     }
-
-    function seekTo(sec): void   { root._seek(sec); }
 
     // Holding the seek key is reach's 50/s key repeat, so a naive one-command-
     // per-press sends fifty `seekcur`s a second. Each is a `player` change, each
@@ -419,7 +415,7 @@ Singleton {
     readonly property int _seekFlushMs: 90
     readonly property int _seekGuardMs: 500
 
-    function seekBy(delta): void { root._seek(root.elapsed + delta); }
+    function seekBy(delta): void { root.seekTo(root.elapsed + delta); }
 
     Timer {
         id: seekFlush
@@ -457,14 +453,13 @@ Singleton {
     // audible lag, not just a slow number.
     property bool _volDirty: false
 
-    function setVolume(v): void {
-        var target = Math.max(0, Math.min(100, Math.round(v)));
+    function changeVolume(d): void {
+        var target = Math.max(0, Math.min(100, Math.round(root.volume + d)));
         if (target === root._volWanted) return;
         root._volWanted = target;
         root._volDirty = true;
         if (!volFlush.running) root._flushVolume();
     }
-    function changeVolume(d): void   { root.setVolume(root.volume + d); }
 
     function _flushVolume(): void {
         volRelease.stop();
@@ -566,10 +561,8 @@ Singleton {
     /// this same command with a typed name. A directory URI adds everything
     /// beneath it, as `add` does to the queue (checked against MPD 0.24).
     function playlistAdd(name, uris): void {
-        var qn = root.q(name), cmds = [];
-        for (var i = 0; i < uris.length; i++)
-            cmds.push("playlistadd " + qn + " " + root.q(uris[i]));
-        root.sendList(cmds);
+        var qn = root.q(name);
+        root.sendList(uris.map(uri => "playlistadd " + qn + " " + root.q(uri)));
     }
 
     /// Remove one song from a stored playlist BY POSITION — the only handle

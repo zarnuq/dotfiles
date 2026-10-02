@@ -29,7 +29,6 @@ Item {
         if (root.count > 0) root.cursor = Math.max(0, Math.min(root.count - 1, i));
     }
     function moveBy(delta): void { root.moveTo(root.cursor + delta); }
-    function reveal(): void { list.positionViewAtIndex(root.cursor, ListView.Contain); }
 
     // The URI under the cursor, for the C-a picker.
     function currentUris() {
@@ -50,7 +49,7 @@ Item {
         else root.resetCursor();
     }
 
-    onCursorChanged: root.reveal()
+    onCursorChanged: list.positionViewAtIndex(root.cursor, ListView.Contain)
 
     // rmpc's navigation half. Returns true when consumed, so a pane adds only
     // its own keys on top.

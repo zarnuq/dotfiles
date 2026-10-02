@@ -10,7 +10,7 @@ import QtQuick
 Singleton {
     id: root
     property bool paused: false        // do-not-disturb
-    property var history: []           // [{ app, summary, body }], newest first, max 20
+    property var history: []           // [{ app, summary }], newest first, max 20
 
     readonly property var live: server.trackedNotifications
 
@@ -25,9 +25,7 @@ Singleton {
         onNotification: (notif) => {
             // History regardless of DND (mako's invisible=1 still logged).
             var h = root.history.slice(0, 19);
-            h.unshift({ app: notif.appName || "Unknown",
-                        summary: notif.summary || "No summary",
-                        body: notif.body || "" });
+            h.unshift({ app: notif.appName || "Unknown", summary: notif.summary || "No summary" });
             root.history = h;
 
             // DND suppresses the popup; otherwise keep it on-screen.

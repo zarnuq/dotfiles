@@ -40,10 +40,8 @@ Singleton {
 
     function _walk(extra) {
         var cmd = ["fd", "--hidden", "--absolute-path"];
-        for (var i = 0; i < root.excludes.length; i++) cmd.push("--exclude", root.excludes[i]);
-        cmd.push(".", root.home);
-        for (var j = 0; j < extra.length; j++) cmd.push(extra[j]);
-        return cmd;
+        root.excludes.forEach(x => cmd.push("--exclude", x));
+        return cmd.concat(".", root.home, extra);
     }
 
     // Two passes, symlinks first, because the main walk has to know which of
@@ -80,31 +78,24 @@ Singleton {
                     if (tab > 0) out.push([rows[i].slice(0, tab), rows[i].slice(tab + 1)]);
                 }
                 root._pairs = out;
-                proc.command = root._walk([]);
                 proc.running = true;
             }
         }
         // fd missing, or no symlinks at all: index everything, dedupe nothing.
-        onExited: if (!proc.running && root.building && root._pairs.length === 0) {
-            proc.command = root._walk([]);
-            proc.running = true;
-        }
+        onExited: if (!proc.running && root.building && root._pairs.length === 0) proc.running = true;
     }
 
     Process {
         id: proc
+        command: root._walk([])
         stdout: StdioCollector {
             onStreamFinished: {
-                root.ingest(text);
+                root._index = FileSearch.createIndex(text, root._pairs, root.demoted);
+                root.count = root._index.paths.length;
+                root.ready = true;
                 root.building = false;
             }
         }
-    }
-
-    function ingest(text): void {
-        root._index = FileSearch.createIndex(text, root._pairs, root.demoted);
-        root.count = root._index.paths.length;
-        root.ready = true;
     }
 
     function search(rawq, limit) {

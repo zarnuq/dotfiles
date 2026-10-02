@@ -48,6 +48,13 @@ Row {
         visible: root.statusData.sinkName.length > 0
     }
     Block {
+        text: "󰂱 " + root.statusData.bluetooth
+        visible: root.statusData.bluetooth !== ""
+    }
+    Delim {
+        visible: root.statusData.bluetooth !== ""
+    }
+    Block {
         text: Volume.volume + "%"
     }
     Delim {}

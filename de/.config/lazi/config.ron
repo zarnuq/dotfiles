@@ -158,7 +158,6 @@
         "reveal": (desc: "Reveal", run: r#"xdg-open "$(dirname "$1")""#),
         "view": (desc: "View", run: r#"swayimg "$1""#),
         "setbg": (desc: "Set wallpaper", run: r#"qs ipc call wallpaper set "$1""#),
-        "read": (desc: "Read", run: r#"zathura "$1""#),
         "play": (desc: "Play", run: r#"mpv --force-window "$@""#),
         "mediainfo": (desc: "Media info", run: r#"mediainfo "$1"; echo "Press enter to exit"; read _"#, block: true),
         "extract": (desc: "Extract here", run: r#"for f; do bsdtar -xf "$f"; done"#),
@@ -173,6 +172,7 @@
     //   Text            the file itself, syntax highlighted
     //   Image           decoded in process, shown with kitty's graphics protocol
     //   ImageCmd("...") a script printing an image (e.g. PNG) to stdout
+    //   ImagePages("...") the same, printing page $PAGE (from 1); Seek turns pages
     //   Cmd("...")      a script whose output is shown as text, ANSI colours kept
     // Scripts get the file as "$1" and the preview area as $COLUMNS and $LINES. Directories are
     // always previewed as a listing.
@@ -187,10 +187,19 @@
             open: ["view", "setbg", "open", "reveal"],
         ),
         (
-            ext: ["pdf", "epub", "djvu"],
+            ext: ["pdf"],
+            // The first page, falling back to metadata if poppler is missing or the file is broken.
+            preview: [
+                ImagePages(r#"pdftoppm -png -f "$PAGE" -l "$PAGE" -singlefile -scale-to 1500 "$1""#),
+                Cmd(r#"exiftool -S --File:all --ExifTool:all "$1""#),
+            ],
+            open: ["open", "reveal"],
+        ),
+        (
+            ext: ["epub", "djvu"],
             // Metadata only, without exiftool's own and the filesystem's.
             preview: [Cmd(r#"exiftool -S --File:all --ExifTool:all "$1""#)],
-            open: ["read", "open", "reveal"],
+            open: ["open", "reveal"],
         ),
         (
             ext: ["mp4", "mkv", "webm", "mov", "avi", "m4v", "flv", "wmv"],
@@ -288,7 +297,7 @@
             "cf": CopyPath(Name),
             "cn": CopyPath(Stem),
             "Ctrl+z": Suspend,
-            // Scrolls the file preview by lines.
+            // Scrolls the file preview by lines, or pages through a PDF.
             "K": Seek(-5),
             "J": Seek(5),
         },

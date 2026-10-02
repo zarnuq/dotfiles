@@ -103,27 +103,6 @@ function connOn(conns, device) {
     return "";
 }
 
-// Every tunnel NM knows about, as a VPN row minus its display fields (vpnRows
-// stamps those and groups them). `alwaysOn` is decided here, by connection
-// name, since this is where a tunnel first becomes a row.
-function vpnConnections(conns, devStates) {
-    var out = [];
-    for (var i = 0; i < conns.length; i++) {
-        var c = conns[i];
-        if (isTunnel(c)) {
-            // NM describes wg-quick links through volatile profiles. It marks
-            // the DEVICE as "connected (externally)", not the connection.
-            var st = devStates[c.device];
-            out.push({ kind: "nmvpn", name: c.name, uuid: c.uuid,
-                       active: c.state === "activated",
-                       connecting: c.state === "activating",
-                       external: st !== undefined && st.indexOf("external") !== -1,
-                       alwaysOn: isAlwaysOn(c.name) });
-        }
-    }
-    return out;
-}
-
 // The menu's rows. Every row carries what its delegate draws — `active`,
 // `label`, `icon`, `trailing` — decided here, once, when the row is built, so
 // the delegate is plain bindings and no row kind is re-derived at paint time.
@@ -157,7 +136,7 @@ function buildRows(state) {
                          trailing: (a.security ? "󰌾 " : "") + a.signal + "%" });
             }
     }
-    return r.concat(vpnRows(state.vpnConns));
+    return r.concat(vpnRows(state.conns, state.devStates));
 }
 
 // ── VPN ──────────────────────────────────────────────────────────────────
@@ -175,33 +154,41 @@ var ALWAYS_ON = ["wireguard"];
 
 function isAlwaysOn(name) { return ALWAYS_ON.indexOf(name) !== -1; }
 
-// vpnConnections' tunnels, grouped by purpose. Each row carries everything
+// Every tunnel NM knows about, grouped by purpose. Each row carries everything
 // the menu needs to draw and act on it: its `label`, whether it is `alwaysOn`,
-// and the identity its command is built from. Those two are stamped when the
-// row is built rather than asked later, because both are decided exactly once
-// and a delegate that re-derives them per frame has to be handed the whole
-// list to do it. `warning()` below is the other reason: matching an always-on
-// tunnel by NAME across every row would count a wired connection called
-// "wireguard" as the homelab tunnel.
-function vpnRows(vpnConns) {
+// and the identity its command is built from — stamped once, here, so a
+// delegate never re-derives them. `warning()` below is the other reason:
+// matching an always-on tunnel by NAME across every row would count a wired
+// connection called "wireguard" as the homelab tunnel.
+function vpnRows(conns, devStates) {
     var all = [], byName = {};
-    for (var j = 0; j < vpnConns.length; j++) {
-        var c = vpnConns[j];
+    for (var j = 0; j < conns.length; j++) {
+        var c = conns[j];
+        if (!isTunnel(c)) continue;
         byName[c.name] = (byName[c.name] || 0) + 1;
-        // A copy: the display fields below are this menu's, not the input's.
-        all.push(Object.assign({}, c));
+        // NM describes wg-quick links through volatile profiles. It marks
+        // the DEVICE as "connected (externally)", not the connection.
+        var st = devStates[c.device];
+        all.push({ kind: "nmvpn", name: c.name, uuid: c.uuid, icon: "󰖂",
+                   active: c.state === "activated",
+                   connecting: c.state === "activating",
+                   external: st !== undefined && st.indexOf("external") !== -1,
+                   alwaysOn: isAlwaysOn(c.name) });
     }
 
-    // Two NM profiles can share a name; NM's own convention when it has to tell
-    // its connections apart is the first 8 of the UUID, so borrow it — an
-    // unadorned pair of identical rows is unusable.
     for (var i = 0; i < all.length; i++) {
         var row = all[i];
+        // Two NM profiles can share a name; NM's own convention when it has to
+        // tell its connections apart is the first 8 of the UUID, so borrow it
+        // — an unadorned pair of identical rows is unusable.
         row.label = byName[row.name] > 1
                     ? row.name + " [" + row.uuid.substring(0, 8) + "]"
                     : row.name;
-        row.icon = "󰖂";
-        row.trailing = vpnState(row);
+        // "external": up, but NM isn't the one running it — the row describes
+        // a wg-quick link, not a profile that would come back on its own.
+        row.trailing = row.connecting ? "connecting…"
+                     : row.active ? (row.external ? "external" : "connected")
+                     : row.alwaysOn ? "down" : "";
     }
 
     var r = [];
@@ -221,11 +208,12 @@ function vpnRows(vpnConns) {
 // The ~/VPNs configs NM hasn't been given yet, matched by the name NM
 // would give the profile. Matching this way is what stops a re-import on every
 // tick — `con import` would happily create a duplicate profile each time.
-function pendingImports(vpnConns, ovpnFiles) {
+function pendingImports(conns, files) {
     var known = {}, out = [];
-    for (var i = 0; i < vpnConns.length; i++) known[vpnConns[i].name] = true;
-    for (var m = 0; m < (ovpnFiles || []).length; m++)
-        if (!known[ovpnFiles[m].name]) out.push(ovpnFiles[m]);
+    for (var i = 0; i < conns.length; i++)
+        if (isTunnel(conns[i])) known[conns[i].name] = true;
+    for (var m = 0; m < files.length; m++)
+        if (!known[files[m].name]) out.push(files[m]);
     return out;
 }
 
@@ -282,8 +270,7 @@ function obsoleteSources(managed, conns, files) {
     }
     for (var j = 0; j < conns.length; j++) {
         var c = conns[j];
-        if (isAlwaysOn(c.name)) continue;          // never ours to remove
-        if (!isTunnel(c)) continue;
+        if (!isTunnel(c) || isAlwaysOn(c.name)) continue;   // never ours to remove
         var source = managed[c.uuid];
         if (source && typeof source.file === "string") {
             // Imported from a file this registry remembers, and that file is gone.
@@ -309,13 +296,14 @@ function obsoleteSources(managed, conns, files) {
 // since each is an nmcli write and they queue behind each other in the QML.
 // `tried` holds its guard maps — importTried, importDone, deleteTried — keyed
 // by file path and UUID respectively.
-function syncStep(managed, conns, files, pending, tried) {
+function syncStep(managed, conns, files, tried) {
     // A changed file is deleted first and re-imported by the loop below;
     // an obsolete one is simply gone. Both are the same delete command.
     var obsolete = obsoleteSources(managed, conns, files)
                    .concat(staleSources(managed, conns, files));
     for (var j = 0; j < obsolete.length; j++)
         if (!tried.deleteTried[obsolete[j].uuid]) return { remove: obsolete[j] };
+    var pending = pendingImports(conns, files);
     for (var i = 0; i < pending.length; i++) {
         var f = pending[i];
         if (!tried.importTried[f.file] && !tried.importDone[f.file]) return { add: f };
@@ -372,15 +360,6 @@ function importCommand(f) {
 // connections may share a name, so `con up id <name>` is ambiguous.
 function vpnCommand(row, up) {
     return ["nmcli", "connection", up ? "up" : "down", "uuid", row.uuid];
-}
-
-// What a row's right-hand column says about its state. "external" means the
-// tunnel is up but NM isn't the one running it — the row is a description of a
-// wg-quick link, not a profile that would come back on its own.
-function vpnState(row) {
-    if (row.connecting === true) return "connecting…";
-    if (row.active === true) return row.external ? "external" : "connected";
-    return row.alwaysOn ? "down" : "";
 }
 
 // Empty unless something that should be up isn't. Duplicate profiles can share

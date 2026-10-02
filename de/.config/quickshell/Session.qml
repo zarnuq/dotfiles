@@ -130,25 +130,25 @@ Scope {
 
             Column {
                 anchors.centerIn: parent
-                width: 360
-                spacing: 24
+                width: Config.s(360)
+                spacing: Config.s(24)
 
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: root.timeStr
-                    font.pixelSize: 72; font.bold: true
+                    font.pixelSize: Config.s(72); font.bold: true
                 }
 
                 Rectangle {
-                    width: parent.width; height: 46
+                    width: parent.width; height: Config.s(46)
                     color: Theme.surface0
                     border.width: 2
                     border.color: pam.active ? Theme.peach : Theme.mauve
 
                     Field {
                         id: field
-                        anchors.fill: parent; anchors.margins: 12
-                        font.pixelSize: 18
+                        anchors.fill: parent; anchors.margins: Config.s(12)
+                        font.pixelSize: Config.s(18)
                         echoMode: TextInput.Password
                         focus: true
                         enabled: !pam.active
@@ -187,14 +187,14 @@ Scope {
                                           : "enter password")
                     color: root.armed >= 0 ? Theme.peach
                            : (root.status && root.status !== "checking…") ? Theme.red : Theme.subtext0
-                    font.pixelSize: 14
+                    font.pixelSize: Config.s(14)
                 }
 
                 // Session actions. Tab through them, or click once to arm and
                 // again to run.
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 8
+                    spacing: Config.s(8)
 
                     Repeater {
                         model: root.actions
@@ -205,7 +205,7 @@ Scope {
                             required property int index
                             readonly property bool isArmed: index === root.armed
 
-                            width: 112; height: 40
+                            width: Config.s(112); height: Config.s(40)
                             color: isArmed ? Theme.surface0 : "transparent"
                             border.width: 1
                             border.color: isArmed ? Theme.peach : Theme.surface1
@@ -221,19 +221,19 @@ Scope {
 
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 8
+                                spacing: Config.s(8)
 
                                 Txt {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: btn.modelData.icon
                                     color: btn.isArmed ? Theme.peach : Theme.subtext0
-                                    font.pixelSize: 16
+                                    font.pixelSize: Config.s(16)
                                 }
                                 Txt {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: btn.modelData.label
                                     color: btn.isArmed ? Theme.text : Theme.subtext0
-                                    font.pixelSize: 13
+                                    font.pixelSize: Config.s(13)
                                 }
                             }
                         }

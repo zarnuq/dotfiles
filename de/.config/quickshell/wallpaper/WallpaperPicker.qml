@@ -39,9 +39,8 @@ Picker {
     readonly property string tool: Quickshell.env("HOME") + "/.local/bin/wallpaper-thumbs"
 
     // Re-listed on every open so wallpapers added since last time show up.
-    onOpened: root.reload()
-
-    function reload(): void { if (!loader.running) loader.running = true; }
+    // (A no-op while the last listing is still running.)
+    onOpened: loader.running = true
 
     // Render missing thumbs, then list. ';' not '&&' so a failed render still lists.
     Process {
@@ -68,15 +67,12 @@ Picker {
     }
 
     function refresh(): void {
-        var c = root.cats[root.catIndex], out = [];
-        for (var i = 0; i < root.all.length; i++)
-            if (c === "All" || root.all[i].cat === c) out.push(root.all[i]);
-        root.results = out;
+        var c = root.cats[root.catIndex];
+        root.results = c === "All" ? root.all : root.all.filter(w => w.cat === c);
         root.selected = 0;
     }
 
     function setCat(i): void {
-        if (root.cats.length === 0) return;
         root.catIndex = (i + root.cats.length) % root.cats.length;
         root.refresh();
     }
@@ -89,8 +85,8 @@ Picker {
     }
 
     function curPath() {
-        if (root.selected < 0 || root.selected >= root.results.length) return "";
-        return root.results[root.selected].path;
+        var w = root.results[root.selected];
+        return w ? w.path : "";
     }
 
     onSelectedChanged: root.updateDim()
@@ -98,10 +94,9 @@ Picker {
 
     function updateDim(): void {
         var p = root.curPath();
-        if (p === "") { root.curDim = ""; dimProbe.stop(); return; }
-        if (root.dims[p] !== undefined) { root.curDim = root.dims[p]; dimProbe.stop(); return; }
-        root.curDim = "";
-        dimProbe.restart();
+        root.curDim = root.dims[p] || "";
+        if (p === "" || root.dims[p] !== undefined) dimProbe.stop();
+        else dimProbe.restart();
     }
 
     // Debounced so holding j/k doesn't spawn a probe per row.
@@ -127,7 +122,7 @@ Picker {
         stdout: StdioCollector {
             onStreamFinished: {
                 var t = text.trim();
-                if (t === "" || dimProc.path === "") return;
+                if (t === "") return;
                 var d = root.dims;
                 d[dimProc.path] = t;
                 root.dims = d;
@@ -163,14 +158,13 @@ Picker {
                 spacing: 0
 
                 // Category sidebar.
-                Rectangle {
-                    width: 190
+                Item {
+                    width: root.s(190)
                     height: parent.height
-                    color: Theme.base
 
                     ListView {
                         anchors.fill: parent
-                        anchors.topMargin: 8
+                        anchors.topMargin: root.s(8)
                         model: root.cats
                         boundsBehavior: Flickable.StopAtBounds
                         clip: true
@@ -179,7 +173,7 @@ Picker {
                             id: catRow
                             required property string modelData
                             required property int index
-                            width: 190; height: 34
+                            width: root.s(190); height: root.s(34)
                             color: index === root.catIndex ? Theme.rowSelectBg : "transparent"
 
                             MouseArea {
@@ -189,11 +183,11 @@ Picker {
 
                             Txt {
                                 anchors.fill: parent
-                                anchors.leftMargin: 14; anchors.rightMargin: 10
+                                anchors.leftMargin: root.s(14); anchors.rightMargin: root.s(10)
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
                                 text: catRow.modelData
-                                font.pixelSize: 15
+                                font.pixelSize: root.s(15)
                                 color: catRow.index === root.catIndex ? Theme.mauve : Theme.subtext0
                             }
                         }
@@ -203,13 +197,13 @@ Picker {
                 Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
 
                 Column {
-                    width: parent.width - 191
+                    width: parent.width - root.s(190) - 1
                     height: parent.height
                     spacing: 0
 
                     Item {
                         width: parent.width
-                        height: parent.height - 34
+                        height: parent.height - root.s(34)
 
                         GridView {
                             id: grid
@@ -220,7 +214,7 @@ Picker {
                             boundsBehavior: Flickable.StopAtBounds
 
                             // ~250px tiles, whole number of columns, 16:9.
-                            readonly property int cols: Math.max(1, Math.floor(width / 250))
+                            readonly property int cols: Math.max(1, Math.floor(width / root.s(250)))
                             cellWidth: Math.floor(width / cols)
                             cellHeight: Math.round(cellWidth * 9 / 16)
                             onColsChanged: root.columns = cols
@@ -245,7 +239,7 @@ Picker {
 
                                 Rectangle {
                                     anchors.fill: parent
-                                    anchors.margins: 3
+                                    anchors.margins: root.s(3)
                                     color: Theme.surface0
                                     border.width: 2
                                     border.color: tile.index === root.selected ? Theme.mauve : "transparent"
@@ -264,7 +258,6 @@ Picker {
                                         sourceSize.height: 225
                                         fillMode: Image.PreserveAspectCrop
                                         asynchronous: true   // never block the UI thread on scroll
-                                        cache: true
                                         clip: true
                                     }
 
@@ -293,36 +286,32 @@ Picker {
                     }
 
                     // Footer: what's selected, where you are, and the keys.
-                    Rectangle {
+                    Item {
                         width: parent.width
-                        height: 34
-                        color: Theme.base
+                        height: root.s(34)
 
                         Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
 
                         Row {
                             id: info
                             anchors.left: parent.left
-                            anchors.leftMargin: 12
+                            anchors.leftMargin: root.s(12)
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.max(0, hints.x - info.x - 16)
-                            spacing: 10
+                            width: Math.max(0, hints.x - info.x - root.s(16))
+                            spacing: root.s(10)
 
                             Txt {
                                 // Yields to the dimensions label, which never elides.
                                 width: Math.max(0, info.width - dim.width - info.spacing)
                                 elide: Text.ElideMiddle
-                                font.pixelSize: 13
+                                font.pixelSize: root.s(13)
                                 color: Theme.subtext0
-                                text: {
-                                    var p = root.curPath();
-                                    return p === "" ? "" : p.substring(p.lastIndexOf("/") + 1);
-                                }
+                                text: root.curPath().split("/").pop()
                             }
 
                             Txt {
                                 id: dim
-                                font.pixelSize: 13
+                                font.pixelSize: root.s(13)
                                 color: Theme.surface1
                                 text: root.curDim
                             }
@@ -331,9 +320,9 @@ Picker {
                         Txt {
                             id: hints
                             anchors.right: parent.right
-                            anchors.rightMargin: 12
+                            anchors.rightMargin: root.s(12)
                             anchors.verticalCenter: parent.verticalCenter
-                            font.pixelSize: 13
+                            font.pixelSize: root.s(13)
                             color: Theme.surface1
                             text: (root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0")
                                   + "   ⏎ set   ␣ preview   ⇥ category"

@@ -6,7 +6,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 // Left bar, 420 wide: stretches from under the brightness widget (150+75) down
 // to the top of the weather card, so it absorbs whatever height is left over:
 // anchoring top+bottom stretches it over the bar's leftover space.
-// ICS calendar via calendar.sh (Python icalendar), polled every 5 min.
+// ICS calendar via calendar.sh (stdlib Python), polled every 5 min.
 Widget {
     id: root
     anchors { top: true; bottom: true; left: true }
@@ -28,7 +28,7 @@ Widget {
         id: poll
         command: [root.script, "events"]
         // calendar.sh caches for 300s, so a shorter interval can only pay for
-        // python + icalendar + a reparse of the ICS to print the same bytes.
+        // python + a reparse of the ICS to print the same bytes.
         interval: 300000
         onJsonData: v => root.events = v || []
     }
@@ -57,10 +57,7 @@ Widget {
                 id: headerRow
                 spacing: root.s(8)
                 icon: "󰃭"; iconColor: Theme.blue; iconSize: root.s(16); label: "calendar"
-                HeaderBtn {
-                    icon: "󰑓"; size: root.s(14)
-                    onClicked: refresher.refresh()
-                }
+                HeaderBtn { icon: "󰑓"; onClicked: refresher.refresh() }
             }
             Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: root.s(1); color: Theme.surface0 }
         }

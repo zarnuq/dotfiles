@@ -28,7 +28,7 @@ ListView {
         id: row
         required property int index
         readonly property var modelData: root.controller.queue[index] || root.emptyRow
-        readonly property bool isMatch: root.controller.query !== "" && root.controller.matches(index)
+        readonly property bool isMatch: root.controller.matches(index)
         width: root.width
 
         current: root.controller.client.songId >= 0

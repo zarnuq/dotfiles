@@ -45,9 +45,6 @@
     (python3.withPackages (ps: (with ps; [
       virtualenv
       pip
-      icalendar
-      recurring-ical-events
-      x-wr-timezone
     ]) ++ config.my.cyberPythonLibs))
     # pipx 1.8.0's test suite fails against newer `packaging` (it now puts
     # spaces around `@` in PEP 508 specs), breaking the checkPhase. Skip the

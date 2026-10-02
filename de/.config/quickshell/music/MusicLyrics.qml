@@ -27,11 +27,7 @@ Item {
     // A stamped line has untimed false and t >= 0; an untagged one inherits
     // the last stamp above it (-1 before any), so only `untimed` says which.
     property var lines: []
-    readonly property bool synced: {
-        for (var i = 0; i < root.lines.length; i++)
-            if (!root.lines[i].untimed) return true;
-        return false;
-    }
+    readonly property bool synced: root.lines.some(line => !line.untimed)
     readonly property string status: {
         if (root.client.song.file === undefined) return "nothing playing";
         if (root.lines.length === 0) return "no .lrc beside this track";
@@ -86,10 +82,7 @@ Item {
     }
 
     // No cursor here, so C-a takes the playing song.
-    function selectionUris() {
-        var song = root.client.song || {};
-        return song.file ? [song.file] : [];
-    }
+    function selectionUris() { return root.client.song.file ? [root.client.song.file] : []; }
 
     function handleKey(event) {
         switch (event.key) {
@@ -112,12 +105,7 @@ Item {
         onLoadFailed: root.lines = []
     }
 
-    Connections {
-        target: root
-        function onActiveLineChanged(): void {
-            if (root.activeLine >= 0) view.positionViewAtIndex(root.activeLine, ListView.Center);
-        }
-    }
+    onActiveLineChanged: if (root.activeLine >= 0) view.positionViewAtIndex(root.activeLine, ListView.Center)
 
     MusicCrumb {
         id: head

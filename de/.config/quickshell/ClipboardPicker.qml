@@ -33,27 +33,20 @@ Picker {
 
     readonly property var results: {
         var q = root.query.toLowerCase();
-        if (q === "") return root.entries;
-        var out = [];
-        for (var i = 0; i < root.entries.length; i++)
-            if (root.entries[i].preview.toLowerCase().indexOf(q) !== -1) out.push(root.entries[i]);
-        return out;
+        return q === "" ? root.entries : root.entries.filter(e => e.preview.toLowerCase().includes(q));
     }
     onQueryChanged: root.selected = 0
 
-    // What j/k walk: Picker's own move() clamps against this, so the picker
-    // doesn't carry its own copy of that arithmetic.
+    // What j/k walk.
     count: root.results.length
 
-    readonly property var cur: (root.selected >= 0 && root.selected < root.results.length)
-                               ? root.results[root.selected] : null
+    readonly property var cur: root.results[root.selected] || null
 
     // ── history ──────────────────────────────────────────────────────────
     // Listed once per open, never polled: the picker is transient, and a closed
     // one should cost nothing.
-    onOpened: { root.query = ""; root.cache = ({}); root.reload(); }
-
-    function reload(): void { if (!lister.running) lister.running = true; }
+    // (The box's reset() clears the query; a running lister ignores a re-start.)
+    onOpened: { root.cache = ({}); lister.running = true; }
 
     Process {
         id: lister
@@ -100,17 +93,15 @@ Picker {
     Component.onCompleted: Quickshell.execDetached(["sh", "-c", 'rm -f "$1"/*.img', "sh", root.cacheDir])
 
     onCurChanged: {
-        root.previewText = "";
-        root.previewImage = "";
-        if (!root.cur) { debounce.stop(); return; }
-        var hit = root.cache[root.cur.id];
-        if (hit !== undefined) { root.apply(hit); debounce.stop(); return; }
-        debounce.restart();
+        var hit = root.cur ? root.cache[root.cur.id] : undefined;
+        root.apply(hit || {});
+        if (root.cur && !hit) debounce.restart();
+        else debounce.stop();
     }
 
     function apply(v): void {
-        root.previewText = v.text !== undefined ? v.text : "";
-        root.previewImage = v.img !== undefined ? v.img : "";
+        root.previewText = v.text || "";
+        root.previewImage = v.img || "";
     }
 
     function store(id, v): void {
@@ -180,7 +171,7 @@ Picker {
 
     Process {
         id: deleter
-        onExited: root.reload()
+        onExited: lister.running = true
     }
 
     box: Component {

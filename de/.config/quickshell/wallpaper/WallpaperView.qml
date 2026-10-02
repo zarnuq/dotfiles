@@ -69,11 +69,7 @@ Variants {
             }
 
             // New wallpaper -> load into the hidden layer...
-            onCurChanged: {
-                if (cur === "") return;
-                var back = aFront ? b : a;
-                back.source = "file://" + cur;
-            }
+            onCurChanged: if (cur !== "") (aFront ? b : a).source = "file://" + cur;
             // ...and flip only once that layer is decoded, so no black gap.
             Layer { id: a; shown: bg.aFront;  onStatusChanged: if (!bg.aFront && status === Image.Ready) bg.aFront = true }
             Layer { id: b; shown: !bg.aFront; onStatusChanged: if (bg.aFront && status === Image.Ready) bg.aFront = false }

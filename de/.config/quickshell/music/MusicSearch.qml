@@ -61,10 +61,7 @@ Item {
     // `A` queues every match as one command list, so a broad search is still
     // a single round trip.
     function addAll(): void {
-        var commands = [];
-        for (var i = 0; i < root.results.length; i++)
-            commands.push("add " + root.client.q(root.results[i].file));
-        root.client.sendList(commands);
+        root.client.sendList(root.results.map(song => "add " + root.client.q(song.file)));
     }
 
     function focusField(): void { root.typing = true; bar.field.forceActiveFocus(); }

@@ -20,9 +20,8 @@ this script is the one place that knows the format.
     state              presets, which is active, and the LIVE outputs
                        (wlr-randr), which is where mode lists come from
     activate <name>    re-point monitors.zon at monitors/<name>.zon, reload reach
-    save <name> [json] write monitors/<name>.zon, make it active, reload
+    save <name> <json> write monitors/<name>.zon, make it active, reload
     delete <name>      remove a layout file (never the active one)
-    apply              reload reach without changing anything
 
 Writes are atomic (temp file + rename), symlink included: a half-written layout
 is a file reach refuses wholesale, which means every screen at its default
@@ -50,18 +49,11 @@ HEADER_SENTINEL = "\n.{"
 # ---------------------------------------------------------------------------
 
 def reach_dir():
-    xdg = os.environ.get("XDG_CONFIG_HOME", "")
-    home = os.environ.get("HOME", "")
-    candidates = []
-    if xdg:
-        candidates.append(os.path.join(xdg, "reach"))
-    if home:
-        candidates.append(os.path.join(home, ".config/reach"))
+    xdg, home = os.environ.get("XDG_CONFIG_HOME"), os.environ.get("HOME")
+    candidates = [os.path.join(xdg, "reach")] if xdg else []
+    candidates += [os.path.join(home, ".config/reach")] if home else []
     candidates.append("/etc/reach")
-    for path in candidates:
-        if os.path.isdir(path):
-            return path
-    return candidates[0]
+    return next((p for p in candidates if os.path.isdir(p)), candidates[0])
 
 
 def link_path():
@@ -77,16 +69,14 @@ def preset_path(name):
 
 
 def active_name():
-    """The layout in use, from the link's target. `lexists`, not `exists`: a
-    dangling link still records a choice, and reporting it is how the GUI can say
-    the file is missing rather than silently showing nothing as active."""
+    """The layout in use, from the link's target — even a dangling one: it still
+    records a choice, and reporting it lets the GUI say the file is missing. A
+    regular file there is legal (reach only cares that it parses), but then no
+    named layout is active."""
     link = link_path()
     if not os.path.islink(link):
-        # A regular file there is legal — reach only cares that it parses — but
-        # then no named layout is active, and the GUI says so.
         return None
-    name = os.path.basename(os.readlink(link))
-    return name[:-4] if name.endswith(".zon") else name
+    return os.path.basename(os.readlink(link)).removesuffix(".zon")
 
 
 def preset_names():
@@ -147,18 +137,10 @@ def _tokens(src):
             while j < n and src[j] not in " \t\r\n,}=":
                 j += 1
             word = src[i:j]
-            if word == "true":
-                yield ("val", True)
-            elif word == "false":
-                yield ("val", False)
-            else:
-                try:
-                    yield ("val", int(word))
-                except ValueError:
-                    try:
-                        yield ("val", float(word))
-                    except ValueError:
-                        yield ("val", word)
+            try:  # true/false/ints/floats are spelled the same in JSON
+                yield ("val", json.loads(word))
+            except ValueError:
+                yield ("val", word)
             i = j
 
 
@@ -257,11 +239,8 @@ def mon_zon(mon):
 def write_layout(path, header, monitors):
     if not header:
         header = GENERATED_HEADER % ("monitors/" + os.path.basename(path))
-    lines = [header.rstrip("\n"), ".{", "    .monitors = .{"]
-    for mon in monitors:
-        lines.append("        %s," % mon_zon(mon))
-    lines.append("    },")
-    lines.append("}")
+    lines = [header.rstrip("\n"), ".{", "    .monitors = .{",
+             *("        %s," % mon_zon(mon) for mon in monitors), "    },", "}"]
     atomic_write(path, "\n".join(lines) + "\n")
 
 
@@ -305,18 +284,9 @@ def reload_reach():
     """SIGHUP. reach re-reads both config files and re-applies the monitor table
     only if it changed by value, so this is cheap and idempotent."""
     try:
-        out = subprocess.run(["pidof", "reach"], capture_output=True, text=True)
+        return subprocess.run(["pkill", "-HUP", "-x", "reach"]).returncode == 0
     except OSError:
         return False
-    pids = out.stdout.split()
-    if not pids:
-        return False
-    for pid in pids:
-        try:
-            os.kill(int(pid), 1)
-        except (OSError, ValueError):
-            return False
-    return True
 
 
 def live_outputs():
@@ -324,14 +294,10 @@ def live_outputs():
     reach publishes neither over its socket, and a GUI cannot offer a mode list
     without it."""
     try:
-        out = subprocess.run(["wlr-randr", "--json"], capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.SubprocessError):
-        return []
-    if out.returncode != 0:
-        return []
-    try:
+        out = subprocess.run(["wlr-randr", "--json"], capture_output=True, text=True,
+                             timeout=10, check=True)
         return json.loads(out.stdout)
-    except ValueError:
+    except (OSError, subprocess.SubprocessError, ValueError):
         return []
 
 
@@ -340,10 +306,7 @@ def live_outputs():
 # ---------------------------------------------------------------------------
 
 def cmd_state():
-    presets = []
-    for name in preset_names():
-        _, monitors = read_layout(preset_path(name))
-        presets.append({"name": name, "monitors": monitors})
+    presets = [{"name": n, "monitors": read_layout(preset_path(n))[1]} for n in preset_names()]
     active = active_name()
     emit({
         "link": link_path(),
@@ -363,16 +326,14 @@ def cmd_activate(name):
     return switch_to(name)
 
 
-def cmd_save(name, body=None):
-    """The layout arrives as JSON: {"monitors": [ ... ]}, argument or stdin.
-
-    The argument form exists for the QML caller: quickshell's Process can write to
-    stdin, but that makes the write a second event after the launch, and a layout
-    is small enough to hand over in argv in one go."""
+def cmd_save(name, body):
+    """The layout arrives as JSON in argv: {"monitors": [ ... ]}. Not stdin —
+    quickshell's Process can write to it, but that makes the write a second event
+    after the launch, and a layout is small enough to hand over in one go."""
     if not name or "/" in name or name.startswith("."):
         return fail("bad layout name '%s'" % name)
     try:
-        incoming = json.loads(body) if body is not None else json.load(sys.stdin)
+        incoming = json.loads(body)
     except ValueError as exc:
         return fail("bad JSON: %s" % exc)
     monitors = incoming.get("monitors", [])
@@ -424,18 +385,15 @@ def main(argv):
     if len(argv) < 2:
         print(__doc__, file=sys.stderr)
         return 2
-    cmd = argv[1]
+    cmd, args = argv[1], argv[2:]
     if cmd == "state":
         return cmd_state()
-    if cmd == "apply":
-        return ok(reloaded=reload_reach())
-    if cmd in ("activate", "save", "delete"):
-        if len(argv) < 3:
-            return fail("%s needs a layout name" % cmd)
-        if cmd == "save":
-            return cmd_save(argv[2], argv[3] if len(argv) > 3 else None)
-        return {"activate": cmd_activate, "delete": cmd_delete}[cmd](argv[2])
-    return fail("unknown command '%s'" % cmd)
+    handler = {"activate": cmd_activate, "save": cmd_save, "delete": cmd_delete}.get(cmd)
+    if not handler:
+        return fail("unknown command '%s'" % cmd)
+    if len(args) != (2 if cmd == "save" else 1):
+        return fail("usage: %s <name>%s" % (cmd, " <json>" if cmd == "save" else ""))
+    return handler(*args)
 
 
 if __name__ == "__main__":

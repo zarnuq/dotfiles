@@ -35,6 +35,8 @@ ShellRoot {
     LazyLoader { active: Config.on("session");             Session {} }
     LazyLoader { active: Config.on("audio");               Audio {} }
     LazyLoader { active: Config.on("network");             Network {} }
+    LazyLoader { active: Config.on("bluetooth");           Bluetooth {} }
+    LazyLoader { active: Config.on("drives");              Drives {} }
     LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("screenshot");          Screenshot {} }

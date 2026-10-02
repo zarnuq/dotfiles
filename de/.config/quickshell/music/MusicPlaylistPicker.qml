@@ -39,16 +39,12 @@ FocusScope {
         root.forceActiveFocus();
     }
 
-    function dismiss(): void {
-        root.closed();
-    }
-
     function commit(name): void {
         var trimmed = (name || "").trim();
         if (trimmed === "" || root.uris.length === 0) return;
         root.client.playlistAdd(trimmed, root.uris);
         root.added(trimmed, root.uris.length);
-        root.dismiss();
+        root.closed();
     }
 
     function activate(i): void {
@@ -59,13 +55,10 @@ FocusScope {
     }
 
     // Any click outside the box dismisses, as the info/help overlay does.
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.dismiss()
-    }
     Rectangle {
         anchors.fill: parent
         color: Theme.alpha(Theme.base, 0.7)
+        MouseArea { anchors.fill: parent; onClicked: root.closed() }
     }
 
     Rectangle {
@@ -140,7 +133,7 @@ FocusScope {
         if (root.naming) return;              // the field handles its own keys
         if (list.navKey(event)) { event.accepted = true; return; }
         if (event.key === Qt.Key_Escape || event.key === Qt.Key_Q) {
-            root.dismiss();
+            root.closed();
             event.accepted = true;
         }
     }

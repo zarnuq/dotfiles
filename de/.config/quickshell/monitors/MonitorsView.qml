@@ -44,18 +44,12 @@ FocusScope {
     property string savedState: ""
     readonly property bool dirty: savedState !== "" && savedState !== JSON.stringify(includedOnly())
 
-    function s(n) { return Config.s(n); }
-
     // ---- geometry helpers ---------------------------------------------------
     // A rotated head's w/h are its MODE; the transform is what swaps them in the
     // layout. Every size question in the canvas goes through these two.
     function effW(m) { return isTurned(m) ? m.h : m.w; }
     function effH(m) { return isTurned(m) ? m.w : m.h; }
-    function isTurned(m) {
-        var t = m.transform || "normal";
-        return t === "rotate_90" || t === "rotate_270"
-            || t === "flipped_90" || t === "flipped_270";
-    }
+    function isTurned(m) { return /_(90|270)$/.test(m.transform); }
 
     /// The bounding box of `list` in layout pixels, or null when it is empty.
     /// The canvas fits its zoom to it, a save normalises against its top-left,
@@ -96,17 +90,8 @@ FocusScope {
     /// outputs: preset entries first (order is monitor numbering, so it is
     /// meaningful), then any connected head the preset does not mention.
     function loadPreset(name): void {
-        var preset = null;
-        for (var i = 0; i < root.presets.length; i++)
-            if (root.presets[i].name === name) preset = root.presets[i];
-
-        var out = [], seen = {};
-        var monitors = preset ? (preset.monitors || []) : [];
-        for (var j = 0; j < monitors.length; j++) {
-            var m = monitors[j];
-            seen[m.name] = true;
-            out.push(root.entry(m, true));
-        }
+        var preset = root.presets.find(p => p.name === name) || null;
+        var out = (preset && preset.monitors || []).map(m => root.entry(m, true));
         // A head that is plugged in but not in the preset is parked to the RIGHT
         // of everything the preset places, not at 0,0 — dropped at the origin it
         // sits on top of the first monitor, and two overlapping rectangles is
@@ -116,13 +101,10 @@ FocusScope {
 
         for (var k = 0; k < root.outputs.length; k++) {
             var o = root.outputs[k];
-            if (seen[o.name]) continue;
-            var unlisted = root.entry({
-                name: o.name,
-                w: root.currentMode(o.name, "width"),
-                h: root.currentMode(o.name, "height"),
-                refresh: 0, x: park, y: 0, scale: 1.0, transform: "normal"
-            }, false);
+            if (out.some(m => m.name === o.name)) continue;
+            var modes = o.modes || [];
+            var mode = modes.find(m => m.current) || modes[0] || { width: 0, height: 0 };
+            var unlisted = root.entry({ name: o.name, w: mode.width, h: mode.height, x: park }, false);
             park += root.effW(unlisted);
             out.push(unlisted);
         }
@@ -146,19 +128,7 @@ FocusScope {
         };
     }
 
-    function outputFor(name) {
-        for (var i = 0; i < root.outputs.length; i++)
-            if (root.outputs[i].name === name) return root.outputs[i];
-        return null;
-    }
-
-    function currentMode(name, field) {
-        var o = root.outputFor(name);
-        if (!o || !o.modes) return 0;
-        for (var i = 0; i < o.modes.length; i++)
-            if (o.modes[i].current) return o.modes[i][field];
-        return o.modes.length ? o.modes[0][field] : 0;
-    }
+    function outputFor(name) { return root.outputs.find(o => o.name === name) || null; }
 
     /// The modes a head offers, newest-first as wlr-randr gives them, deduped to
     /// one entry per w×h@refresh. A head that is not plugged in offers none, so
@@ -184,10 +154,7 @@ FocusScope {
 
     function patch(index, fields): void {
         var next = root.working.slice();
-        var m = {};
-        for (var k in next[index]) m[k] = next[index][k];
-        for (var f in fields) m[f] = fields[f];
-        next[index] = m;
+        next[index] = Object.assign({}, next[index], fields);
         root.working = next;
     }
 
@@ -234,22 +201,15 @@ FocusScope {
     /// coordinates keeps the saved file looking like one a human would write, and
     /// the layout is identical either way — only the origin moves.
     function includedOnly() {
-        var mons = [];
-        for (var i = 0; i < root.working.length; i++)
-            if (root.working[i].included) mons.push(root.working[i]);
-        if (mons.length === 0) return [];
-
+        var mons = root.working.filter(m => m.included);
         var box = root.extent(mons);
-        var out = [];
-        for (var k = 0; k < mons.length; k++) {
-            var m = mons[k];
+        return mons.map(m => {
             var one = { name: m.name, w: m.w, h: m.h, x: m.x - box.minX, y: m.y - box.minY };
             if (m.refresh) one.refresh = m.refresh;
             if (m.scale && m.scale !== 1.0) one.scale = m.scale;
             if (m.transform && m.transform !== "normal") one.transform = m.transform;
-            out.push(one);
-        }
-        return out;
+            return one;
+        });
     }
 
     // ---- commands -----------------------------------------------------------
@@ -321,19 +281,19 @@ FocusScope {
 
     Column {
         anchors.fill: parent
-        anchors.margins: root.s(16)
-        spacing: root.s(12)
+        anchors.margins: Config.s(16)
+        spacing: Config.s(12)
 
         // --- preset bar ---
         Row {
             id: presetBar
             width: parent.width
-            spacing: root.s(8)
+            spacing: Config.s(8)
 
             Txt {
                 text: "Layouts"
                 color: Theme.subtext0
-                font.pixelSize: root.s(13)
+                font.pixelSize: Config.s(13)
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -346,7 +306,7 @@ FocusScope {
                     label: layoutBtn.modelData.name
                     accent: layoutBtn.isActive
                     accentHover: false
-                    hPad: root.s(22)
+                    hPad: Config.s(22)
                     onClicked: root.pick(layoutBtn.modelData.name)
 
                     // Delete, on hover, and never on the active layout: removing
@@ -354,12 +314,12 @@ FocusScope {
                     // that too — this just doesn't offer it.
                     Txt {
                         anchors.right: parent.right
-                        anchors.rightMargin: root.s(4)
+                        anchors.rightMargin: Config.s(4)
                         anchors.top: parent.top
                         text: "×"
                         visible: layoutBtn.hovered && !layoutBtn.isActive
                         color: Theme.red
-                        font.pixelSize: root.s(12)
+                        font.pixelSize: Config.s(12)
                         TapHandler { onTapped: root.removePreset(layoutBtn.modelData.name) }
                     }
                 }
@@ -368,16 +328,16 @@ FocusScope {
             // Save-as: a name field rather than a second command path, because
             // "save under a new name" and "rename this layout" are the same act.
             Rectangle {
-                width: root.s(150)
-                height: root.s(30)
+                width: Config.s(150)
+                height: Config.s(30)
                 color: Theme.surface0
                 border.width: 1
                 border.color: newName.activeFocus ? Theme.mauve : Theme.surface1
                 Field {
                     id: newName
                     anchors.fill: parent
-                    anchors.leftMargin: root.s(8)
-                    font.pixelSize: root.s(13)
+                    anchors.leftMargin: Config.s(8)
+                    font.pixelSize: Config.s(13)
                     selectByMouse: true
                     onAccepted: if (text.length) { root.save(text); text = ""; }
                     Txt {
@@ -386,7 +346,7 @@ FocusScope {
                         visible: !newName.text.length && !newName.activeFocus
                         text: "save as…"
                         color: Theme.overlay0
-                        font.pixelSize: root.s(13)
+                        font.pixelSize: Config.s(13)
                     }
                 }
             }
@@ -396,7 +356,7 @@ FocusScope {
         MonitorCanvas {
             view: root
             width: parent.width
-            height: parent.height - presetBar.height - inspector.height - footer.height - root.s(36)
+            height: parent.height - presetBar.height - inspector.height - footer.height - Config.s(36)
         }
 
         // --- selected head ---
@@ -410,24 +370,24 @@ FocusScope {
         Item {
             id: footer
             width: parent.width
-            height: root.s(34)
+            height: Config.s(34)
 
             Txt {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - root.s(360)
+                width: parent.width - Config.s(360)
                 elide: Text.ElideRight
                 text: root.status !== "" ? root.status
                     : root.activeName !== "" ? root.linkPath + " → monitors/" + root.activeName + ".zon"
                     : root.linkPath + " (no layout linked yet)"
                 color: root.status !== "" ? Theme.text : Theme.overlay0
-                font.pixelSize: root.s(12)
+                font.pixelSize: Config.s(12)
             }
 
             Row {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: root.s(8)
+                spacing: Config.s(8)
 
                 MonitorButton {
                     label: "Identify"

@@ -78,11 +78,7 @@ Scope {
             readonly property bool isSelected: Reach.selected(modelData.name)
 
             screen: modelData
-            anchors {
-                top: true
-                left: true
-                right: true
-            }
+            anchors { top: true; left: true; right: true }
             implicitHeight: root.barHeight
             exclusiveZone: root.barHeight
             color: Theme.base
@@ -99,11 +95,7 @@ Scope {
             //    all already says it, and reach's corner box just added noise.
             Row {
                 id: desktops
-                anchors {
-                    left: parent.left
-                    top: parent.top
-                    bottom: parent.bottom
-                }
+                anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
 
                 Repeater {
                     model: Reach.desktops
@@ -117,7 +109,7 @@ Scope {
                         readonly property color fg: active ? root.selectFg : root.normalFg
 
                         visible: active || occupied
-                        width: visible ? label.implicitWidth + root.s(13) : 0
+                        width: label.implicitWidth + root.s(13)
                         height: parent.height
                         color: active ? root.selectBg : Theme.base
 
@@ -151,12 +143,7 @@ Scope {
             // 2. Title region: everything between the desktops and the status.
             //    Drawn last so its background can't paint over either.
             Rectangle {
-                anchors {
-                    left: desktops.right
-                    right: status.left
-                    top: parent.top
-                    bottom: parent.bottom
-                }
+                anchors { left: desktops.right; right: status.left; top: parent.top; bottom: parent.bottom }
                 color: bar.isSelected ? root.selectBg : Theme.base
 
                 readonly property color fg: bar.isSelected ? root.selectFg : root.normalFg

@@ -21,8 +21,8 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 // on the threshold can't spam the toast.
 //
 // Sits bottom-right rather than in the packed left column: nothing else lives
-// there, and on the desktop (no BAT0) the card hides itself without leaving a
-// hole in a stack of anchored margins.
+// there, and on the desktop (no BAT0) shell.qml never builds it, so it leaves
+// no hole in a stack of anchored margins.
 //
 // Layer is state-dependent. At rest it is Bottom like the other ambient cards,
 // i.e. wallpaper furniture that any tiled window covers. Once low it jumps to
@@ -35,38 +35,30 @@ Widget {
     implicitWidth: s(300)
     implicitHeight: s(75)
 
-    visible: present
     borderColor: low ? Theme.red : Theme.surface0
     stackLayer: low ? WlrLayer.Overlay : WlrLayer.Bottom
 
     readonly property int lowAt: 20      // warn below this
     readonly property int clearAt: 25    // re-arm the warning above this
 
-    // The reading is Power's — the bar's battery block wants the same two sysfs
-    // files. What stays here is the part that is this card's: the tint, and the
-    // latch that keeps one toast from firing over and over on the threshold.
-    readonly property bool present: Power.present
-    readonly property int level: Power.level
-    readonly property bool charging: Power.charging
-    readonly property bool onAc: Power.onAc
-    readonly property bool low: present && !onAc && level < lowAt
+    readonly property bool low: !Power.onAc && Power.level < lowAt
     readonly property color tint: low ? Theme.red
-                                : charging ? Theme.green
-                                : onAc ? Theme.teal
+                                : Power.charging ? Theme.green
+                                : Power.onAc ? Theme.teal
                                 : Theme.text
 
     property bool warned: false
 
     onLowChanged: root.warn()
-    onOnAcChanged: root.warn()
+    Connections { target: Power; function onOnAcChanged(): void { root.warn(); } }
 
     function warn(): void {
         if (root.low && !root.warned) {
             root.warned = true;
             Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "battery",
                                      "Battery low",
-                                     root.level + "% remaining — plug in."]);
-        } else if (root.warned && (root.onAc || root.level >= root.clearAt)) {
+                                     Power.level + "% remaining — plug in."]);
+        } else if (root.warned && (Power.onAc || Power.level >= root.clearAt)) {
             root.warned = false;
         }
     }
@@ -76,16 +68,16 @@ Widget {
         spacing: root.s(8)
 
         CardHeader {
-            icon: root.charging ? "󰂄"
+            icon: Power.charging ? "󰂄"
                 : root.low ? "󰂃"
-                : root.onAc ? "󰚥"
+                : Power.onAc ? "󰚥"
                 : "󰁹"
             iconColor: root.tint
-            label: root.charging ? "charging" : root.onAc ? "plugged in" : "battery"
-            Txt { text: root.level + "%"; color: root.tint; font.pixelSize: root.s(14) }
+            label: Power.charging ? "charging" : Power.onAc ? "plugged in" : "battery"
+            Txt { text: Power.level + "%"; color: root.tint; font.pixelSize: root.s(14) }
         }
 
         // Flat gauge, same shape as the brightness one.
-        Gauge { fraction: root.level / 100; fillColor: root.tint }
+        Gauge { fraction: Power.level / 100; fillColor: root.tint }
     }
 }

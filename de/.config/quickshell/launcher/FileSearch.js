@@ -181,8 +181,7 @@ function search(index, rawq, limit, home) {
     }
 
     index.lastQuery = q;
-    if (baseQ !== "") index.lastCandidates = cand;
-    else index.lastCandidates = null;
+    index.lastCandidates = baseQ !== "" ? cand : null;
 
     scored.sort(function (a, b) { return b - a; });
 

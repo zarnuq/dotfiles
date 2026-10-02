@@ -8,7 +8,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 MouseArea {
     id: root
     property string icon: ""
-    property real size: 14
+    property real size: Config.s(14)
     // Header buttons are exactly as wide as their icon; a button given a size
     // of its own (Mpd's) centres the icon in it instead.
     property bool centered: false

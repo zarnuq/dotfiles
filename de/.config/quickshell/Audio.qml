@@ -4,12 +4,8 @@ import Quickshell.Services.Pipewire
 import QtQuick
 
 // The mixer: output devices, input devices, and a volume slider per playing
-// app. Replaces the `kitty --class float -e pulsemixer` that Super+R A used to
-// spawn — same key, no terminal, and it reads the graph quickshell is already
-// bound to instead of a second client.
-//
-// Built on Picker, so overlay/keyboard-focus/IPC come from the same place as
-// the launcher and the session menu; this file is the list and the wiring.
+// app (Super+R A; replaced pulsemixer in a floating kitty). Picker supplies
+// overlay, focus and IPC; this file is the list and the wiring.
 Picker {
     id: root
 
@@ -21,8 +17,7 @@ Picker {
     // nodes of bookkeeping, no polling.
     PwObjectTracker { objects: Pipewire.nodes.values }
 
-    function cls(n) { return (n && n.properties) ? (n.properties["media.class"] || "") : ""; }
-    function app(n) { return (n && n.properties) ? (n.properties["application.name"] || "") : ""; }
+    function prop(n, key) { return (n && n.properties) ? (n.properties[key] || "") : ""; }
 
     // media.class rather than isSink/isStream: a playback stream reports
     // isSink true as well (it feeds one), so the flags alone can't tell an
@@ -33,13 +28,13 @@ Picker {
         for (var i = 0; i < all.length; i++) {
             var n = all[i];
             if (!n.audio) continue;
-            var c = root.cls(n);
+            var c = root.prop(n, "media.class");
             if (c === "Audio/Sink") sinks.push(n);
             else if (c === "Audio/Source") sources.push(n);
             // The EQ filter-chains and the mic loopback are Stream/Output/Audio
             // too. They carry no application.name, which is exactly what
             // separates plumbing from something you'd actually want to turn down.
-            else if (c === "Stream/Output/Audio" && root.app(n) !== "") streams.push(n);
+            else if (c === "Stream/Output/Audio" && root.prop(n, "application.name") !== "") streams.push(n);
         }
 
         var r = [];
@@ -56,17 +51,10 @@ Picker {
     }
 
     function label(row) {
-        var n = row.node;
+        var n = row.node, media = root.prop(n, "media.name");
         if (row.kind === "stream")
-            return root.app(n) + (n.properties && n.properties["media.name"]
-                                  ? " — " + n.properties["media.name"] : "");
+            return root.prop(n, "application.name") + (media ? " — " + media : "");
         return Volume.nameOf(n);
-    }
-
-    function isDefault(row) {
-        if (row.kind === "sink")   return Volume.sink === row.node;
-        if (row.kind === "source") return Volume.source === row.node;
-        return false;
     }
 
     rowHeight: s(40)
@@ -121,10 +109,8 @@ Picker {
     }
 
     function nudge(i, delta): void {
-        if (!selectable(i)) return;
-        var row = rows[i];
         // Off the wanted level, not the echoed one, or held keys lose steps.
-        if (row.node && row.node.audio) root.setVolume(row, root.levelOf(row.node) + delta);
+        if (selectable(i)) root.setVolume(rows[i], root.levelOf(rows[i].node) + delta);
     }
     function toggleMute(i): void {
         if (!selectable(i)) return;
@@ -170,7 +156,9 @@ Picker {
                 readonly property var audio: isHeader ? null : modelData.node.audio
                 readonly property bool muted: audio ? audio.muted : false
                 readonly property int pct: audio ? Math.round(root.levelOf(modelData.node) * 100) : 0
-                readonly property bool isDefault: !isHeader && root.isDefault(modelData)
+                // Only a sink or source can be either default.
+                readonly property bool isDefault: !isHeader
+                    && (modelData.node === Volume.sink || modelData.node === Volume.source)
 
                 picker: root
                 width: parent.width
@@ -185,8 +173,7 @@ Picker {
                 }
                 iconSize: root.s(18)
                 iconColor: rowItem.muted ? Theme.red
-                           : rowItem.isDefault ? Theme.mauve
-                           : rowItem.sel ? Theme.mauve : Theme.subtext0
+                           : (rowItem.isDefault || rowItem.sel) ? Theme.mauve : Theme.subtext0
 
                 label: rowItem.isHeader ? "" : root.label(rowItem.modelData)
 

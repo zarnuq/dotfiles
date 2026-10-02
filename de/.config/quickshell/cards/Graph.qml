@@ -16,7 +16,6 @@ Canvas {
     property color lineColor: Theme.text
     property real thickness: Config.s(2)
     property int maxSamples: 30   // 30 samples * 2s = 60s window (eww GRAPH-RANGE "60s")
-    property real minv: 0
     property real maxv: 100
     property var samples: []
 
@@ -40,8 +39,7 @@ Canvas {
         ctx.beginPath();
         for (var i = 0; i < samples.length; i++) {
             var x = width * i / (maxSamples - 1);
-            var norm = (samples[i] - minv) / (maxv - minv);
-            var y = height - norm * height;
+            var y = height - samples[i] / maxv * height;
             if (i === 0)
                 ctx.moveTo(x, y);
             else

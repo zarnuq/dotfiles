@@ -29,7 +29,6 @@ Item {
         sourceSize.height: Ui.hs(150)
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        cache: true
     }
 
     Column {

@@ -65,7 +65,6 @@
         .{ .app_id = "^steam", .desktop = 5 },
         .{ .app_id = "signal", .desktop = 4 },
         .{ .app_id = "^float", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
-        .{ .app_id = "pavucontrol", .floating = true, .x = 0.25, .y = 0.25, .w = 0.5, .h = 0.5 },
     },
 
     // --- keybindings -------------------------------------------------------
@@ -98,6 +97,8 @@
             .{ .key = "b", .action = .{ .spawn = "firefox" } },
             .{ .key = "a", .action = .{ .spawn = "qs ipc call audio toggle" } },
             .{ .key = "n", .action = .{ .spawn = "qs ipc call network toggle" } },
+            .{ .key = "t", .action = .{ .spawn = "qs ipc call bluetooth toggle" } },
+            .{ .key = "u", .action = .{ .spawn = "qs ipc call drives toggle" } },
             .{ .key = "m", .action = .{ .spawn = "qs ipc call monitors toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },

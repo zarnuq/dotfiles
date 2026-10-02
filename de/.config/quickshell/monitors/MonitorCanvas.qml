@@ -27,7 +27,7 @@ Item {
         return { x: e.minX, y: e.minY, w: Math.max(1, e.maxX - e.minX), h: Math.max(1, e.maxY - e.minY) };
     }
 
-    readonly property real pad: view.s(28)
+    readonly property real pad: Config.s(28)
     readonly property real zoom: Math.min((width - pad * 2) / bounds.w,
                                           (height - pad * 2) / bounds.h)
     // Centre the arrangement in whatever space is left over.
@@ -38,7 +38,7 @@ Item {
     /// distance — so it feels the same whether the arrangement is three 4K heads
     /// or one laptop panel. Generous on purpose: at this zoom a tenth of that is
     /// a few pixels of mouse travel, which is not a target anyone can hit.
-    readonly property real snapPx: view.s(22) / Math.max(zoom, 0.0001)
+    readonly property real snapPx: Config.s(22) / Math.max(zoom, 0.0001)
 
     Rectangle {
         anchors.fill: parent
@@ -69,14 +69,14 @@ Item {
             height: root.view.effH(mon) * root.zoom
 
             color: mon.included ? (isSelected ? Theme.surface1 : Theme.surface0) : "transparent"
-            border.width: isSelected ? root.view.s(2) : 1
+            border.width: isSelected ? Config.s(2) : 1
             border.color: isSelected ? Theme.mauve
                         : !mon.included ? Theme.overlay0
                         : mon.connected ? Theme.surface1 : Theme.peach
 
             Column {
                 anchors.centerIn: parent
-                spacing: root.view.s(2)
+                spacing: Config.s(2)
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     // The number Identify paints on the physical head, so the
@@ -84,13 +84,13 @@ Item {
                     readonly property int num: Config.displayNumber(head.mon.name)
                     text: (num ? num + " · " : "") + head.mon.name
                     color: head.mon.included ? Theme.text : Theme.overlay0
-                    font.pixelSize: root.view.s(14)
+                    font.pixelSize: Config.s(14)
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: head.mon.w + "×" + head.mon.h
                     color: Theme.subtext0
-                    font.pixelSize: root.view.s(11)
+                    font.pixelSize: Config.s(11)
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -101,7 +101,7 @@ Item {
                     visible: !head.mon.connected || !head.mon.included
                     text: !head.mon.connected ? "not connected" : "not in layout"
                     color: !head.mon.connected ? Theme.peach : Theme.overlay0
-                    font.pixelSize: root.view.s(10)
+                    font.pixelSize: Config.s(10)
                 }
             }
 
@@ -180,15 +180,9 @@ Item {
         var bestX = { delta: snapPx, value: x }, bestY = { delta: snapPx, value: y };
         for (var i = 0; i < others.length; i++) {
             var o = others[i];
-            consider(bestX, x, o.x + o.w);      // my left  → their right
-            consider(bestX, x, o.x - w);        // my right → their left
-            consider(bestX, x, o.x);            // left edges flush
-            consider(bestX, x, o.x + o.w - w);  // right edges flush
-
-            consider(bestY, y, o.y + o.h);
-            consider(bestY, y, o.y - h);
-            consider(bestY, y, o.y);
-            consider(bestY, y, o.y + o.h - h);
+            // abutting (my left → their right, my right → their left), then flush
+            [o.x + o.w, o.x - w, o.x, o.x + o.w - w].forEach(c => consider(bestX, x, c));
+            [o.y + o.h, o.y - h, o.y, o.y + o.h - h].forEach(c => consider(bestY, y, c));
         }
 
         var at = { x: bestX.value, y: bestY.value, w: w, h: h };
@@ -199,13 +193,8 @@ Item {
     /// size — what each stage below measures against. A head merely plugged in is
     /// not something to line up with.
     function neighbours(index) {
-        var out = [];
-        for (var i = 0; i < entries.length; i++) {
-            var o = entries[i];
-            if (i !== index && o.included)
-                out.push({ x: o.x, y: o.y, w: root.view.effW(o), h: root.view.effH(o) });
-        }
-        return out;
+        return entries.filter((o, i) => i !== index && o.included)
+                      .map(o => ({ x: o.x, y: o.y, w: root.view.effW(o), h: root.view.effH(o) }));
     }
 
     function consider(best, actual, candidate): void {

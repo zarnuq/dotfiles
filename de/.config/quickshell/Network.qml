@@ -5,32 +5,15 @@ import QtQuick
 import "NetworkData.js" as NetworkData
 
 // Wi-Fi + VPN menu (Super+R N / `qs ipc call network toggle`), replacing the
-// floating kitty running nmtui.
+// floating kitty running nmtui. Picker supplies overlay, focus and IPC; this
+// file is the list, the keys and the nmcli wiring, NetworkData.js the logic.
 //
-// Built on Picker, like the audio mixer: overlay, keyboard focus and IPC come
-// from there, and this file is the list, the keys and the nmcli wiring.
-//
-// EVERY TUNNEL IS AN NM PROFILE. The lab `~/VPNs/*.ovpn` configs used to be run
-// by scripts/vpn-manager.sh as a bare root `openvpn --daemon` that NM knew
-// nothing about, which meant: a `doas` rule to start one, a second `doas` rule
-// to *kill* one, the profile's state scraped out of `pgrep` and /proc/<pid>/
-// cmdline, and a tunnel NM reported as an "externally connected" tun0. When the
-// kill rule didn't match, `disconnect` failed silently, `connect` started a
-// second daemon on top, and two tunnels ran at once on two tun devices — while
-// each rejected `doas` counted as a failed login until the account locked.
-//
-// Now they are imported (`nmcli connection import type openvpn`) and are
-// ordinary NM connections, so one code path covers every row: up and down by
-// UUID, state straight out of the snapshot this menu already takes. No daemon,
-// no script, no doas rule, nothing to scrape. `~/VPNs` is mirrored into NM:
-// `*.ovpn` imports as openvpn, `*.conf` as wireguard, a file whose contents
-// changed is re-imported, and a profile whose file is gone is removed. Dropping
-// a config in that directory is the whole workflow.
-//
-// Nothing here elevates: `con up`/`con down`/`device wifi connect` and
-// `con import` are all permitted for this user (`nmcli general permissions`).
-// It's `con mod` that needs doas — it would silently drop stored secrets
-// without it — so this menu never modifies an existing profile.
+// Every tunnel is an NM profile, up and down by UUID — `~/VPNs` is mirrored
+// into NM (`*.ovpn` → openvpn, `*.conf` → wireguard; changed files re-import,
+// vanished ones are removed). Nothing here elevates: `con up`/`con down`/
+// `device wifi connect`/`con import` are permitted unprivileged. `con mod`
+// would silently drop stored secrets without doas, so this menu never
+// modifies an existing profile. History and routing notes: CLAUDE.md.
 Picker {
     id: root
 
@@ -139,15 +122,13 @@ Picker {
         }
     }
 
-    readonly property var vpnConns: NetworkData.vpnConnections(root.conns, root.devStates)
-
     rows: NetworkData.buildRows({
         conns: root.conns,
+        devStates: root.devStates,
         eths: root.eths,
         wifiDev: root.wifiDev,
         radioOn: root.radioOn,
-        aps: root.aps,
-        vpnConns: root.vpnConns
+        aps: root.aps
     })
 
     // Remember exact UUIDs and source paths across restarts. Existing OpenVPN
@@ -183,7 +164,6 @@ Picker {
     // (never cleared): a finished import stays done while the snapshot that
     // would vouch for it is still a refresh away. nmSeen/filesSeen: nothing is
     // imported or removed before both listings have actually landed.
-    readonly property var pendingImports: NetworkData.pendingImports(root.vpnConns, root.ovpnFiles)
     property var importTried: ({})
     property var importDone: ({})
     property var deleteTried: ({})
@@ -192,7 +172,7 @@ Picker {
         if (!root.open || act.running || cancelVpn.running || !root.nmSeen || !root.filesSeen) return;
         var adopted = NetworkData.adoptSources(root.managedVpns, root.conns, root.ovpnFiles);
         if (JSON.stringify(adopted) !== JSON.stringify(root.managedVpns)) root.saveSources(adopted);
-        var step = NetworkData.syncStep(root.managedVpns, root.conns, root.ovpnFiles, root.pendingImports,
+        var step = NetworkData.syncStep(root.managedVpns, root.conns, root.ovpnFiles,
                                         { importTried: root.importTried, importDone: root.importDone,
                                           deleteTried: root.deleteTried });
         if (step && step.remove) {
@@ -205,7 +185,6 @@ Picker {
                      { importing: step.add });
         }
     }
-    onPendingImportsChanged: Qt.callLater(root.importNext)
 
     // Empty unless something that should be up isn't. Shown in the bottom bar
     // whenever there's no action status competing for it.

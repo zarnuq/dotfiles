@@ -53,31 +53,16 @@ PanelWindow {
                 // The spec splits actions in two: the one keyed "default" has no
                 // button and is what activating the body means, the rest are
                 // buttons. Splitting once here keeps both readers off the list.
-                readonly property var buttons: {
-                    var out = [];
-                    var a = card.modelData.actions;
-                    for (var i = 0; i < a.length; i++)
-                        if (a[i].identifier !== "default") out.push(a[i]);
-                    return out;
-                }
-                readonly property var defaultAction: {
-                    var a = card.modelData.actions;
-                    for (var i = 0; i < a.length; i++)
-                        if (a[i].identifier === "default") return a[i];
-                    return null;
-                }
+                readonly property var buttons: card.modelData.actions.filter(a => a.identifier !== "default")
+                readonly property var defaultAction: card.modelData.actions.find(a => a.identifier === "default") || null
 
-                /// Invoke one action. A `resident` notification stays up
-                /// afterwards (the spec's word for a toast you answer more than
-                /// once); anything else is finished the moment you answer it.
-                /// invoke() does that closing itself (Quickshell's
-                /// NotificationAction::invoke closes a non-resident notification
-                /// after sending ActionInvoked), so a dismiss() here would be a
-                /// second close on a destroyed object — logged as
-                /// "Cannot close destroyed notification".
-                function run(action): void {
-                    action.invoke();
-                }
+                // An action is just invoke(): a `resident` notification stays up
+                // afterwards, anything else is finished the moment you answer it,
+                // and invoke() does that closing itself (Quickshell's
+                // NotificationAction::invoke closes a non-resident notification
+                // after sending ActionInvoked) — a dismiss() as well would be a
+                // second close on a destroyed object, logged as
+                // "Cannot close destroyed notification".
 
                 // mako default-timeout: normal 5s, low 3s, critical 0 (stays).
                 Timer {
@@ -91,7 +76,7 @@ PanelWindow {
                 // and this one covers the whole card.
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: card.defaultAction ? card.run(card.defaultAction)
+                    onClicked: card.defaultAction ? card.defaultAction.invoke()
                                                   : card.modelData.dismiss()
                 }
 
@@ -179,7 +164,7 @@ PanelWindow {
                                     id: hover
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onClicked: card.run(btn.modelData)
+                                    onClicked: btn.modelData.invoke()
                                 }
                             }
                         }

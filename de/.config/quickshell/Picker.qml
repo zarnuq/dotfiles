@@ -118,7 +118,6 @@ Scope {
 
     signal opened()
 
-    function show(): void   { root.open = true; }
     function hide(): void   { root.open = false; }
     function toggle(): void { root.open = !root.open; }
 
@@ -171,7 +170,7 @@ Scope {
         // It exists because `toggle` is the wrong verb for a caller that wants
         // this surface up regardless: the launcher's ">" menu list would
         // otherwise CLOSE whatever was already open when you picked it.
-        function open(): void   { root.show(); }
+        function open(): void   { root.open = true; }
     }
 
     Variants {

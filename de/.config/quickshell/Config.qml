@@ -91,6 +91,8 @@ Singleton {
         { key: "launcher",            group: "Session",     label: "App launcher" },
         { key: "audio",               group: "Session",     label: "Audio mixer" },
         { key: "network",             group: "Session",     label: "Network menu" },
+        { key: "bluetooth",           group: "Session",     label: "Bluetooth menu" },
+        { key: "drives",              group: "Session",     label: "Removable drives" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
         { key: "screenshot",          group: "Session",     label: "Screenshots" },

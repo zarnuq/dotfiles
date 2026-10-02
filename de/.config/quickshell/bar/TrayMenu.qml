@@ -52,7 +52,7 @@ PopupWindow {
         border.color: Theme.surface1
         border.width: 1
         radius: Theme.borderRadius
-        implicitWidth: Math.max(170, col.implicitWidth + 2)
+        implicitWidth: Math.max(Config.s(170), col.implicitWidth + 2)
         implicitHeight: col.implicitHeight + 2
 
         Column {
@@ -67,7 +67,7 @@ PopupWindow {
                     id: row
                     required property var modelData
                     width: col.width
-                    height: modelData.isSeparator ? 7 : 24
+                    height: modelData.isSeparator ? Config.s(7) : Config.s(24)
 
                     // ---- separator ----
                     Rectangle {
@@ -75,8 +75,8 @@ PopupWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.leftMargin: 6
-                        anchors.rightMargin: 6
+                        anchors.leftMargin: Config.s(6)
+                        anchors.rightMargin: Config.s(6)
                         height: 1
                         color: Theme.surface0
                     }
@@ -104,17 +104,17 @@ PopupWindow {
 
                         Row {
                             anchors.fill: parent
-                            anchors.leftMargin: 8
-                            anchors.rightMargin: 8
-                            spacing: 8
+                            anchors.leftMargin: Config.s(8)
+                            anchors.rightMargin: Config.s(8)
+                            spacing: Config.s(8)
 
                             // check mark (checkable items)
                             Txt {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 12
+                                width: Config.s(12)
                                 text: row.modelData.checkState === Qt.Checked ? "" : ""
                                 color: Theme.mauve
-                                font.pixelSize: 11
+                                font.pixelSize: Config.s(11)
                                 visible: row.modelData.buttonType !== 0
                             }
 
@@ -122,7 +122,7 @@ PopupWindow {
                             // they're visible on the dark menu)
                             Item {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 16; height: 16
+                                width: Config.s(16); height: Config.s(16)
                                 visible: row.modelData.icon !== ""
                                 // ColorImage rather than MultiEffect: it
                                 // recolours the QImage on the CPU, so it still
@@ -133,8 +133,8 @@ PopupWindow {
                                 ColorImage {
                                     anchors.fill: parent
                                     source: row.modelData.icon
-                                    sourceSize.width: 16
-                                    sourceSize.height: 16
+                                    sourceSize.width: Config.s(16)
+                                    sourceSize.height: Config.s(16)
                                     fillMode: Image.PreserveAspectFit
                                     color: row.modelData.icon.indexOf("symbolic") >= 0 ? Theme.text : "transparent"
                                 }
@@ -144,7 +144,7 @@ PopupWindow {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: row.modelData.text
                                 color: row.modelData.enabled ? Theme.text : Theme.surface1
-                                font.pixelSize: 13
+                                font.pixelSize: Config.s(13)
                             }
                         }
 
@@ -153,10 +153,10 @@ PopupWindow {
                             visible: row.modelData.hasChildren
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
-                            anchors.rightMargin: 6
+                            anchors.rightMargin: Config.s(6)
                             text: ""
                             color: Theme.subtext0
-                            font.pixelSize: 11
+                            font.pixelSize: Config.s(11)
                         }
                     }
                 }
@@ -181,7 +181,7 @@ PopupWindow {
         m.anchor.edges = Edges.Right | Edges.Top;
         m.anchor.gravity = Edges.Right | Edges.Bottom;
         var p = rowItem.mapToItem(null, 0, 0);
-        m.anchor.rect.x = rowItem.width - 6;
+        m.anchor.rect.x = rowItem.width - Config.s(6);
         m.anchor.rect.y = p.y;
         m.anchor.rect.width = 1;
         m.anchor.rect.height = rowItem.height;

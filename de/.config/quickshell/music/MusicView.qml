@@ -10,7 +10,6 @@ FocusScope {
     focus: true
 
     property var client: MpdClient
-    property alias controller: state
 
     signal closeRequested()
 
@@ -32,6 +31,19 @@ FocusScope {
         id: state
         client: root.client
         viewportRows: queueView.viewportRows
+        // The live pane for the current tab; null on the queue.
+        pane: [null, dirPane.item, playlistPane.item, lyricsPane.item, searchPane.item][state.tab]
+        // Leaving the Search tab must release its field EXPLICITLY. A FocusScope
+        // delegates to whichever descendant holds focus, so forceActiveFocus()
+        // cannot take it back from a TextInput that still has it, and hiding the
+        // pane's Loader does not clear it either. Without this, switching away
+        // (Tab is not consumed by a TextInput) left every key typing into an
+        // invisible search box. Arriving is the other way round now: the pane
+        // starts in normal mode and only takes the keyboard when `i` asks it to.
+        onPaneChanged: {
+            if (searchPane.item && state.tab !== 4) searchPane.item.leaveField();
+            root.forceActiveFocus();
+        }
         onCloseRequested: root.closeRequested()
         // Once the input hides, subsequent keys belong to the music view.
         onSearchingChanged: if (!searching) root.forceActiveFocus()
@@ -115,23 +127,6 @@ FocusScope {
             onFocusReleased: root.forceActiveFocus()
         }
     }
-
-    // Leaving the Search tab must release its field EXPLICITLY. A FocusScope
-    // delegates to whichever descendant holds focus, so forceActiveFocus()
-    // cannot take it back from a TextInput that still has it, and hiding the
-    // pane's Loader does not clear it either. Without this, switching away
-    // (Tab is not consumed by a TextInput) left every key typing into an
-    // invisible search box. Arriving is the other way round now: the pane
-    // starts in normal mode and only takes the keyboard when `i` asks it to.
-    onActivePaneChanged: {
-        if (searchPane.item && state.tab !== 4) searchPane.item.leaveField();
-        root.forceActiveFocus();
-    }
-    readonly property var activePane: state.tab === 1 ? dirPane.item
-                                      : state.tab === 2 ? playlistPane.item
-                                      : state.tab === 3 ? lyricsPane.item
-                                      : state.tab === 4 ? searchPane.item : null
-    Binding { target: state; property: "pane"; value: root.activePane }
 
     MusicBanner {
         anchors.horizontalCenter: parent.horizontalCenter

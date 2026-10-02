@@ -9,27 +9,6 @@ Rectangle {
     property var song: null
     signal dismissed()
 
-    component HelpRow: Row {
-        id: hr
-        required property var modelData
-        readonly property bool heading: hr.modelData.k === ""
-        spacing: Ui.s(12)
-        topPadding: hr.heading ? Ui.s(10) : 0
-        Txt {
-            width: Ui.s(140)
-            horizontalAlignment: Text.AlignRight
-            text: hr.modelData.k
-            color: Theme.mauve
-            font.pixelSize: Ui.fs(12)
-        }
-        Txt {
-            text: hr.modelData.v
-            color: hr.heading ? Theme.subtext0 : Theme.text
-            font.bold: hr.heading
-            font.pixelSize: Ui.fs(12)
-        }
-    }
-
     // The info and help screens are the same page — a titled, scrolling
     // column — with different rows in it.
     component Page: Flickable {
@@ -140,7 +119,26 @@ Rectangle {
                 { k: "i / ~", v: "song info · this help" },
                 { k: "q / Esc", v: "close" }
             ]
-            delegate: HelpRow {}
+            delegate: Row {
+                id: hr
+                required property var modelData
+                readonly property bool heading: hr.modelData.k === ""
+                spacing: Ui.s(12)
+                topPadding: hr.heading ? Ui.s(10) : 0
+                Txt {
+                    width: Ui.s(140)
+                    horizontalAlignment: Text.AlignRight
+                    text: hr.modelData.k
+                    color: Theme.mauve
+                    font.pixelSize: Ui.fs(12)
+                }
+                Txt {
+                    text: hr.modelData.v
+                    color: hr.heading ? Theme.subtext0 : Theme.text
+                    font.bold: hr.heading
+                    font.pixelSize: Ui.fs(12)
+                }
+            }
         }
     }
 }

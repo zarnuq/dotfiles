@@ -26,18 +26,11 @@ Widget {
             id: header
             spacing: root.s(8)
             label: "notifications"
-            HeaderBtn {
-                icon: NotificationService.paused ? "󰂛" : "󰂚"; size: root.s(14)
-                onClicked: NotificationService.toggleDnd()
-            }
-            HeaderBtn {
-                icon: "󰆴"; size: root.s(14)
-                onClicked: NotificationService.clear()
-            }
+            HeaderBtn { icon: NotificationService.paused ? "󰂛" : "󰂚"; onClicked: NotificationService.toggleDnd() }
+            HeaderBtn { icon: "󰆴"; onClicked: NotificationService.clear() }
         }
 
         ListView {
-            id: list
             width: parent.width
             height: parent.height - header.height - parent.spacing
             clip: true

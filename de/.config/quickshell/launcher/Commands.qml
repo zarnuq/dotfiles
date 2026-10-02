@@ -24,6 +24,8 @@ Singleton {
     // CLI eats `qs ipc call <target> show` as its own `qs ipc show`).
     readonly property var catalogue: [
         { name: "Network",          desc: "Wi-Fi + VPN",         glyph: "󰤨", args: ["network",         "open"] },
+        { name: "Bluetooth",        desc: "devices + pairing",   glyph: "󰂯", args: ["bluetooth",       "open"] },
+        { name: "Drives",           desc: "mount + eject USB",   glyph: "󰋊", args: ["drives",          "open"] },
         { name: "Clipboard",        desc: "history picker",      glyph: "󰅍", args: ["clipboard",       "open"] },
         { name: "Audio",            desc: "sinks + mixer",       glyph: "󰕾", args: ["audio",           "open"] },
         { name: "Displays",         desc: "monitor layouts",     glyph: "󰍹", args: ["monitors",        "open"] },
@@ -33,7 +35,7 @@ Singleton {
 
         { name: "Lock screen",      desc: "and session menu",    glyph: "󰌾", args: ["lock",      "lock"] },
         { name: "Random wallpaper", desc: "from ~/Pictures/bgs", glyph: "󰊠", args: ["wallpaper", "random"] },
-        { name: "Annotate clipboard", desc: "image → satty",     glyph: "󰏬", args: ["capture",   "annotate"] },
+        { name: "Annotate clipboard", desc: "image → annotator", glyph: "󰏬", args: ["capture",   "annotate"] },
         { name: "Flash cursor",     desc: "spotlight",           glyph: "󰍉", args: ["spotlight", "flash"] },
         { name: "Play / pause",     desc: "MPD",                 glyph: "󰐊", args: ["media",     "playpause"] }
     ]
@@ -117,41 +119,24 @@ Singleton {
 
     /// The catalogue with each row's key stamped on, since a row that had to go
     /// looking would need the whole map handed to it to answer.
-    readonly property var entries: {
-        var out = [];
-        for (var i = 0; i < root.catalogue.length; i++) {
-            var e = root.catalogue[i];
-            // Exact command first, then any bind on the same target — the
-            // palette says `<target> open` where a bind says `<target> toggle`
-            // and it is the same surface either way. The two passes are not
-            // interchangeable: `media` carries three binds, and a loose match
-            // taken first would label Play / pause with whichever of prev/next
-            // the map happened to yield up.
-            var target = e.args[0];
-            var want = target + " " + e.args[1];
-            var hit = root.binds[want] || "";
-            if (hit === "")
-                for (var k in root.binds)
-                    if (k.indexOf(target + " ") === 0) { hit = root.binds[k]; break; }
-            out.push({ name: e.name, desc: e.desc, glyph: e.glyph, args: e.args, key: hit });
-        }
-        return out;
-    }
+    readonly property var entries: root.catalogue.map(e => {
+        // Exact command first, then any bind on the same target — the
+        // palette says `<target> open` where a bind says `<target> toggle`
+        // and it is the same surface either way. The two passes are not
+        // interchangeable: `media` carries three binds, and a loose match
+        // taken first would label Play / pause with whichever of prev/next
+        // the map happened to yield up.
+        var key = root.binds[e.args.join(" ")]
+                  || root.binds[Object.keys(root.binds).find(k => k.startsWith(e.args[0] + " "))] || "";
+        return Object.assign({ key: key }, e);
+    })
 
     /// Case-insensitive substring over the label, then the gloss — the list is
     /// a dozen rows, so there is nothing here worth the launcher's file-mode
     /// ranking machinery.
     function search(query) {
         var q = query.toLowerCase().trim();
-        if (q === "") return root.entries;
-        var out = [];
-        var all = root.entries;
-        for (var i = 0; i < all.length; i++) {
-            var e = all[i];
-            if (e.name.toLowerCase().indexOf(q) !== -1 || e.desc.toLowerCase().indexOf(q) !== -1)
-                out.push(e);
-        }
-        return out;
+        return root.entries.filter(e => e.name.toLowerCase().includes(q) || e.desc.toLowerCase().includes(q));
     }
 
     /// Back in through the front door: the same `qs ipc call` the reach

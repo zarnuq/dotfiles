@@ -28,7 +28,7 @@ Singleton {
     FileView { id: statFile; path: "/proc/stat";    blockLoading: true }
     FileView { id: memFile;  path: "/proc/meminfo"; blockLoading: true }
 
-    function readCpu() {
+    function readCpu(): void {
         statFile.reload();
         // first line: "cpu  user nice system idle iowait irq softirq steal ..."
         var f = statFile.text().split("\n")[0].trim().split(/\s+/).slice(1).map(Number);

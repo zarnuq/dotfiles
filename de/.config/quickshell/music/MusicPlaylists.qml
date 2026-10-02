@@ -33,12 +33,8 @@ Item {
         root._read(false);
     }
 
-    // Re-read in place after an edit; moveTo clamps, so a deleted last row
-    // cannot strand the cursor.
-    function reopen(): void {
-        if (root.inPlaylist) root._read(true);
-    }
-
+    // `keepCursor` re-reads in place after an edit; moveTo clamps, so a
+    // deleted last row cannot strand the cursor.
     function _read(keepCursor) {
         root.busy = true;
         root.client.playlistSongs(root.opened, function (records) {
@@ -101,8 +97,7 @@ Item {
     // `C-s` saves the current queue as a playlist named after the time. (It was
     // C-a until that key became "add the selection to a playlist" everywhere.)
     function saveQueue(): void {
-        var now = new Date();
-        root.client.savePlaylist("queue-" + Qt.formatDateTime(now, "yyyyMMdd-hhmm"));
+        root.client.savePlaylist("queue-" + Qt.formatDateTime(new Date(), "yyyyMMdd-hhmm"));
         root.refresh();
     }
 
@@ -133,7 +128,7 @@ Item {
         // Only the level in view; back() re-reads the other one.
         function onChanged(subsystem): void {
             if (subsystem !== "stored_playlist") return;
-            if (root.inPlaylist) root.reopen();
+            if (root.inPlaylist) root._read(true);
             else root.refresh();
         }
     }

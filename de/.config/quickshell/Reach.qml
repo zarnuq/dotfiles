@@ -32,7 +32,6 @@ Singleton {
     // so a dim reaches us in the same beat a focus change would. This is what
     // retired the `gdbus monitor` subprocess and Brightness.qml's 2s poll.
     property int brightness: 100
-    property int temperature: 6500
 
     /// State for one output, or null if reach hasn't mentioned it (or isn't up).
     function forScreen(name) {
@@ -95,7 +94,7 @@ Singleton {
     }
 
     function ingest(line): void {
-        if (!line || line.length === 0)
+        if (!line)
             return;
 
         var data;
@@ -111,12 +110,10 @@ Singleton {
             byName[data.outputs[i].name] = data.outputs[i];
 
         root.desktops = data.desktops;
-        // Guarded: a reach too old to publish these leaves the defaults standing
+        // Guarded: a reach too old to publish it leaves the default standing
         // rather than writing undefined into a binding.
         if (data.brightness !== undefined)
             root.brightness = data.brightness;
-        if (data.temperature !== undefined)
-            root.temperature = data.temperature;
         // Assigned, never mutated: QML only notifies on assignment, and every
         // bar's cells are bound to this.
         root.outputs = byName;

@@ -46,17 +46,12 @@ Scope {
     property bool sinkGuard: false
     Timer { id: guard; interval: 500; onTriggered: root.sinkGuard = false }
 
-    function flash(icon, level, muted): void {
+    // A `label` (sink mode) replaces the bar.
+    function flash(icon, level, muted, label): void {
         if (!root.ready) return;
         root.icon = icon; root.level = level; root.muted = muted;
-        root.showBar = true; root.shown = true;
-        linger.restart();
-    }
-
-    function flashText(icon, label): void {
-        if (!root.ready) return;
-        root.icon = icon; root.label = label; root.muted = false;
-        root.showBar = false; root.shown = true;
+        root.showBar = label === undefined; root.label = label || "";
+        root.shown = true;
         linger.restart();
     }
 
@@ -83,7 +78,7 @@ Scope {
             if (!Volume.sink) return;
             root.sinkGuard = true;
             guard.restart();
-            root.flashText("󰓃", Volume.sinkName);
+            root.flash("󰓃", 0, false, Volume.sinkName);
         }
         function onVolumeChanged(): void { root.volumeFlash(); }
         function onMutedChanged(): void { root.volumeFlash(); }

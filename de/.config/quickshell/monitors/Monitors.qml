@@ -121,7 +121,6 @@ Scope {
         // the layout, and a closed window must not keep one — reopening has to
         // show what is on disk now, not what was abandoned last time.
         Loader {
-            id: view
             anchors.fill: parent
             active: root.open
             sourceComponent: MonitorsView {

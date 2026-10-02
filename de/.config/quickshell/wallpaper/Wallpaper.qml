@@ -31,7 +31,7 @@ Singleton {
         id: pick
         command: ["sh", "-c",
             "find '" + root.dir + "' -type f \\( -iname '*.jpg' -o -iname '*.png' \\) | shuf -n1"]
-        stdout: StdioCollector { onStreamFinished: if (text.trim() !== "") root.current = text.trim() }
+        stdout: StdioCollector { onStreamFinished: root.current = text.trim() || root.current }
     }
 
     function random(): void { pick.running = true; }

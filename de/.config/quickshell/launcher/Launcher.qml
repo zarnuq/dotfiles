@@ -15,9 +15,6 @@ import ".."
 // Picker owns the overlay, the IPC target and the focused-monitor logic; this
 // file is just the query, the list, and the keys. The corpus and the ranking
 // are managed by FileIndex.qml; FileSearch.js implements indexing and ranking.
-//
-// Geometry/colours match spotlight-dark.rasi: 35%x50%, 1px mauve border, zero
-// padding, input font 20, tight rows, dark (#11111b) selection with #bac2de text.
 Picker {
     id: root
 
@@ -73,29 +70,14 @@ Picker {
         if (root.fileMode) return root.fileResults;
         if (root.cmdMode) return Commands.search(root.cmdQuery);
         var q = root.query.toLowerCase();
-        var vals = DesktopEntries.applications.values;
-        var out = [];
-        for (var i = 0; i < vals.length; i++) {
-            var a = vals[i];
-            if (a.noDisplay) continue;
-            if (q === "" || a.name.toLowerCase().indexOf(q) !== -1) out.push(a);
-        }
-        out.sort(function (x, y) { return x.name.localeCompare(y.name); });
-        return out;
+        return DesktopEntries.applications.values
+            .filter(a => !a.noDisplay && a.name.toLowerCase().includes(q))
+            .sort((x, y) => x.name.localeCompare(y.name));
     }
     onQueryChanged: root.selected = 0
 
-    // What the arrows walk. Picker's move() clamps against it, so this file
-    // doesn't repeat that arithmetic inline in the key handler.
+    // What the arrows walk.
     count: root.results.length
-
-    // yazi is run *inside* an interactive zsh rather than as kitty's command,
-    // so quitting it (`q`) drops into a shell in the directory it was left in
-    // instead of taking the window down with it. `y` is the zshrc wrapper that
-    // does the --cwd-file dance; `exec zsh` replaces it with a clean prompt.
-    function yaziCmd(path) {
-        return ["kitty", "-e", "zsh", "-ic", 'y "$1"; exec zsh', "zsh", path];
-    }
 
     // Enter edits: nvim for a file, yazi for a directory (nvim on a directory
     // lands in netrw, which nvim-tree disables). Shift+Enter always opens yazi
@@ -105,8 +87,8 @@ Picker {
     // shell in the containing directory, and Ctrl+Y copies the path without
     // opening anything.
     function launch(action): void {
-        if (root.selected < 0 || root.selected >= root.results.length) return;
         var hit = root.results[root.selected];
+        if (!hit) return;
 
         if (root.cmdMode) {
             // Hide FIRST: the launcher is a full-screen overlay on every
@@ -123,15 +105,17 @@ Picker {
             Quickshell.execDetached(["wl-copy", "--", hit.path]);
         } else if (action === "xdg") {
             Quickshell.execDetached(["xdg-open", hit.path]);
-        } else if (action === "yazi") {
-            Quickshell.execDetached(root.yaziCmd(hit.path));
         } else if (action === "term") {
             // hit.dir is the ~-abbreviated label the row draws; cut the real
             // parent off the path instead. A directory hit is its own cwd.
             var cwd = hit.isDir ? hit.path : hit.path.slice(0, hit.path.lastIndexOf("/"));
             Quickshell.execDetached(["kitty", "--directory", cwd]);
-        } else if (hit.isDir) {
-            Quickshell.execDetached(root.yaziCmd(hit.path));
+        } else if (action === "yazi" || hit.isDir) {
+            // yazi runs *inside* an interactive zsh rather than as kitty's
+            // command, so quitting it (`q`) drops into a shell in the directory
+            // it was left in instead of taking the window down. `y` is the
+            // zshrc wrapper that does the --cwd-file dance.
+            Quickshell.execDetached(["kitty", "-e", "zsh", "-ic", 'y "$1"; exec zsh', "zsh", hit.path]);
         } else {
             Quickshell.execDetached(["kitty", "-e", "nvim", hit.path]);
         }
@@ -145,16 +129,15 @@ Picker {
             // Called by Picker every time the box appears on an output.
             function reset(): void { search.reset(); root.query = ""; }
 
-            // Input row (rofi inputbar: no box, just the entry). The
-            // placeholder survives the lone sigil that switches mode, so the
+            // The placeholder survives the lone sigil that switches mode, so the
             // box says what it's searching before you've typed a query.
             PickerSearch {
                 id: search
                 picker: root
                 width: parent.width
-                height: 52
-                margin: 12
-                fontSize: 24
+                height: root.s(52)
+                margin: root.s(12)
+                fontSize: root.s(24)
                 placeholder: text === "/" ? "Find file…"
                              : text === ">" ? "Open menu…"
                              : "Search…  ( / files, > menus)"
@@ -178,9 +161,9 @@ Picker {
                 id: list
                 picker: root
                 width: parent.width
-                height: parent.height - 52
+                height: parent.height - root.s(52)
                 model: root.results
-                emptySize: 17
+                emptySize: root.s(17)
                 emptyText: root.cmdMode ? "no matches"
                            : !root.fileMode ? (root.query === "" ? "no applications found" : "no matches")
                            : !FileIndex.ready ? "indexing…"
@@ -191,7 +174,7 @@ Picker {
                     id: entry
                     required property var modelData
                     required property int index
-                    width: list.width; height: 38
+                    width: list.width; height: root.s(38)
                     color: entry.index === root.selected ? Theme.rowSelectBg : "transparent"
 
                     PickerHover {
@@ -205,28 +188,28 @@ Picker {
                     // a glyph, the name, a gloss and the key that also does it.
                     Item {
                         anchors.fill: parent
-                        anchors.leftMargin: 12; anchors.rightMargin: 12
+                        anchors.leftMargin: root.s(12); anchors.rightMargin: root.s(12)
 
                         Image {
                             visible: !root.fileMode && !root.cmdMode
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 26; height: 26
-                            sourceSize.width: 26; sourceSize.height: 26
+                            width: root.s(26); height: root.s(26)
+                            sourceSize.width: root.s(26); sourceSize.height: root.s(26)
                             fillMode: Image.PreserveAspectFit
-                            source: (!root.fileMode && !root.cmdMode && entry.modelData.icon)
+                            source: entry.modelData.icon
                                     ? Quickshell.iconPath(entry.modelData.icon, "application-x-executable") : ""
                         }
 
                         Txt {
                             visible: root.fileMode || root.cmdMode
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 26
+                            width: root.s(26)
                             horizontalAlignment: Text.AlignHCenter
                             text: root.cmdMode ? entry.modelData.glyph
-                                  : (root.fileMode && entry.modelData.isDir) ? "" : ""
+                                  : entry.modelData.isDir ? "" : ""
                             color: root.cmdMode ? Theme.mauve
-                                   : (root.fileMode && entry.modelData.isDir) ? Theme.blue : Theme.subtext0
-                            font.pixelSize: 16
+                                   : entry.modelData.isDir ? Theme.blue : Theme.subtext0
+                            font.pixelSize: root.s(16)
                         }
 
                         // The key that also does this, read out of config.zon
@@ -241,14 +224,14 @@ Picker {
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.cmdMode ? entry.modelData.key : ""
                             color: Theme.overlay0
-                            font.pixelSize: 15
+                            font.pixelSize: root.s(15)
                         }
 
                         Txt {
                             id: dirLabel
                             visible: root.fileMode || root.cmdMode
                             anchors.right: keyLabel.visible ? keyLabel.left : parent.right
-                            anchors.rightMargin: keyLabel.visible ? 14 : 0
+                            anchors.rightMargin: keyLabel.visible ? root.s(14) : 0
                             anchors.verticalCenter: parent.verticalCenter
                             width: Math.min(implicitWidth, parent.width * 0.55)
                             // Elided from the LEFT for a path (the deep end is
@@ -259,19 +242,19 @@ Picker {
                             text: root.cmdMode ? entry.modelData.desc
                                   : root.fileMode ? entry.modelData.dir : ""
                             color: Theme.subtext0
-                            font.pixelSize: 15
+                            font.pixelSize: root.s(15)
                         }
 
                         Txt {
                             anchors.left: parent.left
-                            anchors.leftMargin: 34
+                            anchors.leftMargin: root.s(34)
                             anchors.right: (root.fileMode || root.cmdMode) ? dirLabel.left : parent.right
-                            anchors.rightMargin: 8
+                            anchors.rightMargin: root.s(8)
                             anchors.verticalCenter: parent.verticalCenter
                             elide: Text.ElideRight
                             text: entry.modelData.name
                             color: entry.index === root.selected ? Theme.rowSelectFg : Theme.text
-                            font.pixelSize: 19
+                            font.pixelSize: root.s(19)
                         }
                     }
                 }

@@ -14,7 +14,7 @@
 # pactl set-default-sink only affects future streams.
 #
 # Raw alsa_output.* sinks are intentionally excluded — pick those via
-# wpctl/pavucontrol if you want to bypass the EQ.
+# the audio menu or wpctl if you want to bypass the EQ.
 
 # Hardcoded because both the EQ chains and the optical profile setup
 # are hardware-specific to this machine. The PCH card carries the

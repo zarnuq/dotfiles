@@ -1,0 +1,10 @@
+#!/bin/sh
+# qs's long-running children — the clipboard watchers and the bar's BlueZ
+# monitor — outlive it: `sv restart` TERMs qs, which exits without the
+# destructors that would stop them, so every restart left another set
+# reparented to init (nine clipboard watchers had piled up). runsv runs this
+# after ./run exits; reap the orphans (parent 1) by command line so the next
+# start begins clean.
+pkill -P 1 -u "$(id -u)" -f '^(/usr/bin/)?wl-paste --type (text|image) --watch cliphist store$'
+pkill -P 1 -u "$(id -u)" -f '^(/usr/bin/)?gdbus monitor --system --dest org\.bluez$'
+exit 0

@@ -110,7 +110,7 @@ Templates for each row are in [templates.md](templates.md).
 | CPU/RAM/disk/GPU | `Sys` singleton (only the CPU card reads it — referencing it builds its polls) |
 | battery / on mains | `Power` singleton |
 | a palette colour at some opacity | `Theme.alpha(c, a)`; the current-row wash is `Theme.currentWash(selected)` |
-| desktops, focused output, brightness, temperature | `Reach` singleton (reach's socket, write-only — you can't send it commands) |
+| desktops, focused output, brightness | `Reach` singleton (reach's socket, write-only — you can't send it commands) |
 | notifications | `NotificationService` (`live`, `history`, `paused` = DND) |
 | which output / scale | `Config.screen(name)`, `Config.pinScreen`, `Config.onLaptop`, `Config.s()` |
 | list navigation + keys | `Picker.navKey(e)`, `move()`, `selectable()`, `count` |

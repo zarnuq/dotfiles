@@ -48,6 +48,6 @@ Singleton {
     // tinting it.
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.55)
 
-    readonly property string font: "JetBrains Mono Nerd Font"
+    readonly property string font: "JetBrainsMono Nerd Font"
     readonly property int borderRadius: 0   // flat/sharp everywhere
 }

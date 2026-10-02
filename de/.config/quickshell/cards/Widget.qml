@@ -19,7 +19,6 @@ PanelWindow {
 
     default property alias content: body.data
     property int pad: 10                     // inner padding, unscaled (s() applied)
-    property color bg: Theme.base
     property color borderColor: Theme.surface0
     property int stackLayer: WlrLayer.Bottom // eww "bottom"; Battery raises itself to Overlay when low
 
@@ -37,7 +36,7 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: root.bg
+        color: Theme.base
         border.color: root.borderColor
         border.width: root.s(1)
         radius: Theme.borderRadius

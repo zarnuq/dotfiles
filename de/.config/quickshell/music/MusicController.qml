@@ -207,19 +207,12 @@ QtObject {
 
     function targets() {
         if (root.markedCount === 0) return root.current ? [root.current] : [];
-        var rows = [];
-        for (var i = 0; i < root.queue.length; i++)
-            if (root.isMarked(root.queue[i])) rows.push(root.queue[i]);
-        return rows;
+        return root.queue.filter(song => root.isMarked(song));
     }
 
     // Tab 0 has no pane — the controller owns the queue's cursor.
     function selectionUris() {
-        if (root.tab === 0) {
-            var rows = root.targets(), out = [];
-            for (var i = 0; i < rows.length; i++) if (rows[i].file) out.push(rows[i].file);
-            return out;
-        }
+        if (root.tab === 0) return root.targets().filter(song => song.file).map(song => song.file);
         return root.pane && root.pane.selectionUris ? root.pane.selectionUris() : [];
     }
 
@@ -246,9 +239,7 @@ QtObject {
     function deleteSelected(): void {
         var rows = root.targets();
         if (rows.length === 0) return;
-        var commands = [];
-        for (var i = 0; i < rows.length; i++) commands.push("deleteid " + rows[i].Id);
-        root.client.sendList(commands);
+        root.client.sendList(rows.map(song => "deleteid " + song.Id));
         root.clearMarks();
     }
 

@@ -3,23 +3,16 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Services.Pipewire
 
-// The default sink and source, and the handful of numbers everything wants off
-// them. Three surfaces — the bar's status blocks, the now-playing card and the
-// OSD — each held their own copy of this: the same two Pipewire properties, the
-// same PwObjectTracker keeping them bound, and the same volume/muted arithmetic
-// spelled out again.
-//
-// A node only publishes `.audio` while something holds a binding on it, which is
-// what the tracker is for; one tracker here serves every reader.
+// The default sink and source, and the numbers the bar, the now-playing card
+// and the OSD want off them. A node only publishes `.audio` while something
+// holds a binding on it; the one tracker here serves every reader.
 Singleton {
     id: root
 
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property var source: Pipewire.defaultAudioSource
 
-    PwObjectTracker {
-        objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource]
-    }
+    PwObjectTracker { objects: [root.sink, root.source] }
 
     // null until the node is bound, which is every reader's "not yet" case.
     readonly property var _sinkAudio: sink ? sink.audio : null

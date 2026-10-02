@@ -33,7 +33,7 @@ Scope {
             onStreamFinished: {
                 root.data(text);
                 var parsed = null;
-                try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+                try { parsed = JSON.parse(text); } catch (e) {}
                 root.jsonData(parsed);
             }
         }

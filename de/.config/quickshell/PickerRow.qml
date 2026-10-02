@@ -21,10 +21,6 @@ Item {
     required property Picker picker
     required property var modelData
     required property int index
-    // The picker's, which is what its boxHeight was summed from; a row that
-    // isn't in `rows` (the clipboard history) gets its own from its picker.
-    property int headerHeight: picker.headerHeight
-    property int rowHeight: picker.rowHeight
     property bool current: false
 
     // ── the cells ─────────────────────────────────────────────────────────
@@ -54,7 +50,8 @@ Item {
 
     readonly property bool isHeader: modelData.kind === "header"
     readonly property bool sel: index === picker.selected
-    height: isHeader ? headerHeight : rowHeight
+    // The picker's heights, which is what its boxHeight was summed from.
+    height: isHeader ? picker.headerHeight : picker.rowHeight
 
     signal activated()
 

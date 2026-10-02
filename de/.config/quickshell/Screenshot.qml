@@ -9,21 +9,13 @@ import QtQuick
 //   qs ipc call capture region         slurp a region
 //   qs ipc call capture display <n>    whole display n, 1-based left to right
 //   qs ipc call capture output <name>  whole output by name
-//   qs ipc call capture annotate       clipboard image → satty
+//   qs ipc call capture annotate       clipboard image → Annotate.qml
 //
 // Every capture goes to the clipboard, never a file; `annotate` pulls the
-// image back off into satty, whose save is the only thing that writes to
-// ~/Pictures. Switching "Screenshots" off in settings takes the chord with it.
+// image back off into the annotator, whose Ctrl+S is the only thing that
+// writes to ~/Pictures. Switching "Screenshots" off in settings takes the chord with it.
 Scope {
     id: root
-
-    IpcHandler {
-        target: "capture"
-        function region(): void { root.region(); }
-        function display(n: int): void { root.display(n); }
-        function output(name: string): void { root.output(name); }
-        function annotate(): void { root.annotate(); }
-    }
 
     /// POSIX single-quoting, since an output name reaches a shell.
     function sq(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'"; }
@@ -39,30 +31,45 @@ Scope {
     }
     readonly property string copied: " | wl-copy --type image/png && notify-send Screenshot 'Copied!'"
 
-    function region(): void {
-        root.run("g=$(slurp) || exit 1; grim -g \"$g\" -" + root.copied);
+    IpcHandler {
+        id: ipc
+        target: "capture"
+
+        function region(): void {
+            root.run("g=$(slurp) || exit 1; grim -g \"$g\" -" + root.copied);
+        }
+
+        // Config.displays' numbering — the one the Displays window's Identify
+        // shows. A number past the heads this machine has does nothing.
+        function display(n: int): void {
+            if (n >= 1 && n <= Config.displays.length) ipc.output(Config.displays[n - 1].name);
+        }
+
+        // Any output grim knows — it rejects a name it does not, and says which.
+        function output(name: string): void {
+            root.run("grim -o " + root.sq(name) + " -" + root.copied);
+        }
+
+        // Into the annotator window (Annotate.qml), which writes ~/Pictures
+        // only on Ctrl+S.
+        // Into the annotator window (Annotate.qml), which writes ~/Pictures
+        // only on Ctrl+S.
+        function annotate(): void { dump.running = true; }
     }
 
-    // Config.displays' numbering — the one the Displays window's Identify
-    // shows. A number past the heads this machine has does nothing.
-    function display(n): void {
-        if (n >= 1 && n <= Config.displays.length) root.output(Config.displays[n - 1].name);
+    // The clipboard image onto disk, for the annotator to load. First image
+    // type on offer, since not every source advertises png.
+    property string editing: ""
+    Process {
+        id: dump
+        readonly property string file: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/annotate.png"
+        command: ["bash", "-c", "t=$(wl-paste --list-types 2>/dev/null | grep -m1 '^image/')"
+                  + " || { notify-send Screenshot 'No image on the clipboard'; exit 1; }; "
+                  + "wl-paste --no-newline --type \"$t\" > \"$1\"", "_", file]
+        onExited: code => { if (code === 0) root.editing = dump.file; }
     }
-
-    // Any output grim knows — it rejects a name it does not, and says which.
-    function output(name): void {
-        root.run("grim -o " + root.sq(name) + " -" + root.copied);
-    }
-
-    // First image type on offer, since not every source advertises png.
-    // --copy-command because satty's own GTK clipboard empties when it exits,
-    // so copy-then-close would paste nothing; satty expands the `~` and the
-    // strftime fields in the output name itself.
-    function annotate(): void {
-        root.run("t=$(wl-paste --list-types 2>/dev/null | grep -m1 '^image/')"
-                 + " || { notify-send Screenshot 'No image on the clipboard'; exit 1; }; "
-                 + "wl-paste --no-newline --type \"$t\" | satty --filename -"
-                 + " --output-filename '~/Pictures/screenshot-%Y-%m-%d_%H-%M-%S.png'"
-                 + " --copy-command wl-copy");
+    LazyLoader {
+        active: root.editing !== ""
+        Annotate { path: root.editing; onDone: root.editing = "" }
     }
 }
