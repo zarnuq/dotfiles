@@ -68,3 +68,5 @@ bindkey -M emacs -r '^R'
 bindkey -M viins -r '^R'
 bindkey -M vicmd '^R' redo
 
+
+. "$HOME/.local/share/../bin/env"

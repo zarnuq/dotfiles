@@ -1,20 +1,10 @@
 #!/bin/sh
 
-# Two modes:
-#   flip.sh            cycle the default sink between the EQ-wrapped outputs
-#   flip.sh set <sink> switch to a named sink (the quickshell audio menu)
+# flip.sh set <sink> — make <sink> the default and move playing streams to it.
+# Called by quickshell: the audio menu, and Volume.flip() (Alt+[), which cycles
+# between the effect_input.eq_* chains and passes the next one here.
 #
-# Cycle the default sink between the two EQ-wrapped outputs:
-#   effect_input.eq_fiio     -> FiiO K11 (USB DAC)
-#   effect_input.eq_optical  -> motherboard S/PDIF optical (PCH) -> AVR
-#
-# Apps connect to the default sink, so flipping here moves their stream
-# through the EQ chain pinned to the corresponding hardware output. We
-# also migrate any already-playing sink-inputs to the new default —
-# pactl set-default-sink only affects future streams.
-#
-# Raw alsa_output.* sinks are intentionally excluded — pick those via
-# the audio menu or wpctl if you want to bypass the EQ.
+# pactl set-default-sink only affects future streams, hence the migration.
 
 # Hardcoded because both the EQ chains and the optical profile setup
 # are hardware-specific to this machine. The PCH card carries the
@@ -57,39 +47,5 @@ switch_to() {
     echo "Switched to: $next_sink"
 }
 
-# `set` skips the cycling entirely — the caller already knows the sink it wants,
-# including the raw alsa_output.* ones the cycle deliberately steps over.
-if [ "$1" = "set" ]; then
-    [ -n "$2" ] || { echo "usage: flip.sh set <sink>" >&2; exit 1; }
-    switch_to "$2"
-    exit
-fi
-
-sinks="$(pactl list short sinks | awk '$2 ~ /^effect_input\.eq_/ {print $2}')"
-
-set -- $sinks
-if [ "$#" -eq 0 ]; then
-    echo "No EQ sinks found — is sink-eq.conf loaded?" >&2
-    exit 1
-fi
-
-default=$(pactl info | awk -F': ' '/Default Sink/{print $2}')
-
-index=0
-for sink in "$@"; do
-    [ "$sink" = "$default" ] && break
-    index=$((index + 1))
-done
-
-next_index=$(( (index + 1) % $# ))
-
-i=0
-for sink in "$@"; do
-    if [ "$i" -eq "$next_index" ]; then
-        next_sink="$sink"
-        break
-    fi
-    i=$((i + 1))
-done
-
-switch_to "$next_sink"
+[ "$1" = "set" ] && [ -n "$2" ] || { echo "usage: flip.sh set <sink>" >&2; exit 1; }
+switch_to "$2"

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import Quickshell
+import Quickshell.Io
 // The big clusters each live in their own folder; these make their types resolve.
 import "bar"
 import "launcher"
@@ -26,6 +27,19 @@ ShellRoot {
     id: root
     Settings {}
 
+    // Volume keys. No flag, like Settings: the binds must work whatever is off.
+    IpcHandler {
+        target: "volume"
+        // Steps are fixed rather than an argument: `qs ipc call volume x -5`
+        // would read the -5 as a CLI flag.
+        function up(): void      { Volume.nudge(5); }
+        function down(): void    { Volume.nudge(-5); }
+        function micUp(): void   { Volume.nudgeMic(5); }
+        function micDown(): void { Volume.nudgeMic(-5); }
+        function micMute(): void { Volume.toggleMicMute(); }
+        function flip(): void    { Volume.flip(); }
+    }
+
     LazyLoader { active: Config.on("wallpaper");           WallpaperView {} }
     LazyLoader { active: Config.on("wallpaperPicker");     WallpaperPicker {} }
     LazyLoader { active: Config.on("notificationPopups");  NotificationPopups {} }
@@ -37,15 +51,14 @@ ShellRoot {
     LazyLoader { active: Config.on("network");             Network {} }
     LazyLoader { active: Config.on("bluetooth");           Bluetooth {} }
     LazyLoader { active: Config.on("drives");              Drives {} }
+    LazyLoader { active: Config.on("processes");           Processes {} }
     LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("screenshot");          Screenshot {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
-    LazyLoader { active: Config.on("netGraph");            NetGraph {} }
     LazyLoader { active: Config.on("mpd");                 Mpd {} }
-    LazyLoader { active: Config.on("weather");             Weather {} }
     LazyLoader { active: Config.on("notificationHistory"); Notifications {} }
     LazyLoader { active: Config.on("calendar");            Calendar {} }
     LazyLoader { active: Config.on("brightness");          Brightness {} }

@@ -454,7 +454,11 @@ Singleton {
     property bool _volDirty: false
 
     function changeVolume(d): void {
-        var target = Math.max(0, Math.min(100, Math.round(root.volume + d)));
+        // Unknown until the first `status` lands (and -1 while MPD's output is
+        // closed); stepping off the 0 `volume` shows then would setvol 5.
+        var cur = root._volWanted >= 0 ? root._volWanted : parseInt(root.status.volume || "-1");
+        if (cur < 0) return;
+        var target = Math.max(0, Math.min(100, Math.round(cur + d)));
         if (target === root._volWanted) return;
         root._volWanted = target;
         root._volDirty = true;

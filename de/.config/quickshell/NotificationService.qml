@@ -10,7 +10,7 @@ import QtQuick
 Singleton {
     id: root
     property bool paused: false        // do-not-disturb
-    property var history: []           // [{ app, summary }], newest first, max 20
+    property var history: []           // [{ app, summary, body, time }], newest first, max 20
 
     readonly property var live: server.trackedNotifications
 
@@ -25,7 +25,8 @@ Singleton {
         onNotification: (notif) => {
             // History regardless of DND (mako's invisible=1 still logged).
             var h = root.history.slice(0, 19);
-            h.unshift({ app: notif.appName || "Unknown", summary: notif.summary || "No summary" });
+            h.unshift({ app: notif.appName || "Unknown", summary: notif.summary || "No summary",
+                       body: notif.body || "", time: Date.now() });
             root.history = h;
 
             // DND suppresses the popup; otherwise keep it on-screen.
@@ -35,11 +36,15 @@ Singleton {
 
     function toggleDnd(): void { root.paused = !root.paused; }
 
-    // Clear the on-screen popups AND the history list. The only caller is the
-    // trash button in the Notifications panel's header, which sits directly on
-    // top of the rows `history` draws — so dismissing the live popups alone
-    // (mako parity: `dismiss -a`) left every visible row in place and read as a
-    // button that does nothing, on the one widget where you can see it fail.
+    function remove(i): void {
+        var h = root.history.slice();
+        h.splice(i, 1);
+        root.history = h;
+    }
+
+    // Clear the on-screen popups AND the history list: dismissing the popups
+    // alone (mako parity: `dismiss -a`) left every row in the menu in place and
+    // read as a key that does nothing.
     function clear(): void {
         var v = server.trackedNotifications.values;
         for (var i = v.length - 1; i >= 0; i--) v[i].dismiss();

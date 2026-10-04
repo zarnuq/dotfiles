@@ -80,7 +80,7 @@ Singleton {
         { key: "wallpaperPicker",     group: "Background",  label: "Wallpaper picker" },
 
         { key: "notificationPopups",  group: "Notifications", label: "Popups (D-Bus server)" },
-        { key: "notificationHistory", group: "Notifications", label: "History panel + DND" },
+        { key: "notificationHistory", group: "Notifications", label: "History + DND menu" },
 
         { key: "osd",                 group: "Feedback",    label: "OSD (volume/mic/brightness)" },
         { key: "spotlight",           group: "Feedback",    label: "Cursor spotlight (shake)" },
@@ -93,16 +93,15 @@ Singleton {
         { key: "network",             group: "Session",     label: "Network menu" },
         { key: "bluetooth",           group: "Session",     label: "Bluetooth menu" },
         { key: "drives",              group: "Session",     label: "Removable drives" },
+        { key: "processes",           group: "Session",     label: "Process killer" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
         { key: "screenshot",          group: "Session",     label: "Screenshots" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "clock",               group: "Panel",       label: "Clock" },
-        { key: "cpuGraph",            group: "Panel",       label: "CPU / GPU / RAM / disk" },
-        { key: "netGraph",            group: "Panel",       label: "Network" },
+        { key: "cpuGraph",            group: "Panel",       label: "Usage + network" },
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
-        { key: "weather",             group: "Panel",       label: "Weather" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
         { key: "brightness",          group: "Panel",       label: "Brightness" },
         { key: "battery",             group: "Panel",       label: "Battery (laptop only)" },

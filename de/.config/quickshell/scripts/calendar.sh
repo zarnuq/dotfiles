@@ -132,9 +132,9 @@ def fmt(dt):
 
 
 def parse_events(ics, now=None):
-    """The next 7 days' events (including ones already under way), max 10."""
+    """The next 14 days' events (including ones already under way)."""
     today = datetime.combine((now or datetime.now()).date(), datetime.min.time()).astimezone()
-    week_later = today + timedelta(days=7)
+    week_later = today + timedelta(days=14)
     limit = (week_later + timedelta(days=1)).replace(tzinfo=None)   # wall-clock bound, any zone
 
     events = vevents(ics)
@@ -184,16 +184,18 @@ def parse_events(ics, now=None):
                 result.append((at.timestamp(), {
                     "summary": unescape(e.get("SUMMARY", ({}, ""))[1]),
                     "time": time_str,
-                    "day": {0: "Today", 1: "Tomorrow"}.get(days_from_today) or local.strftime("%A"),
+                    # A weekday name repeats past a week, so the date takes over there.
+                    "day": {0: "Today", 1: "Tomorrow"}.get(days_from_today)
+                           or local.strftime("%A" if days_from_today < 7 else "%a %b %-d"),
                     "location": unescape(e.get("LOCATION", ({}, ""))[1]),
                     "days_from_today": days_from_today,
                 }))
         except Exception:
             continue
 
-    # Sort by start and limit to 10.
+    # Sorted by start; the 14-day window bounds it and the card scrolls.
     result.sort(key=lambda r: r[0])
-    return [r for _, r in result[:10]]
+    return [r for _, r in result]
 
 
 def get_status():

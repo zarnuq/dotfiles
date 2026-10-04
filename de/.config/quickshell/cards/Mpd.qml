@@ -4,7 +4,7 @@ import Quickshell.Services.Mpris
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Now-playing + volume widget, bottom-left stack (above the two graphs).
+// Now-playing + volume widget, bottom-left stack (above the usage + network card).
 //
 // Native throughout — no subprocess polling:
 //   - transport/metadata/art/progress via Quickshell.Services.Mpris (was `mpc`,
@@ -15,7 +15,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 Widget {
     id: root
     anchors { bottom: true; left: true }
-    margins { bottom: s(300) }
+    margins { bottom: s(180) }
     implicitWidth: s(420)
     implicitHeight: s(150)
 

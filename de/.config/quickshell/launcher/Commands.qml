@@ -26,6 +26,8 @@ Singleton {
         { name: "Network",          desc: "Wi-Fi + VPN",         glyph: "󰤨", args: ["network",         "open"] },
         { name: "Bluetooth",        desc: "devices + pairing",   glyph: "󰂯", args: ["bluetooth",       "open"] },
         { name: "Drives",           desc: "mount + eject USB",   glyph: "󰋊", args: ["drives",          "open"] },
+        { name: "Processes",        desc: "kill by name",        glyph: "󰆴", args: ["processes",       "open"] },
+        { name: "Notifications",    desc: "history + DND",       glyph: "󰂚", args: ["notifications",   "open"] },
         { name: "Clipboard",        desc: "history picker",      glyph: "󰅍", args: ["clipboard",       "open"] },
         { name: "Audio",            desc: "sinks + mixer",       glyph: "󰕾", args: ["audio",           "open"] },
         { name: "Displays",         desc: "monitor layouts",     glyph: "󰍹", args: ["monitors",        "open"] },
