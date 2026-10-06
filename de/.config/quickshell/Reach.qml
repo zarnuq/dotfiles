@@ -66,7 +66,7 @@ Singleton {
 
     Socket {
         id: sock
-        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/reach.sock"
+        path: Config.runtimeDir + "/reach.sock"
         connected: true
 
         parser: SplitParser {

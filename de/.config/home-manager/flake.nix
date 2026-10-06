@@ -17,39 +17,35 @@
         config.allowUnfree = true;
         overlays = [
           (final: prev: {
-            # pipx 1.8.0's test suite asserts the old PEP 508 "name@ url" form, but
-            # the newer `packaging` in nixpkgs 26.11 normalizes it to "name @ url",
-            # so 7 tests in test_package_specifier.py fail and the build aborts.
-            # The shipped binary is unaffected — skip the check phase.
-            pipx = prev.pipx.overridePythonAttrs (old: { doCheck = false; });
+            # nixpkgs lags on Termius (9.43.1); shared vault hosts written by v10
+            # clients show up blank. Pull the 10.x snap directly — drop this once
+            # nixpkgs catches up. New revision/hash: see comment in nixpkgs' package.nix.
+            termius = prev.termius.overrideAttrs (old: {
+              version = "10.1.3";
+              src = prev.fetchurl {
+                url = "https://api.snapcraft.io/api/v1/snaps/download/WkTBXwoX81rBe3s3OTt3EiiLKBx2QhuS_271.snap";
+                sha512 = "a6e0fa4cdd03a0eaaa19eb9b0df8bef7ec828661477bd31793d9d8aeda5993a8a0f7681ac2abd5fad4015117424b4a24d7a05b8e1b39fd93c9b44d993152c4e5";
+              };
+              # v10 stopped bundling NSS.
+              buildInputs = old.buildInputs ++ [ prev.nss prev.nspr ];
+              # v10 moved the electron binary under app/.
+              postFixup = ''
+                makeWrapper $out/opt/termius/app/termius-app $out/bin/termius-app \
+                  "''${gappsWrapperArgs[@]}"
+              '';
+            });
 
-            # evil-winrm's Gemfile pulls in winrm-fs, which does `require "csv"`.
-            # Ruby 3.4 (the current nixpkgs default) dropped csv from its default
-            # gems, and it isn't in evil-winrm's gemset, so the tool dies at startup
-            # with `cannot load such file -- csv`. Build its bundlerEnv against
-            # Ruby 3.3, where csv is still a default gem.
-            evil-winrm = prev.evil-winrm.override {
-              bundlerEnv = args: prev.bundlerEnv (args // { ruby = final.ruby_3_3; });
-            };
-
-            # nixpkgs pins the hash of GitHub's generated tarball for
-            # playwright-python 1.63.0, and GitHub regenerated that archive, so
-            # the fixed-output fetch fails. It takes theharvester -> home-manager-path
-            # -> the whole generation down with it, which is why a switch after a
-            # flake update dies with "hash mismatch in fixed-output derivation".
-            # theharvester resolves playwright through python3.pkgs, not the
-            # top-level python3Packages, so the override has to go in
-            # pythonPackagesExtensions to reach every python package set.
             pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
               (pyfinal: pyprev: {
-                playwright = pyprev.playwright.overrideAttrs (old: {
-                  src = prev.fetchFromGitHub {
-                    owner = "microsoft";
-                    repo = "playwright-python";
-                    tag = "v${old.version}";
-                    hash = "sha256-RwIn+0EcHnStjORVFmT7gp4bGjl+qer1FgtI3+aPF2w=";
-                  };
-                });
+                # anyio 4.14.2's TLS tests fail on python3.12 in nixpkgs a7868a7
+                # ("server_hostname can only be specified in client mode"), which
+                # takes httpx -> certipy-ad/proxy-py -> netexec down with it.
+                # Library itself is fine — skip the check phase. 3.12 only: 3.14 anyio
+                # passes and is cached; touching it rebuilds every dependent from source.
+                anyio =
+                  if pyprev.python.pythonVersion == "3.12"
+                  then pyprev.anyio.overridePythonAttrs (old: { doCheck = false; })
+                  else pyprev.anyio;
               })
             ];
           })

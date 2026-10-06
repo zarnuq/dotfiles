@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Calendar widget script: fetch an ICS feed and list the next week's events.
+"""Calendar widget script: fetch an ICS feed and list the next 14 days' events.
 
 Stdlib only (it used icalendar + recurring_ical_events from home-manager). The
 parser covers what the feed — an Outlook calendar — actually uses: VEVENTs
@@ -131,9 +131,9 @@ def fmt(dt):
     return dt.strftime("%-I:%M %p")
 
 
-def parse_events(ics, now=None):
+def parse_events(ics):
     """The next 14 days' events (including ones already under way)."""
-    today = datetime.combine((now or datetime.now()).date(), datetime.min.time()).astimezone()
+    today = datetime.combine(datetime.now().date(), datetime.min.time()).astimezone()
     week_later = today + timedelta(days=14)
     limit = (week_later + timedelta(days=1)).replace(tzinfo=None)   # wall-clock bound, any zone
 

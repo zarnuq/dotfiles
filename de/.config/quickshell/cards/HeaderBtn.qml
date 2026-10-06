@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Small icon button used in widget headers (DND / clear / refresh) and, with
+// Small icon button used in widget headers (Calendar's refresh) and, with
 // `centered`, for Mpd's transport row. Brightens from subtext0 to text on
 // hover; caller wires `onClicked`.
 MouseArea {

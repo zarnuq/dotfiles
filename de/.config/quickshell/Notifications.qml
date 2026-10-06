@@ -46,6 +46,7 @@ Picker {
     box: Component {
         PickerList {
             picker: root
+            hint: "enter toggle / copy · x remove · c clear all"
 
             onExtraKey: function (e) {
                 if (e.modifiers & (Qt.ControlModifier | Qt.AltModifier)) return;
@@ -58,8 +59,8 @@ Picker {
 
             rowDelegate: PickerRow {
                 id: rowItem
-                readonly property var n: isHeader ? null : modelData.n || null
-                readonly property bool dnd: modelData.kind === "dnd"
+                readonly property var n: rowItem.isHeader ? null : rowItem.modelData.n || null
+                readonly property bool dnd: rowItem.modelData.kind === "dnd"
 
                 picker: root
                 width: parent.width
@@ -68,7 +69,6 @@ Picker {
 
                 icon: rowItem.isHeader || rowItem.n ? ""
                       : rowItem.dnd ? (NotificationService.paused ? "󰂛" : "󰂚") : "󰂚"
-                iconColor: (rowItem.current || rowItem.sel) ? Theme.mauve : Theme.subtext0
                 label: rowItem.isHeader ? ""
                        : rowItem.dnd ? "Do not disturb"
                        : rowItem.n ? rowItem.n.app + "  ·  " + rowItem.n.summary
@@ -81,14 +81,6 @@ Picker {
                 trailingColor: rowItem.current ? Theme.mauve : Theme.subtext0
             }
 
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                text: "enter toggle / copy · x remove · c clear all"
-                color: Theme.surface1
-                elide: Text.ElideRight
-                font.pixelSize: root.s(13)
-            }
         }
     }
 }

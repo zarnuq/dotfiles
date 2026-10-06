@@ -51,15 +51,16 @@ Scope {
     property string activeScreen: ""
 
     // ── the selection ────────────────────────────────────────────────────
-    // The list pickers (Settings, Audio, Network) use a flat `rows` list
-    // containing optional non-selectable group headers, and PickerList draws
-    // it. Launcher, ClipboardPicker and WallpaperPicker leave it empty, draw
-    // their own list and point `count` at it.
+    // The list pickers (Settings, Audio, Network, Bluetooth, Drives,
+    // Notifications) use a flat `rows` list containing optional non-selectable
+    // group headers, and PickerList draws it. Launcher, ClipboardPicker,
+    // Processes and WallpaperPicker leave it empty, draw their own list and
+    // point `count` at it.
     property var rows: []
     property int selected: 0
 
     // How many entries there are to walk. A rows-driven picker leaves this
-    // alone; the three that drive their own list point it at theirs, which is
+    // alone; the ones that drive their own list point it at theirs, which is
     // what lets them share move() instead of each clamping by hand.
     property int count: rows.length
 
@@ -100,9 +101,8 @@ Scope {
     // Escape, Return and j/k/arrows are the picker's contract, not any one
     // menu's — four files opened with the identical `plain` dance and the
     // identical triple condition. A picker calls this first and handles only
-    // its own extra keys. `activate(i)` is the subclass's; a picker without
-    // one (Launcher, WallpaperPicker drive their own lists) just won't see
-    // Return here.
+    // its own extra keys (PickerList does the calling). `activate(i)` is the
+    // subclass's; a picker without one just won't see Return here.
     function navKey(e) {
         // j/k bare, or Ctrl+j/k for a picker whose box has a text field.
         var vim = !(e.modifiers & Qt.AltModifier) || (e.modifiers & Qt.ControlModifier);

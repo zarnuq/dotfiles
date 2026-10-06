@@ -16,8 +16,8 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 // select scheme on the FOCUSED output only — that is the "this monitor is
 // active" cue, and it is the whole reason the bar needs window-manager state at
 // all. That state comes from Reach.qml (reach's socket); everything on the
-// right is read natively here, which is what retires the six block scripts in
-// ~/.config/reach/blocks and the `kill -35/-36` refresh binds with them.
+// right is read natively in BarStatusData, which is what retires the six block
+// scripts in ~/.config/reach/blocks and the `kill -35/-36` refresh binds.
 //
 // EXCLUSIVE ZONE: unlike reach's bar (a river shell surface, which reach had to
 // subtract from the layout by hand) this is an ordinary layer surface, so the
@@ -66,9 +66,8 @@ Scope {
             required property var modelData
 
             // reach's state for THIS monitor. Null until the socket delivers its
-            // first snapshot, which is also what a reach without the ipc patch
-            // looks like — the status side still works, so the bar degrades to a
-            // clock rather than to nothing.
+            // first snapshot (or while reach is down) — the status side still
+            // works, so the bar degrades to a clock rather than to nothing.
             readonly property var wm: Reach.forScreen(modelData.name)
 
             // Not `wm.focused` directly: that is the socket's answer, and the
@@ -101,6 +100,7 @@ Scope {
                     model: Reach.desktops
 
                     Rectangle {
+                        id: cell
                         required property int index
 
                         readonly property int desktop: index + 1
@@ -116,8 +116,8 @@ Scope {
                         Txt {
                             id: label
                             anchors.centerIn: parent
-                            text: parent.desktop
-                            color: parent.fg
+                            text: cell.desktop
+                            color: cell.fg
                             font.pixelSize: root.fontSize
                         }
                     }

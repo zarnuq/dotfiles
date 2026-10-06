@@ -228,11 +228,11 @@ Singleton {
         }
     }
 
-    function refreshStatus() {
+    function refreshStatus(): void {
         root.send("status", function (lines) { root._applyStatus(lines); });
     }
 
-    function refreshSong() {
+    function refreshSong(): void {
         root.send("currentsong", function (lines) { root.song = root.parseKV(lines); });
     }
 
@@ -277,7 +277,7 @@ Singleton {
     // small edits.
     /// `bulk` false says this refetch is standing in for an edit idle already
     /// told us about, so the size of it is the user's doing, not a first read.
-    function refreshQueue(bulk) {
+    function refreshQueue(bulk): void {
         root.send("playlistinfo", function (lines) {
             root.queueWasBulk = bulk !== false;
             root.queue = root.parseRecords(lines, ["file"]);
@@ -290,7 +290,7 @@ Singleton {
     // add is a handful of lines instead of the full 2.67 MB. Anything it cannot
     // express, or that adds more than it would cost to refetch, falls back to
     // the full list.
-    function syncQueue() {
+    function syncQueue(): void {
         var from = root.queueVersion;
         var newVersion = parseInt(root.status.playlist || "-1");
         if (from < 0 || root.queue.length === 0) { root.refreshQueue(false); return; }
@@ -509,7 +509,7 @@ Singleton {
 
     /// Send `cmd` and hand `cb` its parsed records — an empty list on an ACK,
     /// so a pane never has to tell "refused" from "nothing there".
-    function _read(cmd, startKeys, cb) {
+    function _read(cmd, startKeys, cb): void {
         root.send(cmd, function (lines, err) {
             cb(err ? [] : root.parseRecords(lines, startKeys), err);
         });
@@ -521,7 +521,7 @@ Singleton {
     }
 
     // Sorted here so no caller disagrees about the order.
-    function listPlaylists(cb) {
+    function listPlaylists(cb): void {
         root._read("listplaylists", ["playlist"], function (records) {
             records.sort((a, b) => a.playlist.localeCompare(b.playlist));
             cb(records);
@@ -548,7 +548,7 @@ Singleton {
     /// Add then play it by the Id `addid` answers with. Two round trips, not a
     /// command list — but playing by Id rather than position means nothing
     /// queued in between can shift which song that is.
-    function addAndPlay(uri) {
+    function addAndPlay(uri): void {
         root.send("addid " + root.q(uri), function (lines, err) {
             if (err) return;
             var kv = root.parseKV(lines);
@@ -631,14 +631,12 @@ Singleton {
     // hanging up. Measured: six live MPD state changes with no reload in
     // between produce none at all. Reach.qml's socket logs the same way.
 
-    function _onIdleLine(line) {
+    function _onIdleLine(line): void {
         if (line.indexOf("OK MPD ") === 0) { root._arm(); return; }
         if (line.indexOf("changed: ") === 0) {
             root._idleChanges.push(line.substring(9));
             return;
         }
-        if (line !== "OK" && line.indexOf("ACK ") !== 0) return;
-
         // An ACK here means MPD refused the `idle` line itself — an older server
         // rejecting one of the subsystems we ask for. Re-arming immediately
         // rewrites the command that just failed, which is an unbounded tight
@@ -650,6 +648,7 @@ Singleton {
             idleRetry.restart();
             return;
         }
+        if (line !== "OK") return;
 
         var subs = root._idleChanges;
         root._idleChanges = [];

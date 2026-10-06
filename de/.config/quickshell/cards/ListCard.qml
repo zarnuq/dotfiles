@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// One entry in a card's list (Calendar's events, Notifications' history): a
+// One entry in a card's list (Calendar's events): a
 // flat surface0 slab whose height follows its content. Children go into a
 // Column inset `hMargin` from each side, with s(8) above and below; `accent`
 // draws a left-edge strip in that colour (Calendar's per-day rainbow).

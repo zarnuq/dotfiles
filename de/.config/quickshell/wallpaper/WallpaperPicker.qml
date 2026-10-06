@@ -174,7 +174,7 @@ Picker {
                             required property string modelData
                             required property int index
                             width: root.s(190); height: root.s(34)
-                            color: index === root.catIndex ? Theme.rowSelectBg : "transparent"
+                            color: catRow.index === root.catIndex ? Theme.rowSelectBg : "transparent"
 
                             MouseArea {
                                 anchors.fill: parent

@@ -16,7 +16,7 @@ Item {
     required property var view
 
     // Drawn heads: everything in the preset, plus any live head not in it.
-    readonly property var entries: view.working
+    readonly property var entries: root.view.working
 
     // --- fit ----------------------------------------------------------------
     // Recomputed from the working copy, so dragging a head past the edge

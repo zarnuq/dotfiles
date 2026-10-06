@@ -51,14 +51,19 @@ Singleton {
     function nudge(d): void    { if (_sinkAudio) _wantSink = _step(_sinkAudio, _wantSink, d); }
     function nudgeMic(d): void { if (_sourceAudio) _wantMic = _step(_sourceAudio, _wantMic, d); }
 
-    // Cycle the default between the EQ chains (sink-eq.conf). The switch itself
-    // stays in flip.sh: the optical chain needs a card profile flipped first and
-    // playing streams moved, both pactl jobs Quickshell has no API for.
+    // Make the sink named `name` the default (here and from the mixer). The
+    // switch itself stays in flip.sh: the optical chain needs a card profile
+    // flipped first and playing streams moved, both pactl jobs Quickshell has no
+    // API for.
+    function useSink(name): void {
+        Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/flip.sh", "set", name]);
+    }
+
+    // Cycle the default between the EQ chains (sink-eq.conf).
     function flip(): void {
         var eq = Pipewire.nodes.values.filter(n => n.isSink && !n.isStream && n.name.startsWith("effect_input.eq_"))
                                       .map(n => n.name).sort();
         if (!eq.length) return;
-        var next = eq[(eq.indexOf(sink ? sink.name : "") + 1) % eq.length];
-        Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/flip.sh", "set", next]);
+        root.useSink(eq[(eq.indexOf(sink ? sink.name : "") + 1) % eq.length]);
     }
 }

@@ -22,7 +22,7 @@ Item {
 
     /// `keepCursor` is for re-reading the level already in view: descending is
     /// what should land you at the top, a background rescan is not.
-    function load(next, keepCursor) {
+    function load(next, keepCursor): void {
         root.busy = true;
         root.path = next;
         root.client.lsinfo(next, function (records) {
@@ -98,7 +98,7 @@ Item {
     /// the playlist the same way it expands one into the queue. A stored
     /// playlist row is not a URI, so it offers nothing.
     function selectionUris() {
-        var row = root.rows[list.cursor];
+        var row = list.current;
         if (!row || row._type === "up" || row._type === "playlist") return [];
         var uri = root.uriOf(row);
         return uri ? [uri] : [];

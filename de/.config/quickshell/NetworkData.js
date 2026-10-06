@@ -19,7 +19,7 @@ function tsplit(line) {
 
 function parseState(text) {
     var lines = text.split("\n");
-    var conns = [], dev = "", radio = false, eths = [], devStates = {};
+    var conns = [], devStates = {};
 
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -27,48 +27,13 @@ function parseState(text) {
         var tag = line.substring(0, 2);
         var f = tsplit(line.substring(2));
 
-        if (tag === "C:") {
-            // UUID is the identity: NM permits several connections with the
-            // same name, and activating by name could select the wrong one.
-            conns.push({ name: f[0], uuid: f[1], type: f[2], device: f[3], state: f[4] });
-        } else if (tag === "D:") {
-            devStates[f[0]] = f[2];
-            if (f[1] === "wifi" && dev === "") dev = f[0];
-            // Keep unavailable wired devices so the menu can say "no cable".
-            else if (f[1] === "ethernet") eths.push({ dev: f[0], state: f[2] });
-        } else if (tag === "R:") {
-            radio = line.substring(2) === "enabled";
-        }
+        // UUID is the identity: NM permits several connections with the
+        // same name, and activating by name could select the wrong one.
+        if (tag === "C:") conns.push({ name: f[0], uuid: f[1], type: f[2], device: f[3], state: f[4] });
+        else if (tag === "D:") devStates[f[0]] = f[2];
     }
 
-    return { conns: conns, wifiDev: dev, eths: eths, devStates: devStates, radioOn: radio };
-}
-
-function parseAps(text) {
-    var lines = text.split("\n");
-    var aps = {};
-    for (var i = 0; i < lines.length; i++) {
-        if (lines[i] === "") continue;
-        var f = tsplit(lines[i]);
-        var ssid = f[3];
-        if (!ssid) continue;              // hidden network: nothing to click
-        var sig = parseInt(f[1]) || 0;
-        // Keep the strongest AP per SSID without losing a weaker AP's in-use
-        // marker. The same SSID can appear on several bands or access points.
-        var prev = aps[ssid];
-        if (!prev || sig > prev.signal)
-            aps[ssid] = { ssid: ssid, signal: sig, security: f[2],
-                          inUse: (f[0] === "*") || (prev ? prev.inUse : false) };
-        else if (f[0] === "*") prev.inUse = true;
-    }
-
-    var list = [];
-    for (var k in aps) list.push(aps[k]);
-    list.sort(function (a, b) {
-        if (a.inUse !== b.inUse) return a.inUse ? -1 : 1;
-        return b.signal - a.signal;
-    });
-    return list;
+    return { conns: conns, devStates: devStates };
 }
 
 // ~/VPNs configs as `sha256sum` prints them — "<hash>  <path>" — into
@@ -114,12 +79,13 @@ function buildRows(state) {
             var d = state.eths[e];
             var on = connOn(state.conns, d.dev);
             var up = on !== "";
-            r.push({ kind: "eth", dev: d.dev, state: d.state, active: up,
+            r.push({ kind: "eth", dev: d.dev, device: d.device, noCable: d.noCable, active: up,
                      label: up ? on : d.dev,
                      // Plugged, unplugged, or up: three states worth telling
                      // apart at a glance.
-                     icon: up ? "󰈁" : d.state === "unavailable" ? "󰈂" : "󰈀",
-                     trailing: up ? "connected" : d.state === "unavailable" ? "no cable" : d.state });
+                     icon: up ? "󰈁" : d.noCable ? "󰈂" : "󰈀",
+                     trailing: up ? "connected" : d.noCable ? "no cable"
+                             : d.connected ? "connected" : "disconnected" });
         }
     }
     if (state.wifiDev !== "") {

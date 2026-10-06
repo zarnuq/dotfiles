@@ -4,9 +4,9 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Reactive system metrics (all 0..100 except temps), polled every 2s.
-// Analog of eww's EWW_CPU/EWW_RAM/EWW_DISK magic vars + the nvidia-smi / thermal defpolls,
-// but CPU and RAM are read straight from /proc (no subprocess) to show the "native" win.
+// Reactive system metrics (all 0..100 except temps), every 2s (disk: 60s).
+// Analog of eww's EWW_CPU/EWW_RAM/EWW_DISK magic vars + the nvidia-smi / thermal
+// defpolls, but CPU, RAM and CPU temp are plain file reads (no subprocess).
 //
 // Only the CPU card reads this, and a singleton is built on first reference —
 // so a machine with that card off never runs any of it. The battery lives in
@@ -50,29 +50,34 @@ Singleton {
         root.ram = (1 - avail / total) * 100;
     }
 
-    // ---- external tools (need the binary; run as short-lived processes) ---
+    // ---- external tools ----------------------------------------------------
     // No nvidia, no nvidia-smi: without this the tick forks a process that can
     // only fail, every 2s for the life of the session (~43k times a day on the
     // laptop). Same trick as Config's BAT0 probe — ask the kernel once.
     FileView { id: nvidiaProbe; path: "/proc/driver/nvidia/version"; blockLoading: true; printErrors: false }
     readonly property bool gpuPresent: nvidiaProbe.text().length > 0
 
-    // Poll's default interval is the same 2s beat as the /proc reads below.
-    Poll {
+    // One long-lived nvidia-smi printing a line every 2s: starting it is the
+    // expensive part, so forking it per tick cost far more than the query.
+    Process {
         running: root.gpuPresent
         command: ["nvidia-smi",
                   "--query-gpu=utilization.gpu,temperature.gpu",
-                  "--format=csv,noheader,nounits"]
-        onData: text => {
-            var p = text.trim().split(",");
-            root.gpu = Number(p[0]) || 0;
-            root.gpuTemp = Number(p[1]) || 0;
+                  "--format=csv,noheader,nounits", "-lms", "2000"]
+        stdout: SplitParser {
+            onRead: line => {
+                var p = line.split(",");
+                root.gpu = Number(p[0]) || 0;
+                root.gpuTemp = Number(p[1]) || 0;
+            }
         }
     }
 
     // Use% of `/`: line 2, column 5 ("42%"). Parsed here rather than by a
-    // shell pipeline, which cost an sh and an awk on every tick.
+    // shell pipeline, which cost an sh and an awk on every tick. Disk usage
+    // barely moves, so once a minute is plenty.
     Poll {
+        interval: 60000
         command: ["df", "-P", "/"]
         onData: text => {
             var f = (text.split("\n")[1] || "").trim().split(/\s+/);
@@ -80,14 +85,21 @@ Singleton {
         }
     }
 
-    // Mean of every thermal zone, in millidegrees. The shell is only there for
-    // the glob.
-    Poll {
-        command: ["sh", "-c", "cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null"]
-        onData: text => {
-            var t = text.split("\n").filter(l => l.trim() !== "").map(Number);
-            root.cpuTemp = t.length ? Math.round(t.reduce((a, b) => a + b, 0) / t.length / 1000) : 0;
-        }
+    // CPU package sensor. Thermal zones are no good here: averaging them mixed
+    // in acpitz (a static board reading) and iwlwifi. hwmon numbering isn't
+    // stable across boots, so find the CPU driver's node once — coretemp's
+    // temp1 is Package id 0, k10temp's is Tctl — then read it like /proc.
+    Process {
+        running: true
+        command: ["sh", "-c", "for h in /sys/class/hwmon/hwmon*; do case $(cat $h/name) in coretemp|k10temp|zenpower) echo $h/temp1_input; exit;; esac; done"]
+        stdout: StdioCollector { onStreamFinished: tempFile.path = text.trim() }
+    }
+    FileView { id: tempFile; blockLoading: true; printErrors: false }
+
+    function readTemp(): void {
+        if (!tempFile.path) return;
+        tempFile.reload();
+        root.cpuTemp = Math.round(Number(tempFile.text()) / 1000) || 0;
     }
 
     Timer {
@@ -95,6 +107,6 @@ Singleton {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: { root.readCpu(); root.readRam(); }
+        onTriggered: { root.readCpu(); root.readRam(); root.readTemp(); }
     }
 }

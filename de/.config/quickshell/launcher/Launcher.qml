@@ -9,8 +9,7 @@ import ".."
 // sigil modes on the same query: "/" searches $HOME instead of the app list and
 // opens the hit in nvim (directories in yazi), and ">" lists the shell's own
 // menus and actions — the one place that answers "what can this thing open?"
-// without knowing a keybind. Both cost nothing to add, since no app name
-// begins with either character.
+// without knowing a keybind.
 // Triggered by IPC so the reach keybind is just `qs ipc call launcher toggle`.
 // Picker owns the overlay, the IPC target and the focused-monitor logic; this
 // file is just the query, the list, and the keys. The corpus and the ranking

@@ -1,17 +1,21 @@
 pragma ComponentBehavior: Bound
-import Quickshell
 import Quickshell.Io
+import Quickshell.Networking
 import QtQuick
 import "NetworkData.js" as NetworkData
 
 // Wi-Fi + VPN menu (Super+R N / `qs ipc call network toggle`), replacing the
 // floating kitty running nmtui. Picker supplies overlay, focus and IPC; this
-// file is the list, the keys and the nmcli wiring, NetworkData.js the logic.
+// file is the list, the keys and the wiring, NetworkData.js the logic.
+//
+// Devices, the radio and Wi-Fi are native Quickshell.Networking (NM over
+// D-Bus): live, and scanned only while the menu is open. The module has no VPN
+// support, so the tunnels — and the ~/VPNs mirror below — still go through nmcli.
 //
 // Every tunnel is an NM profile, up and down by UUID — `~/VPNs` is mirrored
 // into NM (`*.ovpn` → openvpn, `*.conf` → wireguard; changed files re-import,
 // vanished ones are removed). Nothing here elevates: `con up`/`con down`/
-// `device wifi connect`/`con import` are permitted unprivileged. `con mod`
+// `con import` are permitted unprivileged. `con mod`
 // would silently drop stored secrets without doas, so this menu never
 // modifies an existing profile. History and routing notes: CLAUDE.md.
 Picker {
@@ -19,21 +23,41 @@ Picker {
 
     ipcTarget: "network"
 
-    // ── state, polled only while the menu is open ────────────────────────
+    // ── state ────────────────────────────────────────────────────────────
+    readonly property var devices: Networking.devices.values
+    readonly property WifiDevice wifi: root.devices.find(d => d.type === DeviceType.Wifi) || null
+    readonly property bool radioOn: Networking.wifiEnabled
+
+    Binding {
+        when: root.wifi !== null
+        target: root.wifi
+        property: "scannerEnabled"
+        value: root.open && root.radioOn
+    }
+
+    // One row per SSID (NM already groups the APs), connected first, then by
+    // signal. A hidden network has no name and nothing to click.
+    readonly property var aps: {
+        if (!root.wifi) return [];
+        return root.wifi.networks.values.filter(n => n.name !== "").map(n => ({
+            net: n, ssid: n.name, signal: Math.round(n.signalStrength * 100),
+            security: n.security !== WifiSecurityType.Open, inUse: n.connected
+        })).sort((a, b) => (b.inUse - a.inUse) || (b.signal - a.signal));
+    }
+
+    readonly property var eths: root.devices.filter(d => d.type === DeviceType.Wired).map(d => ({
+        dev: d.name, device: d, noCable: !d.hasLink, connected: d.connected
+    }))
+
+    // VPN state from nmcli, polled only while the menu is open: connections,
+    // plus device states (a wg-quick link shows as "connected (externally)").
     property var conns: []          // [{ name, uuid, type, device, state }]
-    property bool nmSeen: false     // has a real nmcli snapshot landed yet?
-    property var aps: []            // [{ ssid, signal, security, inUse }]
-    property string wifiDev: ""     // "" when this machine has no Wi-Fi at all
-    property var eths: []           // [{ dev, state }] — ethernet, cable or not
     property var devStates: ({})    // device name -> NM state string
-    property bool radioOn: false
+    property bool nmSeen: false     // has a real nmcli snapshot landed yet?
     property bool filesSeen: false  // only successful source listings allow cleanup
     property var ovpnFiles: []      // [{name, file, hash, kind}] — ~/VPNs configs
     property string status: ""
 
-    // Connections, devices and the radio switch: one `sh -c`, ~25ms, because
-    // they are one snapshot and three separate timers would show a torn one.
-    // Each line is tagged so a single parser can sort them out.
     Poll {
         id: nm
         running: root.open
@@ -42,64 +66,19 @@ Picker {
             "export LC_ALL=C; " +
             "c=$(nmcli -t -f NAME,UUID,TYPE,DEVICE,STATE connection show) || exit; " +
             "d=$(nmcli -t -f DEVICE,TYPE,STATE device) || exit; " +
-            "r=$(nmcli -t radio wifi) || exit; " +
             "printf '%s\\n' \"$c\" | sed 's/^/C:/'; " +
             "printf '%s\\n' \"$d\" | sed 's/^/D:/'; " +
-            "printf 'R:%s\\nS:ok\\n' \"$r\""]
+            "printf 'S:ok\\n'"]
         onData: text => {
             if (!text.endsWith("S:ok\n")) { root.nmSeen = false; return; }
             var snapshot = NetworkData.parseState(text);
             root.conns = snapshot.conns;
-            root.wifiDev = snapshot.wifiDev;
-            root.eths = snapshot.eths;
             root.devStates = snapshot.devStates;
-            root.radioOn = snapshot.radioOn;
             root.nmSeen = true;
             // An action clears nmSeen and refreshes, so this is also what walks
             // several new files through import one after another.
             Qt.callLater(root.importNext);
         }
-    }
-
-    // The AP list is deliberately NOT in that command. `device wifi list`
-    // defaults to `--rescan auto`, which BLOCKS for ~3.4s whenever the scan
-    // cache is older than 30s (24ms when it's fresh) — and as the last command
-    // in a shared `sh -c` it held back the whole snapshot with it, so an open
-    // with a cold cache drew a menu with no Wi-Fi and no wired rows at all.
-    // `--rescan no` reads the cache and always returns at once; asking for the
-    // scan itself is what the timer below does, out of band.
-    Poll {
-        id: scan
-        running: root.open
-        interval: 5000
-        command: ["nmcli", "-t", "-f", "IN-USE,SIGNAL,SECURITY,SSID", "device", "wifi", "list", "--rescan", "no"]
-        onData: text => {
-            var list = NetworkData.parseAps(text);
-            root.aps = list;
-            // Only a list with something in it ends the "scanning…" state: the
-            // first tick after a rescan request usually lands before NM has any
-            // results, and calling that "done" would flash an empty list as final.
-            if (list.length > 0) root.scanning = false;
-        }
-    }
-
-    // The scan request, detached: it takes seconds, nothing waits on it, and
-    // the next tick of `scan` picks up whatever it found. Fired on open (a
-    // menu you just opened should be looking for networks) and every 15s after.
-    property bool scanning: false
-    Timer {
-        running: root.open && root.wifiDev !== ""
-        interval: 15000
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: root.rescan()
-    }
-    function rescan(): void {
-        if (root.wifiDev === "") return;
-        root.scanning = true;
-        // Fails harmlessly ("scanning not allowed immediately following
-        // previous scan") if NM is already mid-scan; detached, so nobody cares.
-        Quickshell.execDetached(["nmcli", "device", "wifi", "rescan"]);
     }
 
     // Lab configs on disk. Their *state* comes from the nmcli snapshot like
@@ -126,7 +105,7 @@ Picker {
         conns: root.conns,
         devStates: root.devStates,
         eths: root.eths,
-        wifiDev: root.wifiDev,
+        wifiDev: root.wifi ? root.wifi.name : "",
         radioOn: root.radioOn,
         aps: root.aps
     })
@@ -198,7 +177,31 @@ Picker {
     // ── actions ──────────────────────────────────────────────────────────
     // The menu stays open across one: joining a network takes seconds, and the
     // whole point of the status line is watching it succeed or fail.
-    property string pwSsid: ""      // non-empty = asking for this SSID's key
+    // A Wi-Fi join in flight. NM asks for secrets by failing with NoSecrets;
+    // there is no prompt to answer from a layer surface, so the box grows a
+    // password field and retries. Only once — a wrong key fails the same way,
+    // and a second automatic prompt would look like the first never took.
+    property WifiNetwork joining: null
+    property bool joinHadKey: false
+    property bool askingKey: false  // the bottom bar is a password field for `joining`
+    Connections {
+        target: root.joining
+        function onConnectionFailed(reason): void {
+            var n = root.joining;
+            var psk = [WifiSecurityType.WpaPsk, WifiSecurityType.Wpa2Psk, WifiSecurityType.Sae].indexOf(n.security) !== -1;
+            if (reason === ConnectionFailReason.NoSecrets && !root.joinHadKey && psk) {
+                root.status = "";
+                root.askingKey = true;
+                return;
+            }
+            root.joining = null;
+            root.status = n.name + ": " + ConnectionFailReason.toString(reason);
+        }
+        function onConnectedChanged(): void {
+            if (!root.joining.connected) return;
+            root.cancelJoin();
+        }
+    }
 
     // What the running action was, set by run() for every action, so none of
     // it can leak from one action into the next.
@@ -206,8 +209,6 @@ Picker {
         id: act
         property string vpnUuid: ""  // the `con up` in flight, which `d` can cancel
         property bool cancelling: false
-        property string ssid: ""     // set when the action was an AP join
-        property bool hadKey: false  // ...with a password already supplied
         property var importing: null // the ~/VPNs file, when it was an auto-import
         property string deleteUuid: ""
         stdout: StdioCollector { id: actOut }
@@ -229,25 +230,17 @@ Picker {
                 root.setSource(act.deleteUuid, null);
             }
             if (code === 0 || act.cancelling) {
-                root.clearStatus();
+                root.status = "";
             } else {
                 var err = actErr.text.trim();
                 console.warn("Network action failed (exit " + code + "): " + err);
-                // NM asks for secrets by failing; there is no prompt to answer
-                // from a layer surface, so the box grows a password field and
-                // retries. Only once — a wrong key fails the same way, and a
-                // second automatic prompt would look like the first never took.
-                if (act.ssid !== "" && !act.hadKey && /secret|password|psk|802-11-wireless-security/i.test(err))
-                    root.pwSsid = act.ssid;
-                else
-                    root.status = err.split("\n")[0] || ("failed (exit " + code + ")");
+                root.status = err.split("\n")[0] || ("failed (exit " + code + ")");
             }
             act.vpnUuid = "";
             act.cancelling = false;
             root.nmSeen = false;
             root.filesSeen = false;
             nm.refresh();
-            scan.refresh();      // the in-use marker moves with a join
             ovpn.refresh();
         }
     }
@@ -268,16 +261,14 @@ Picker {
         }
     }
 
-    // `opts` says what the action is, for onExited: { ssid, hadKey } for a
-    // Wi-Fi join, { vpnUuid } for a VPN `con up` (the one `d` can cancel),
-    // { importing } or { deleteUuid } for the ~/VPNs mirror.
+    // `opts` says what the action is, for onExited: { vpnUuid } for a VPN
+    // `con up` (the one `d` can cancel), { importing } or { deleteUuid } for
+    // the ~/VPNs mirror.
     function run(cmd, note, opts): void {
         if (act.running || cancelVpn.running) return;
         opts = opts || {};
         act.vpnUuid = opts.vpnUuid || "";
         act.cancelling = false;
-        act.ssid = opts.ssid || "";
-        act.hadKey = opts.hadKey === true;
         act.importing = opts.importing || null;
         act.deleteUuid = opts.deleteUuid || "";
         root.status = note;
@@ -289,20 +280,19 @@ Picker {
         if (!selectable(i)) return;
         var row = rows[i];
         if (row.kind === "radio") {
-            root.run(["nmcli", "radio", "wifi", root.radioOn ? "off" : "on"],
-                     root.radioOn ? "turning Wi-Fi off…" : "turning Wi-Fi on…");
+            Networking.wifiEnabled = !root.radioOn;
         } else if (row.kind === "ap") {
             if (row.ap.inUse) return;             // already on it; `d` disconnects
-            root.join(row.ap.ssid);
+            root.join(row.ap.net);
         } else if (row.kind === "eth") {
             if (row.active) return;
-            // "unavailable" is NM's word for no carrier. `device connect` would
-            // sit there failing on it, so say what's actually wrong instead.
-            if (row.state === "unavailable") { root.status = row.dev + ": no cable"; return; }
-            // `device connect` picks the device's best saved profile ("Wired
-            // connection 1", or whatever autoconnect would have used) rather
-            // than this menu deciding which profile an interface deserves.
-            root.run(["nmcli", "device", "connect", row.dev], "connecting " + row.dev + "…");
+            // Connecting a device with no carrier would sit there failing, so
+            // say what's actually wrong instead.
+            if (row.noCable || !row.device.network) { root.status = row.dev + ": no cable"; return; }
+            // The wired network activates the device's best saved profile
+            // ("Wired connection 1", or whatever autoconnect would have used)
+            // rather than this menu deciding which one an interface deserves.
+            row.device.network.connect();
         } else if (row.kind === "nmvpn") {
             // Enter only ever connects — `d` is the one way down, for every row
             // kind here. Toggling on Return put the always-on homelab tunnel one
@@ -314,28 +304,25 @@ Picker {
         }
     }
 
-    // `device wifi connect` reuses the saved profile for this SSID if there is
-    // one, which is what keeps eduroam working: its profile is named "eduroam
-    // [a8f5604d]", so matching by connection name would miss it and try to
-    // create a second profile.
-    function join(ssid, pw): void {
-        var cmd = ["nmcli", "device", "wifi", "connect", ssid];
-        // The key rides in argv, where it is readable in /proc for the life of
-        // the call. nmcli has no way to take it on stdin or from a file, and
-        // NM stores it itself afterwards, so this happens once per network.
-        if (pw !== undefined) cmd.push("password", pw);
-        root.run(cmd, "connecting to " + ssid + "…", { ssid: ssid, hadKey: pw !== undefined });
+    // connect() reuses the saved profile for this SSID if there is one, which
+    // is what keeps eduroam working (its profile is named "eduroam [a8f5604d]").
+    function join(net, pw): void {
+        root.joining = net;
+        root.joinHadKey = pw !== undefined;
+        root.askingKey = false;
+        root.status = "connecting to " + net.name + "…";
+        if (pw === undefined) net.connect(); else net.connectWithPsk(pw);
     }
 
-    function clearStatus(): void { root.status = ""; root.pwSsid = ""; }
+    function cancelJoin(): void { root.joining = null; root.askingKey = false; root.status = ""; }
 
     function disconnect(i): void {
         if (!selectable(i)) return;
         var row = rows[i];
         if (row.kind === "eth" && row.active)
-            root.run(["nmcli", "device", "disconnect", row.dev], "disconnecting " + row.dev + "…");
-        else if (row.kind === "ap" && root.wifiDev !== "")
-            root.run(["nmcli", "device", "disconnect", root.wifiDev], "disconnecting…");
+            row.device.disconnect();
+        else if (row.kind === "ap" && root.wifi)
+            root.wifi.disconnect();
         else if (row.kind === "nmvpn" && (row.active || row.connecting || act.vpnUuid === row.uuid)) {
             if (act.running && act.vpnUuid === row.uuid && !cancelVpn.running) {
                 act.cancelling = true;
@@ -355,7 +342,7 @@ Picker {
             root.importTried = ({});
             root.deleteTried = ({});
         }
-        else root.clearStatus();
+        else root.cancelJoin();
     }
 
     box: Component {
@@ -363,12 +350,11 @@ Picker {
             id: list
             picker: root
 
-            onResetting: root.pwSsid = ""
+            onResetting: root.askingKey = false
 
             onExtraKey: function (e) {
                 var plain = !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier));
                 if (e.key === Qt.Key_D && plain) { root.disconnect(root.selected); }
-                else if (e.key === Qt.Key_R && plain) { root.rescan(); }
                 else { return; }
                 e.accepted = true;
             }
@@ -376,7 +362,7 @@ Picker {
             // Everything a row shows is stamped on it by NetworkData.buildRows.
             rowDelegate: PickerRow {
                 id: rowItem
-                readonly property bool active: modelData.active === true
+                readonly property bool active: rowItem.modelData.active === true
 
                 picker: root
                 width: parent.width
@@ -384,7 +370,6 @@ Picker {
                 onActivated: root.activate(rowItem.index)
 
                 icon: rowItem.isHeader ? "" : rowItem.modelData.icon
-                iconColor: (rowItem.active || rowItem.sel) ? Theme.mauve : Theme.subtext0
                 label: rowItem.isHeader ? "" : rowItem.modelData.label
                 trailing: rowItem.isHeader ? "" : rowItem.modelData.trailing
                 trailingWidth: root.s(90)
@@ -398,12 +383,11 @@ Picker {
             // line, else the keys.
             Txt {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: root.pwSsid === ""
+                visible: !root.askingKey
                 text: root.status !== "" ? root.status
                       : root.warning !== "" ? root.warning
-                      : (root.radioOn && root.aps.length === 0)
-                        ? (root.scanning ? "scanning…" : "no networks in range")
-                      : "enter connect · d disconnect · r rescan"
+                      : (root.radioOn && root.aps.length === 0) ? "scanning…"
+                      : "enter connect · d disconnect"
                 color: root.status !== "" ? Theme.peach
                        : root.warning !== "" ? Theme.red : Theme.surface1
                 elide: Text.ElideRight
@@ -413,12 +397,12 @@ Picker {
 
             Row {
                 anchors.fill: parent
-                visible: root.pwSsid !== ""
+                visible: root.askingKey
                 spacing: root.s(8)
 
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "󰌾 " + root.pwSsid
+                    text: "󰌾 " + (root.joining ? root.joining.name : "")
                     color: Theme.mauve
                     font.pixelSize: root.s(13)
                 }
@@ -431,13 +415,13 @@ Picker {
                     echoMode: TextInput.Password
                     // The field appears only when NM has asked for a key, so
                     // it takes focus then and hands it back on the way out —
-                    // the list's keys (d, r, j/k) are letters, and they must
+                    // the list's keys (d, j/k) are letters, and they must
                     // not eat a password being typed.
                     onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
-                    onAccepted: { if (root.pwSsid !== "") root.join(root.pwSsid, text); text = ""; }
+                    onAccepted: { if (root.joining) root.join(root.joining, text); text = ""; }
                     Keys.onPressed: function (e) {
                         if (e.key === Qt.Key_Escape) {
-                            root.clearStatus();
+                            root.cancelJoin();
                             list.forceActiveFocus();
                             e.accepted = true;
                         }

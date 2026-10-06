@@ -52,8 +52,6 @@ Scope {
 
         // Into the annotator window (Annotate.qml), which writes ~/Pictures
         // only on Ctrl+S.
-        // Into the annotator window (Annotate.qml), which writes ~/Pictures
-        // only on Ctrl+S.
         function annotate(): void { dump.running = true; }
     }
 
@@ -62,7 +60,7 @@ Scope {
     property string editing: ""
     Process {
         id: dump
-        readonly property string file: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/annotate.png"
+        readonly property string file: Config.runtimeDir + "/annotate.png"
         command: ["bash", "-c", "t=$(wl-paste --list-types 2>/dev/null | grep -m1 '^image/')"
                   + " || { notify-send Screenshot 'No image on the clipboard'; exit 1; }; "
                   + "wl-paste --no-newline --type \"$t\" > \"$1\"", "_", file]

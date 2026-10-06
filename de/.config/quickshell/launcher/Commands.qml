@@ -89,7 +89,7 @@ Singleton {
                 // `.command` on the shake block has no `.key` of its own; that
                 // is the gesture, and it is spelled out rather than left blank.
                 var label = pendingKey === "" ? "shake"
-                          : (chordDepth >= 0 && chordKey !== "" && pendingKey !== chordKey)
+                          : (chordDepth >= 0 && pendingKey !== chordKey)
                             ? root.pretty(chordKey) + "  " + pendingKey
                             : root.pretty(pendingKey);
                 out[cmd[1].trim()] = label;

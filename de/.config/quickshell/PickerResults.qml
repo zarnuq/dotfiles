@@ -1,8 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-// The scrolled list of a picker that drives its own results (the launcher and
-// the clipboard picker): a ListView that follows `picker.selected`, and the
+// The scrolled list of a picker that drives its own results (the launcher, the
+// clipboard picker and the process killer): a ListView that follows `picker.selected`, and the
 // line that stands in for it when there is nothing to show. The caller gives
 // it the model and a delegate; hover and click belong to the delegate
 // (PickerRow, or a PickerHover inside one).

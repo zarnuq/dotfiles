@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import Quickshell
-import Quickshell.Io
+import Quickshell.Bluetooth
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
@@ -34,27 +34,9 @@ Scope {
     }
 
     // Connected Bluetooth devices' names, "" when none (the block hides).
-    // Event-driven rather than polled, because the bar is always up: `gdbus
-    // monitor` prints a line per BlueZ signal and only one about Connected or
-    // Powered re-reads the list (debounced — a connect is a burst of signals),
-    // so an idle bar forks nothing. No adapter or no bluetoothd: gdbus exits,
-    // the list is empty, and the retry timer tries again every 30s.
-    property string bluetooth: ""
-    Poll {
-        id: btList
-        running: false
-        command: ["sh", "-c", "bluetoothctl devices Connected | cut -d' ' -f3-"]
-        onData: text => root.bluetooth = text.trim().split("\n").filter(s => s).join(", ")
-        Component.onCompleted: refresh()
-    }
-    Timer { id: btSettle; interval: 500; onTriggered: btList.refresh() }
-    Process {
-        id: btMon
-        running: true
-        command: ["gdbus", "monitor", "--system", "--dest", "org.bluez"]
-        stdout: SplitParser { onRead: line => { if (/Connected|Powered/.test(line)) btSettle.restart(); } }
-    }
-    Timer { interval: 30000; running: !btMon.running; onTriggered: btMon.running = true }
+    // Native BlueZ tracking, so the always-on bar forks nothing for it.
+    readonly property string bluetooth: Bluetooth.devices.values
+        .filter(d => d.connected).map(d => d.name).join(", ")
 
     // Power owns the battery read shared with the battery card.
     //

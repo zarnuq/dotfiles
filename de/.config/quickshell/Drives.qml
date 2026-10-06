@@ -98,6 +98,8 @@ Picker {
     box: Component {
         PickerList {
             picker: root
+            status: root.status
+            hint: "enter mount / open · u unmount · e eject"
 
             onExtraKey: function (e) {
                 if (e.modifiers & (Qt.ControlModifier | Qt.AltModifier)) return;
@@ -109,7 +111,7 @@ Picker {
 
             rowDelegate: PickerRow {
                 id: rowItem
-                readonly property var fs: isHeader ? null : modelData.fs || null
+                readonly property var fs: rowItem.isHeader ? null : rowItem.modelData.fs || null
 
                 picker: root
                 width: parent.width
@@ -117,23 +119,14 @@ Picker {
                 onActivated: root.activate(rowItem.index)
 
                 icon: rowItem.isHeader ? "" : rowItem.fs ? "󰋊" : "󰕓"
-                iconColor: (rowItem.current || rowItem.sel) ? Theme.mauve : Theme.subtext0
                 label: rowItem.isHeader ? ""
                        : rowItem.fs ? (rowItem.fs.label || rowItem.fs.path) + "  " + rowItem.fs.fstype + " · " + rowItem.fs.size
                        : "no removable drives"
-                trailing: rowItem.fs && rowItem.fs.mountpoint ? rowItem.fs.mountpoint.split("/").pop() : ""
+                trailing: rowItem.current ? rowItem.fs.mountpoint.split("/").pop() : ""
                 trailingWidth: root.s(110)
                 trailingColor: Theme.mauve
             }
 
-            Txt {
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                text: root.status !== "" ? root.status : "enter mount / open · u unmount · e eject"
-                color: root.status !== "" ? Theme.peach : Theme.surface1
-                elide: Text.ElideRight
-                font.pixelSize: root.s(13)
-            }
         }
     }
 }

@@ -26,8 +26,8 @@ alias x='codex'
 alias :q='exit'
 
 function y() {
-  local tmp="$(mktemp -t "lazi-cwd.XXXXXX")" cwd
-  lazi "$@" --cwd-file="$tmp"
+  local tmp="$(mktemp -t "shop-cwd.XXXXXX")" cwd
+  shop "$@" --cwd-file="$tmp"
   if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
     cd -- "$cwd"
   fi
@@ -69,4 +69,4 @@ bindkey -M viins -r '^R'
 bindkey -M vicmd '^R' redo
 
 
-. "$HOME/.local/share/../bin/env"
+[[ -r "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"

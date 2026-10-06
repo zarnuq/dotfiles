@@ -111,6 +111,8 @@ Singleton {
     readonly property string stateDir:
         (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell"
     readonly property string statePath: stateDir + "/features.json"
+    // Sockets and throwaway files (reach.sock, capture/annotate PNGs).
+    readonly property string runtimeDir: Quickshell.env("XDG_RUNTIME_DIR") || "/tmp"
 
     // Only the OFF switches are stored, so the file reads as a list of what
     // this machine doesn't want. In memory it's the same shape: absent = on.

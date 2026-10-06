@@ -17,7 +17,7 @@ Scope {
 
     // No `show`: `qs ipc call <target> show` collides with the `qs ipc show`
     // subcommand — the CLI prints the target listing and never reaches the
-    // handler. Same reason Picker exposes only these two.
+    // handler. Same reason Picker has none.
     IpcHandler {
         target: "music"
         function toggle(): void { root.open = !root.open; }

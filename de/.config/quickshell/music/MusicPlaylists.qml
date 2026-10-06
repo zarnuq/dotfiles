@@ -19,7 +19,7 @@ Item {
     readonly property var rows: root.inPlaylist ? root.songs : root.playlists
     readonly property string status: list.status
 
-    function refresh() {
+    function refresh(): void {
         root.busy = true;
         root.client.listPlaylists(function (records) {
             root.busy = false;
@@ -35,7 +35,7 @@ Item {
 
     // `keepCursor` re-reads in place after an edit; moveTo clamps, so a
     // deleted last row cannot strand the cursor.
-    function _read(keepCursor) {
+    function _read(keepCursor): void {
         root.busy = true;
         root.client.playlistSongs(root.opened, function (records) {
             root.busy = false;

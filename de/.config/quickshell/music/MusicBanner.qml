@@ -6,8 +6,8 @@ import ".."
 // controller noticing the queue GREW, so it covers every route in — a/A, Enter,
 // loading a playlist, even an add made from rmpc or mpc while this is open.
 //
-// Opacity only: under QT_QUICK_BACKEND=software there are no shaders, and a
-// fade on a flat rectangle is the one cheap transition available.
+// A fade and a short slide, nothing more: under QT_QUICK_BACKEND=software there
+// are no shaders, and moving or fading a flat rectangle is all that stays cheap.
 Rectangle {
     id: root
 

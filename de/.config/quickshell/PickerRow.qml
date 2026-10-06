@@ -35,7 +35,7 @@ Item {
     property int iconWidth: Config.s(24)
     property int iconSize: Config.s(17)
     property int iconAlign: Text.AlignLeft
-    property color iconColor: Theme.subtext0
+    property color iconColor: (root.current || root.sel) ? Theme.mauve : Theme.subtext0
 
     property string label: ""
     property int labelSize: Config.s(15)

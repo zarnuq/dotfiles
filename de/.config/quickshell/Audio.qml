@@ -1,5 +1,4 @@
 pragma ComponentBehavior: Bound
-import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
 
@@ -133,7 +132,7 @@ Picker {
         // first, and already-playing streams have to be moved by hand (a new
         // default only catches future ones). That logic already lives in the
         // script Alt+[ uses — duplicating it here would let the two drift.
-        Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/flip.sh", "set", row.node.name]);
+        Volume.useSink(row.node.name);
     }
 
     box: Component {
@@ -153,12 +152,12 @@ Picker {
 
             rowDelegate: PickerRow {
                 id: rowItem
-                readonly property var audio: isHeader ? null : modelData.node.audio
-                readonly property bool muted: audio ? audio.muted : false
-                readonly property int pct: audio ? Math.round(root.levelOf(modelData.node) * 100) : 0
+                readonly property var audio: rowItem.isHeader ? null : rowItem.modelData.node.audio
+                readonly property bool muted: rowItem.audio ? rowItem.audio.muted : false
+                readonly property int pct: rowItem.audio ? Math.round(root.levelOf(rowItem.modelData.node) * 100) : 0
                 // Only a sink or source can be either default.
-                readonly property bool isDefault: !isHeader
-                    && (modelData.node === Volume.sink || modelData.node === Volume.source)
+                readonly property bool isDefault: !rowItem.isHeader
+                    && (rowItem.modelData.node === Volume.sink || rowItem.modelData.node === Volume.source)
 
                 picker: root
                 width: parent.width

@@ -1,8 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-// The query row of a picker that filters as you type (the launcher and the
-// clipboard picker): the entry, its placeholder, and the keys every such
+// The query row of a picker that filters as you type (the launcher, the
+// clipboard picker and the process killer): the entry, its placeholder, and the keys every such
 // picker shares.
 //
 // Every navigation key is handled here because the field keeps focus the whole
@@ -53,7 +53,7 @@ Item {
     // of them.
     Txt {
         anchors.fill: parent
-        anchors.leftMargin: root.margin + (field.text === "" ? 0 : field.contentWidth + 10)
+        anchors.leftMargin: root.margin + (field.text === "" ? 0 : field.contentWidth + root.picker.s(10))
         anchors.rightMargin: root.margin
         verticalAlignment: Text.AlignVCenter
         visible: root.placeholderShown

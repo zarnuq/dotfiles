@@ -46,7 +46,7 @@ Item {
         return hit;
     }
 
-    function parse(text) {
+    function parse(text): void {
         if (!text) { root.lines = []; return; }
         var out = [];
         var raw = text.split("\n");

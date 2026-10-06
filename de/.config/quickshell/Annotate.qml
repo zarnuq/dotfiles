@@ -174,7 +174,7 @@ FloatingWindow {
             e.accepted = true;
         }
 
-        // Zoom is a multiple of fit (1 = fit, as before), toward the cursor. The
+        // Zoom is a multiple of fit (1 = fit), toward the cursor. The
         // image may overflow the view; nothing clips it (the software renderer
         // doesn't nest clips, and the mosaics clip themselves), the bar's
         // backdrop and the window edge hide it instead. The Canvas stays
@@ -338,7 +338,7 @@ FloatingWindow {
                 active: root.after !== ""
                 sourceComponent: Item {
                     id: out
-                    readonly property string file: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/annotated.png"
+                    readonly property string file: Config.runtimeDir + "/annotated.png"
                     width: root.crop[2]
                     height: root.crop[3]
                     Item {
@@ -348,6 +348,9 @@ FloatingWindow {
                         Image {
                             id: full
                             source: root.src
+                            // Native on purpose: this IS the full-res render. Same
+                            // key as `shot`'s zoomed decode, so a zoomed export reuses it.
+                            sourceSize: Qt.size(root.natW, root.natH)
                             onStatusChanged: if (status === Image.Ready) overlay.requestPaint()
                         }
                         Item {

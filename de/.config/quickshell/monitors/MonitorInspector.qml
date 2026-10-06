@@ -9,9 +9,9 @@ Item {
     id: root
 
     required property var view
-    readonly property int index: view.selected
+    readonly property int index: root.view.selected
     readonly property var mon: root.view.working[root.index] || null
-    readonly property var modes: mon ? view.modesFor(mon.name) : []
+    readonly property var modes: root.mon ? root.view.modesFor(root.mon.name) : []
 
     implicitHeight: Config.s(54)
 

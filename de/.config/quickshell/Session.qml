@@ -212,7 +212,6 @@ Scope {
 
                             MouseArea {
                                 anchors.fill: parent
-                                hoverEnabled: true
                                 onClicked: {
                                     if (btn.isArmed) root.run(btn.index);
                                     else root.armed = btn.index;

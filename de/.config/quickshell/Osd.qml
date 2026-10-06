@@ -71,9 +71,7 @@ Scope {
 
     Connections {
         target: Volume
-        // A new default sink names itself instead of showing a level: switching
-        // sinks changes the volume too, and sinkGuard is what stops the level
-        // OSD from painting over the name in the same frame.
+        // A new default sink names itself instead of showing a level (see sinkGuard).
         function onSinkChanged(): void {
             if (!Volume.sink) return;
             root.sinkGuard = true;
@@ -87,11 +85,8 @@ Scope {
     }
 
     // ---- brightness -------------------------------------------------------
-    // reach owns gamma now (gamma.zig) and publishes the level on its state
-    // socket, so this is a property change rather than a `gdbus monitor`
-    // subprocess tailing a daemon's bus. The `ready` gate above already swallows
-    // the value that arrives with the connection, which is only telling us where
-    // brightness already was.
+    // The `ready` gate above already swallows the value that arrives with the
+    // connection, which is only telling us where brightness already was.
     Connections {
         target: Reach
         function onBrightnessChanged(): void { root.flash("󰃟", Reach.brightness, false); }

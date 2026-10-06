@@ -6,7 +6,7 @@ import QtQuick
 
 // Notification server (replaces mako). Owns org.freedesktop.Notifications,
 // keeps a rolling history + a DND flag. Live popups render in
-// NotificationPopups; history/DND feed the Notifications widget.
+// NotificationPopups; history/DND feed the Notifications menu.
 Singleton {
     id: root
     property bool paused: false        // do-not-disturb

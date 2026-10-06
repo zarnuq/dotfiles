@@ -3,9 +3,9 @@ import Quickshell
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Left bar, 420 wide: stretches from under the brightness widget (150+75) down
-// to the top of the now-playing card, so it absorbs whatever height is left over:
-// anchoring top+bottom stretches it over the bar's leftover space.
+// Left bar, 420 wide: anchored top+bottom from under the brightness widget
+// (150+75) down to the top of the now-playing card, so it absorbs whatever
+// height is left over.
 // ICS calendar via calendar.sh (stdlib Python), polled every 5 min.
 Widget {
     id: root
@@ -17,15 +17,15 @@ Widget {
     property var events: []      // [{ day, time, summary, location, days_from_today }]
 
     // Rainbow by distance from today: red today, peach tomorrow, … mauve from
-    // six days on (and for everything further out). A multi-day event already under way has a negative offset
-    // and counts back from the end (-1 mauve, -7 red), which is what the
-    // script's old colour table did by Python's negative indexing.
+    // six days on (and for everything further out). A multi-day event already
+    // under way has a negative offset and counts back from the end (-1 mauve,
+    // -7 red), which is what the script's old colour table did by Python's
+    // negative indexing.
     readonly property var dayColors: [Theme.red, Theme.peach, Theme.yellow, Theme.green,
                                         Theme.blue, Theme.lavender, Theme.mauve]
     function dayColor(d) { return root.dayColors[d < 0 ? d + 7 : Math.min(d, 6)]; }
 
     Poll {
-        id: poll
         command: [root.script, "events"]
         // calendar.sh caches for 300s, so a shorter interval can only pay for
         // python + a reparse of the ICS to print the same bytes.

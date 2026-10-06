@@ -36,7 +36,7 @@ Item {
         if (root.query !== "") root.run();
     }
 
-    function run() {
+    function run(): void {
         if (root.query === "") { root.results = []; return; }
         root.busy = true;
         var sentQuery = root.query, sentTag = root.tag;
