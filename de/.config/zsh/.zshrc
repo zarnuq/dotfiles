@@ -26,8 +26,8 @@ alias x='codex'
 alias :q='exit'
 
 function y() {
-  local tmp="$(mktemp -t "shop-cwd.XXXXXX")" cwd
-  shop "$@" --cwd-file="$tmp"
+  local tmp="$(mktemp -t "lazi-cwd.XXXXXX")" cwd
+  lazi "$@" --cwd-file="$tmp"
   if cwd="$(cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
     cd -- "$cwd"
   fi
