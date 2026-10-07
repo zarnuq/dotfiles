@@ -4,7 +4,7 @@
     // Panels in tab order; the first has focus at start.
     //   Files(config, dir): the file browser. config None reads lazi/files.ron as usual, dir None is
     //   lazi's working directory. Its config is per process, so a second Files panel uses the first's.
-    //   Git(roots, depth, fetch_every, symbols, style, keys): repos found under each root, with
+    //   Git(roots, fetch_every, symbols, style, keys): repos found under each root, with
     //   zhimmer's status symbols. Keys are the panel's own; Run's $1 is the repo's path.
     // Reopen the tabs lazi had when it last quit (saved in ~/.local/state/lazi/session). Tab 1
     // always opens where lazi is started, or in DIR; the other files tabs keep their folders until
@@ -36,10 +36,13 @@
             },
         ),
         Git(
-            roots: ["~"],
-            // Levels below each root to search; 2 finds ~/Projects/x but not repos kept deeper
-            // (notes, downloads of downloads). Hidden directories and repos inside repos are skipped.
-            depth: 2,
+            // Folders to track, each searched `depth` levels down: 2 finds ~/Projects/x but not
+            // repos kept deeper (notes, downloads of downloads). Hidden directories and repos inside
+            // repos are skipped. Depth 0 tracks the folder itself, for one repo kept deeper. To track
+            // only some folders: [(path: "~/Projects", depth: 1), (path: "~/CCSO", depth: 1)].
+            roots: [
+                (path: "~", depth: 2),
+            ],
             // Seconds between background fetch rounds.
             fetch_every: 300,
             symbols: (
@@ -55,6 +58,12 @@
                 error: (fg: "#f38ba8"),
                 // A background, not reversed: reversing turns every coloured span into a block.
                 cursor: (bg: "#45475a"),
+                // The status view's diff: whole rows coloured for added and removed lines, as in
+                // delta.
+                added: (bg: "#1e3a29"),
+                removed: (bg: "#4a2228"),
+                hunk: (fg: "#89b4fa"),
+                line_number: (fg: "#6c7086"),
             ),
             keys: {
                 "j": Down, "k": Up, "Down": Down, "Up": Up, "g g": Top, "G": Bottom,
@@ -62,13 +71,35 @@
                 "r": Refresh,
                 "?": Help,
                 "g l": Run(run: "lazygit", block: true),
-                // Everything uncommitted, staged or not, in git's pager; q comes back.
-                "d": Run(run: "git diff HEAD", block: true),
+                // The repo's status, like magit's: stage, unstage, discard and diff file by file.
+                "d": Status,
                 "p": Run(run: "git pull --ff-only", block: true),
                 "P": Run(run: "git push", block: true),
                 "t": Run(run: r#"kitty --directory "$1""#, block: false),
                 "c": Run(run: r#"kitty --directory "$1" claude"#, block: false),
                 "x": Run(run: r#"kitty --directory "$1" codex"#, block: false),
+            },
+            // In the status view. Run's $1 is the repo and $2 the file under the cursor; staging
+            // and commits made by a detached Run show up by themselves.
+            status_keys: {
+                "j": Down, "k": Up, "Down": Down, "Up": Up, "g g": Top, "G": Bottom,
+                // The diff on the right.
+                "J": Scroll(5), "K": Scroll(-5), "Ctrl+d": Scroll(20), "Ctrl+u": Scroll(-20),
+                "s": Stage, "u": Unstage,
+                // Asks for x again before throwing anything away.
+                "x": Discard,
+                "Enter": Open,
+                "r": Refresh,
+                "q": Close, "Esc": Close, "h": Close,
+                "?": Help,
+                "S": Run(run: "git add -A", block: false),
+                "U": Run(run: "git reset -q", block: false),
+                "c": Run(run: "git commit", block: true),
+                "A": Run(run: "git commit --amend", block: true),
+                // Everything uncommitted, staged or not, in git's pager; q comes back.
+                "d": Run(run: "git diff HEAD", block: true),
+                "p": Run(run: "git pull --ff-only", block: true),
+                "P": Run(run: "git push", block: true),
             },
         ),
     ],
