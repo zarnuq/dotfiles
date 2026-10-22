@@ -50,7 +50,7 @@ Picker {
 
             rowDelegate: PickerRow {
                 id: rowItem
-                readonly property bool on_: !isHeader && Config.on(modelData.key)
+                readonly property bool on_: !rowItem.isHeader && Config.on(rowItem.modelData.key)
 
                 picker: root
                 width: parent.width

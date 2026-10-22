@@ -60,7 +60,7 @@ Scope {
         PanelWindow {
             id: badge
             required property var modelData
-            screen: modelData
+            screen: badge.modelData
             visible: root.identifying
 
             color: "transparent"

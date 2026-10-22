@@ -17,7 +17,6 @@ Picker {
     rowHeight: s(30)
 
     readonly property int queryHeight: s(46)
-    readonly property int footerHeight: s(28)
 
     property var procs: []        // [{pid, user, cpu, mem, args}]
     property string query: ""
@@ -115,7 +114,7 @@ Picker {
                 id: list
                 picker: root
                 width: parent.width
-                height: parent.height - root.queryHeight - root.footerHeight - 2
+                height: parent.height - root.queryHeight - footer.height - 1
                 model: root.results
                 emptyText: root.procs.length === 0 ? "listing…" : "no matches"
                 emptySize: root.s(14)
@@ -140,33 +139,11 @@ Picker {
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
-
-            Item {
-                width: parent.width
-                height: root.footerHeight
-
-                Txt {
-                    anchors.left: parent.left
-                    anchors.leftMargin: root.s(12)
-                    anchors.right: hint.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.status !== "" ? root.status
-                          : root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0"
-                    color: root.status !== "" ? Theme.peach : Theme.surface1
-                    elide: Text.ElideRight
-                    font.pixelSize: root.s(11)
-                }
-
-                Txt {
-                    id: hint
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.s(12)
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "⏎ TERM   ^k KILL   tab mark"
-                    color: Theme.surface1
-                    font.pixelSize: root.s(11)
-                }
+            PickerFooter {
+                id: footer
+                picker: root
+                status: root.status
+                hint: "⏎ TERM   ^k KILL   tab mark"
             }
         }
     }

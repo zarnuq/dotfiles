@@ -25,7 +25,6 @@
     vscode
     tree-sitter # nvim-treesitter (main branch) needs the CLI to compile parsers
     termius
-    nwg-look
     firefox-bin
     signal-desktop
     tealdeer
@@ -33,9 +32,11 @@
     chromaprint
     caligula
     codex
+    mistral-vibe
     ansible
     obsidian
     ydotool
+    wf-recorder
     python314Packages.python-openstackclient
 
     (texlive.combine {

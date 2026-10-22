@@ -40,7 +40,7 @@ Singleton {
     IpcHandler {
         target: "wallpaper"
         function random(): void { root.random(); }
-        function set(path: string): void { root.set(path); }
+        function set(path): void { root.set(path); }
     }
 
     Component.onCompleted: random()   // never start blank

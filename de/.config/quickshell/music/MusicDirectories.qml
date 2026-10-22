@@ -141,13 +141,14 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
+            id: rowItem
             list: list
-            icon: modelData._type === "up" ? "󰁍"
-                  : modelData._type === "directory" ? "󰉋"
-                  : modelData._type === "playlist" ? "󰲹" : "󰝚"
-            iconColor: modelData._type === "file" ? Theme.overlay0 : Theme.blue
-            label: modelData._type === "up" ? ".." : root.nameOf(modelData)
-            detail: modelData._type === "file" ? (modelData.Artist || "") : ""
+            icon: rowItem.modelData._type === "up" ? "󰁍"
+                  : rowItem.modelData._type === "directory" ? "󰉋"
+                  : rowItem.modelData._type === "playlist" ? "󰲹" : "󰝚"
+            iconColor: rowItem.modelData._type === "file" ? Theme.overlay0 : Theme.blue
+            label: rowItem.modelData._type === "up" ? ".." : root.nameOf(rowItem.modelData)
+            detail: rowItem.modelData._type === "file" ? (rowItem.modelData.Artist || "") : ""
         }
     }
 }

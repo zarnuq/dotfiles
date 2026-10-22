@@ -143,12 +143,13 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
+            id: rowItem
             list: list
             icon: "󰝚"
-            label: root.client.songTitle(modelData)
-            detail: modelData.Artist || ""
+            label: root.client.songTitle(rowItem.modelData)
+            detail: rowItem.modelData.Artist || ""
             current: root.client.song.file !== undefined
-                     && modelData.file === root.client.song.file
+                     && rowItem.modelData.file === root.client.song.file
         }
     }
 }

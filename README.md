@@ -8,7 +8,6 @@
 
 ## Configured applications
 
-- beets (music library)
 - btop
 - fastfetch
 - gtk themes

@@ -19,16 +19,17 @@ Picker {
     id: root
 
     ipcTarget: "clipboard"
-    widthFraction: 0.6
-    heightFraction: 0.6
+    // Ctrl+F: the box fills the output and the preview takes the whole box.
+    property bool zoomed: false
+    widthFraction: root.zoomed ? 1 : 0.6
+    heightFraction: root.zoomed ? 1 : 0.6
     // The history rows' height. No `rows` here, so boxHeight never reads it —
     // the box stays heightFraction tall — and PickerRow picks it up by default.
     rowHeight: s(32)
 
     readonly property int queryHeight: s(46)
-    readonly property int footerHeight: s(28)
 
-    property var entries: []      // [{id, raw, preview, isImage, meta}]
+    property var entries: []      // [{id, raw, preview, isImage, meta, time}]
     property string query: ""
 
     readonly property var results: {
@@ -46,11 +47,13 @@ Picker {
     // Listed once per open, never polled: the picker is transient, and a closed
     // one should cost nothing.
     // (The box's reset() clears the query; a running lister ignores a re-start.)
-    onOpened: { root.cache = ({}); lister.running = true; }
+    onOpened: { root.zoomed = false; root.cache = ({}); lister.running = true; }
 
     Process {
         id: lister
-        command: ["cliphist", "list"]
+        // Clipboard.qml's `<id> <epoch>` log rides after the list; its lines
+        // have no tab, which is how parse() tells them apart.
+        command: ["sh", "-c", 'cliphist list; cat "$1" 2>/dev/null', "sh", Config.stateDir + "/clip-times"]
         stdout: StdioCollector { onStreamFinished: root.parse(text) }
     }
 
@@ -60,18 +63,27 @@ Picker {
     // the whole point of not doing this the way clipfzf does (it decodes and
     // asks `file` for the mime type, per highlighted row).
     function parse(text): void {
-        var lines = text.split("\n"), out = [];
+        var lines = text.split("\n"), out = [], times = {};
+        for (var j = 0; j < lines.length; j++) {
+            var tm = lines[j].match(/^(\d+) (\d+)$/);
+            if (tm) times[tm[1]] = tm[2] * 1000;   // later lines win
+        }
+        var today = new Date().toDateString();
         for (var i = 0; i < lines.length; i++) {
             var t = lines[i].indexOf("\t");
             if (t < 0) continue;
+            var id = lines[i].slice(0, t);
+            var d = times[id] ? new Date(times[id]) : null;
             var preview = lines[i].slice(t + 1);
             var m = preview.match(/^\[\[\s*binary data\s+(.*?)\s*\]\]$/);
             out.push({
-                id: lines[i].slice(0, t),
+                id: id,
                 raw: lines[i],
                 preview: preview,
                 isImage: m !== null,
-                meta: m !== null ? m[1] : ""
+                meta: m !== null ? m[1] : "",
+                // Copied before the log existed: no time.
+                time: !d ? "" : Qt.formatDateTime(d, d.toDateString() === today ? "hh:mm" : "MMM d hh:mm")
             });
         }
         root.entries = out;
@@ -162,6 +174,22 @@ Picker {
         root.hide();
     }
 
+    // A text entry in $EDITOR; saving a change copies it back (and so into
+    // history as a new entry). wl-copy's output is dropped for the reason
+    // clipfzf dropped it: its daemon would inherit kitty's pty and hold the
+    // window open. It reads stdin into its own temp file, so the rm is safe.
+    // Images are skipped: there is no image editor to hand them to.
+    // zsh, not sh: qs inherits Gentoo's EDITOR=/bin/nano, and only .zshenv
+    // sets the real one. ${=EDITOR} splits it, so `code --wait` works too.
+    function edit(): void {
+        if (!root.cur || root.cur.isImage) return;
+        Quickshell.execDetached(["kitty", "-e", "zsh", "-c",
+            'f=$(mktemp --suffix=.txt) || exit; cliphist decode "$1" > "$f"; cp "$f" "$f.orig"; ${=EDITOR:-nvim} "$f"; '
+            + 'cmp -s "$f" "$f.orig" || wl-copy < "$f" >/dev/null 2>&1; rm -f "$f" "$f.orig"',
+            "zsh", root.cur.id]);
+        root.hide();
+    }
+
     // cliphist delete takes the whole list line on stdin, not an id.
     function remove(): void {
         if (!root.cur || deleter.running) return;
@@ -193,8 +221,11 @@ Picker {
 
                 onSubmitted: root.copy()
                 onExtraKey: function (e) {
-                    if (e.key !== Qt.Key_D || !(e.modifiers & Qt.ControlModifier)) return;
-                    root.remove();
+                    if (!(e.modifiers & Qt.ControlModifier)) return;
+                    if (e.key === Qt.Key_D) root.remove();
+                    else if (e.key === Qt.Key_E) root.edit();
+                    else if (e.key === Qt.Key_F) root.zoomed = !root.zoomed;
+                    else return;
                     e.accepted = true;
                 }
             }
@@ -203,14 +234,15 @@ Picker {
 
             Row {
                 width: parent.width
-                height: parent.height - root.queryHeight - root.footerHeight - 2
+                height: parent.height - root.queryHeight - footer.height - 1
                 spacing: 0
 
                 // History list.
                 PickerResults {
                     id: list
                     picker: root
-                    width: Math.round(parent.width / 2)
+                    width: root.zoomed ? 0 : Math.round(parent.width / 2)
+                    visible: !root.zoomed
                     height: parent.height
                     model: root.results
                     emptyText: root.entries.length === 0 ? "clipboard history empty" : "no matches"
@@ -238,15 +270,20 @@ Picker {
                         labelSize: root.s(14)
                         labelColor: rowItem.modelData.isImage ? Theme.subtext0
                                     : rowItem.sel ? Theme.rowSelectFg : Theme.text
+
+                        trailing: rowItem.modelData.time
+                        trailingWidth: root.s(90)
+                        trailingSize: root.s(12)
+                        trailingColor: Theme.overlay0
                     }
                 }
 
-                Rectangle { width: 1; height: parent.height; color: Theme.surface1 }
+                Rectangle { width: 1; height: parent.height; color: Theme.surface1; visible: !root.zoomed }
 
                 // Preview.
                 Item {
                     id: pane
-                    width: parent.width - Math.round(parent.width / 2) - 1
+                    width: root.zoomed ? parent.width : parent.width - Math.round(parent.width / 2) - 1
                     height: parent.height
                     clip: true
 
@@ -275,36 +312,17 @@ Picker {
                         visible: root.previewImage === ""
                         text: root.previewText
                         color: Theme.subtext0
-                        font.pixelSize: root.s(13)
+                        font.pixelSize: root.s(root.zoomed ? 20 : 13)
                         wrapMode: Text.Wrap
                         elide: Text.ElideRight
                     }
                 }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
-
-            Item {
-                width: parent.width
-                height: root.footerHeight
-
-                Txt {
-                    anchors.left: parent.left
-                    anchors.leftMargin: root.s(12)
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.results.length ? (root.selected + 1) + "/" + root.results.length : "0/0"
-                    color: Theme.surface1
-                    font.pixelSize: root.s(11)
-                }
-
-                Txt {
-                    anchors.right: parent.right
-                    anchors.rightMargin: root.s(12)
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "⏎ copy   ^d delete"
-                    color: Theme.surface1
-                    font.pixelSize: root.s(11)
-                }
+            PickerFooter {
+                id: footer
+                picker: root
+                hint: "⏎ copy   ^e edit   ^f full   ^d delete"
             }
         }
     }

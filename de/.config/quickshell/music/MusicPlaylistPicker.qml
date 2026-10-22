@@ -121,10 +121,11 @@ FocusScope {
             onActivated: i => root.activate(i)
 
             rowDelegate: MusicRow {
+                id: rowItem
                 list: list
-                icon: modelData._new ? "󰐕" : "󰲹"
-                iconColor: modelData._new ? Theme.green : Theme.blue
-                label: modelData._new ? "new playlist…" : modelData.playlist
+                icon: rowItem.modelData._new ? "󰐕" : "󰲹"
+                iconColor: rowItem.modelData._new ? Theme.green : Theme.blue
+                label: rowItem.modelData._new ? "new playlist…" : rowItem.modelData.playlist
             }
         }
     }

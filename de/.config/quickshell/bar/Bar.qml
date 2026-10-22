@@ -68,15 +68,15 @@ Scope {
             // reach's state for THIS monitor. Null until the socket delivers its
             // first snapshot (or while reach is down) — the status side still
             // works, so the bar degrades to a clock rather than to nothing.
-            readonly property var wm: Reach.forScreen(modelData.name)
+            readonly property var wm: Reach.forScreen(bar.modelData.name)
 
             // Not `wm.focused` directly: that is the socket's answer, and the
             // socket cannot move while the mouse merely crosses onto a monitor
             // with nothing under the cursor. Reach.selected() layers live hover
             // over it (see Reach.qml).
-            readonly property bool isSelected: Reach.selected(modelData.name)
+            readonly property bool isSelected: Reach.selected(bar.modelData.name)
 
-            screen: modelData
+            screen: bar.modelData
             anchors { top: true; left: true; right: true }
             implicitHeight: root.barHeight
             exclusiveZone: root.barHeight
@@ -103,9 +103,9 @@ Scope {
                         id: cell
                         required property int index
 
-                        readonly property int desktop: index + 1
-                        readonly property bool active: bar.wm ? bar.wm.desktop === desktop : false
-                        readonly property bool occupied: bar.wm ? bar.wm.occupied.indexOf(desktop) !== -1 : false
+                        readonly property int desktop: cell.index + 1
+                        readonly property bool active: bar.wm ? bar.wm.desktop === cell.desktop : false
+                        readonly property bool occupied: bar.wm ? bar.wm.occupied.indexOf(cell.desktop) !== -1 : false
                         readonly property color fg: active ? root.selectFg : root.normalFg
 
                         visible: active || occupied

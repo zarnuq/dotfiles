@@ -67,7 +67,7 @@ PopupWindow {
                     id: row
                     required property var modelData
                     width: col.width
-                    height: modelData.isSeparator ? Config.s(7) : Config.s(24)
+                    height: row.modelData.isSeparator ? Config.s(7) : Config.s(24)
 
                     // ---- separator ----
                     Rectangle {
@@ -112,7 +112,7 @@ PopupWindow {
                             Txt {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Config.s(12)
-                                text: row.modelData.checkState === Qt.Checked ? "" : ""
+                                text: row.modelData.checkState === Qt.Checked ? "✓" : ""
                                 color: Theme.mauve
                                 font.pixelSize: Config.s(11)
                                 visible: row.modelData.buttonType !== 0
@@ -154,7 +154,7 @@ PopupWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: Config.s(6)
-                            text: ""
+                            text: "›"
                             color: Theme.subtext0
                             font.pixelSize: Config.s(11)
                         }

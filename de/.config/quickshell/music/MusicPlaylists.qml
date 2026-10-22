@@ -148,11 +148,12 @@ Item {
         onActivated: i => root.activate(i)
 
         rowDelegate: MusicRow {
+            id: rowItem
             list: list
             icon: root.inPlaylist ? "󰝚" : "󰲹"
             iconColor: root.inPlaylist ? Theme.overlay0 : Theme.blue
-            label: root.inPlaylist ? root.client.songTitle(modelData) : modelData.playlist
-            detail: root.inPlaylist ? (modelData.Artist || "") : ""
+            label: root.inPlaylist ? root.client.songTitle(rowItem.modelData) : rowItem.modelData.playlist
+            detail: root.inPlaylist ? (rowItem.modelData.Artist || "") : ""
         }
     }
 }

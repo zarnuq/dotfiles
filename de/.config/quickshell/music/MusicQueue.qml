@@ -27,14 +27,14 @@ ListView {
     delegate: MusicRowChrome {
         id: row
         required property int index
-        readonly property var modelData: root.controller.queue[index] || root.emptyRow
-        readonly property bool isMatch: root.controller.matches(index)
+        readonly property var modelData: root.controller.queue[row.index] || root.emptyRow
+        readonly property bool isMatch: root.controller.matches(row.index)
         width: root.width
 
         current: root.controller.client.songId >= 0
-                 && parseInt(modelData.Id) === root.controller.client.songId
-        selected: index === root.controller.cursor
-        marked: root.controller.isMarked(modelData)
+                 && parseInt(row.modelData.Id) === root.controller.client.songId
+        selected: row.index === root.controller.cursor
+        marked: root.controller.isMarked(row.modelData)
         onPicked: root.controller.cursor = row.index
         onActivated: root.controller.playSelected()
 

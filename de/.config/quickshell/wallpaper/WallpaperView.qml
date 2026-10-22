@@ -22,7 +22,7 @@ Variants {
     PanelWindow {
         id: win
         required property var modelData
-        screen: modelData
+        screen: win.modelData
 
         WlrLayershell.layer: WlrLayer.Background
         WlrLayershell.namespace: "quickshell-wallpaper"

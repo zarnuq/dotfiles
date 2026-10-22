@@ -48,10 +48,10 @@ Item {
     property int trailingSize: Config.s(13)
     property color trailingColor: Theme.subtext0
 
-    readonly property bool isHeader: modelData.kind === "header"
-    readonly property bool sel: index === picker.selected
+    readonly property bool isHeader: root.modelData.kind === "header"
+    readonly property bool sel: root.index === root.picker.selected
     // The picker's heights, which is what its boxHeight was summed from.
-    height: isHeader ? picker.headerHeight : picker.rowHeight
+    height: root.isHeader ? root.picker.headerHeight : root.picker.rowHeight
 
     signal activated()
 

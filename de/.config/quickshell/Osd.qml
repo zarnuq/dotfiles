@@ -99,7 +99,7 @@ Scope {
         PanelWindow {
             id: win
             required property var modelData
-            screen: modelData
+            screen: win.modelData
             visible: root.shown
 
             color: "transparent"

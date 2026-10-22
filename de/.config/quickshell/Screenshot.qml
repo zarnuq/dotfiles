@@ -41,12 +41,12 @@ Scope {
 
         // Config.displays' numbering — the one the Displays window's Identify
         // shows. A number past the heads this machine has does nothing.
-        function display(n: int): void {
+        function display(n): void {
             if (n >= 1 && n <= Config.displays.length) ipc.output(Config.displays[n - 1].name);
         }
 
         // Any output grim knows — it rejects a name it does not, and says which.
-        function output(name: string): void {
+        function output(name): void {
             root.run("grim -o " + root.sq(name) + " -" + root.copied);
         }
 

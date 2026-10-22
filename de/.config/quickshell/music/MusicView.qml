@@ -73,11 +73,11 @@ FocusScope {
                 id: tabLabel
                 required property var modelData
                 required property int index
-                readonly property bool active: index === state.tab
+                readonly property bool active: tabLabel.index === state.tab
                 // No leading digit: 1-5 still switch tabs, they just aren't
                 // printed. A step above the list rows (fs(13)) and well under
                 // the header, which is the order they should read in.
-                text: modelData.name
+                text: tabLabel.modelData.name
                 font.pixelSize: Ui.fs(15)
                 font.bold: active
                 color: active ? Theme.mauve : Theme.subtext0

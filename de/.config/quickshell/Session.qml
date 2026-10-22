@@ -203,12 +203,12 @@ Scope {
                             id: btn
                             required property var modelData
                             required property int index
-                            readonly property bool isArmed: index === root.armed
+                            readonly property bool isArmed: btn.index === root.armed
 
                             width: Config.s(112); height: Config.s(40)
-                            color: isArmed ? Theme.surface0 : "transparent"
+                            color: btn.isArmed ? Theme.surface0 : "transparent"
                             border.width: 1
-                            border.color: isArmed ? Theme.peach : Theme.surface1
+                            border.color: btn.isArmed ? Theme.peach : Theme.surface1
 
                             MouseArea {
                                 anchors.fill: parent
