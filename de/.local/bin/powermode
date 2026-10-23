@@ -1,0 +1,105 @@
+#!/bin/sh
+# powermode — laptop power-profile switcher for amd-pstate-epp (Ryzen 7530U).
+#
+# A "mode" is three sysfs knobs set together:
+#   platform_profile  (ACPI: fan/thermal/PPT)   low-power | balanced | performance
+#   energy_performance_preference (per-CPU EPP)  power | balance_performance | performance
+#   scaling_governor  (per-CPU)                  powersave (EPP-driven) | performance (locked max)
+#
+#   apply <mode>   writes all three — needs root (sysfs), so run via doas
+#   get            prints the current mode name — unprivileged
+#
+# TLP still owns the AC/battery defaults; an apply overrides until the next
+# AC/battery event re-triggers TLP.
+set -eu
+
+# Prefer the platform-profile CLASS node (udev can chgrp/chmod it, so it is the
+# one a udev rule makes writable), falling back to the raw firmware attribute.
+PROFILE=/sys/class/platform-profile/platform-profile-0/profile
+[ -e "$PROFILE" ] || PROFILE=/sys/firmware/acpi/platform_profile
+EPP_GLOB=/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference
+GOV_GLOB=/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+MAXF_GLOB=/sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq
+BOOST=/sys/devices/system/cpu/cpufreq/boost
+EPP0=/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
+
+CPUINFO_MAX=/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq
+SAVER_CAP=2000000   # 2.0 GHz ceiling in saver — caps voltage at the top of the curve
+
+# mode -> "platform_profile EPP governor max_freq boost"
+# max_freq is the literal "max" (resolved AFTER boost is set, since cpuinfo_max_freq
+# itself drops to the non-boost ceiling while boost is off) or an explicit kHz cap.
+mode_params() {
+    case "$1" in
+        performance|perf)            echo "performance performance performance max 1" ;;
+        balanced|bal)                echo "balanced balance_performance powersave max 1" ;;
+        saver|power-saver|powersave) echo "low-power power powersave $SAVER_CAP 0" ;;
+        *) echo "powermode: unknown mode '$1'" >&2; exit 2 ;;
+    esac
+}
+
+write_all() {  # glob value
+    for f in $1; do [ -w "$f" ] && printf '%s' "$2" > "$f" || true; done
+}
+
+apply() {
+    # shellcheck disable=SC2046
+    set -- $(mode_params "$1")
+    pp=$1 epp=$2 gov=$3 maxf=$4 boost=$5
+    # powersave first so the EPP node is writable (it is read-only while the
+    # governor is "performance"), then EPP, profile, and finally the real governor.
+    write_all "$GOV_GLOB" powersave
+    write_all "$EPP_GLOB" "$epp"
+    [ -w "$PROFILE" ] && printf '%s' "$pp" > "$PROFILE" || true
+    # Boost BEFORE max_freq, for two reasons: with boost off, scaling_max_freq is
+    # clamped to the non-boost ceiling, AND cpuinfo_max_freq itself reads that lower
+    # value — so "max" can only be resolved once boost is back on.
+    [ -w "$BOOST" ] && printf '%s' "$boost" > "$BOOST" || true
+    [ "$maxf" = max ] && maxf=$(cat "$CPUINFO_MAX" 2>/dev/null || echo 0)
+    [ "$maxf" != 0 ] && write_all "$MAXF_GLOB" "$maxf"
+    write_all "$GOV_GLOB" "$gov"
+}
+
+current() {
+    pp=$(cat "$PROFILE" 2>/dev/null || echo '?')
+    epp=$(cat "$EPP0" 2>/dev/null || echo '?')
+    case "$pp:$epp" in
+        performance:performance) echo performance ;;
+        low-power:power)         echo saver ;;
+        balanced:*)              echo balanced ;;
+        *)                       echo custom ;;
+    esac
+}
+
+# Hardware backlight (amdgpu_bl0) — the real power lever, distinct from reach's
+# gamma dimming. Values are 0-100%, floored at 1 so a slider can't black it out.
+BL=$(ls -d /sys/class/backlight/* 2>/dev/null | head -n1)
+
+bl_get() {
+    [ -n "$BL" ] || { echo 0; return; }
+    cur=$(cat "$BL/brightness" 2>/dev/null || echo 0)
+    max=$(cat "$BL/max_brightness" 2>/dev/null || echo 0)
+    [ "$max" -gt 0 ] && echo $(( cur * 100 / max )) || echo 0
+}
+
+bl_set() {
+    [ -n "$BL" ] || return 0
+    max=$(cat "$BL/max_brightness" 2>/dev/null || echo 0)
+    pct=$1
+    [ "$pct" -lt 1 ] && pct=1
+    [ "$pct" -gt 100 ] && pct=100
+    v=$(( pct * max / 100 ))
+    [ -w "$BL/brightness" ] && printf '%s' "$v" > "$BL/brightness" || true
+}
+
+case "${1:-get}" in
+    apply) apply "${2:?usage: powermode apply <performance|balanced|saver>}" ;;
+    get|current) current ;;
+    bl)
+        case "${2:-get}" in
+            get) bl_get ;;
+            set) bl_set "${3:?usage: powermode bl set <percent>}" ;;
+            *) echo "usage: powermode bl {get|set <percent>}" >&2; exit 1 ;;
+        esac ;;
+    *) echo "usage: powermode {apply <performance|balanced|saver>|get|bl {get|set <pct>}}" >&2; exit 1 ;;
+esac

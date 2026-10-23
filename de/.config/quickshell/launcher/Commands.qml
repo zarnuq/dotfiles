@@ -31,6 +31,7 @@ Singleton {
         { name: "Clipboard",        desc: "history picker",      glyph: "󰅍", args: ["clipboard",       "open"] },
         { name: "Audio",            desc: "sinks + mixer",       glyph: "󰕾", args: ["audio",           "open"] },
         { name: "Displays",         desc: "monitor layouts",     glyph: "󰍹", args: ["monitors",        "open"] },
+        { name: "Power modes",      desc: "perf / balanced / saver", glyph: "󰓅", args: ["powermode",   "open"] },
         { name: "Wallpaper picker", desc: "thumbnail grid",      glyph: "󰋩", args: ["wallpaperpicker", "open"] },
         { name: "Music",            desc: "MPD client",          glyph: "󰝚", args: ["music",           "open"] },
         { name: "Settings",         desc: "feature switches",    glyph: "󰒓", args: ["settings",        "open"] },

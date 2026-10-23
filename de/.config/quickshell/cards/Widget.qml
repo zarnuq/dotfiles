@@ -21,10 +21,16 @@ PanelWindow {
     property int pad: 10                     // inner padding, unscaled (s() applied)
     property color borderColor: Theme.surface0
     property int stackLayer: WlrLayer.Bottom // eww "bottom"; Battery raises itself to Overlay when low
+    // Output connector to pin to; empty = the main screen. Battery sets "eDP-1"
+    // so the low-battery warning lands on the laptop panel even when docked.
+    property string pinName: ""
 
-    // Pin to the main screen, falling back to the first output — which on the
-    // laptop is the only one there is.
-    Component.onCompleted: if (Config.pinScreen) root.screen = Config.pinScreen;
+    // Pin to pinName if that output is present, else the main screen, falling back
+    // to the first output — which on the laptop is the only one there is.
+    Component.onCompleted: {
+        var target = (root.pinName && Config.screen(root.pinName)) || Config.pinScreen;
+        if (target) root.screen = target;
+    }
 
     // Scale lives on Config so the surfaces that aren't cards share it; s() is
     // kept here as a forwarder because every Widget calls it unqualified.

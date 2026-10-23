@@ -39,6 +39,33 @@ Scope {
         function identify(): void { root.identify(); }
     }
 
+    // ---- mirror -------------------------------------------------------------
+    // True pixel clone via wl-mirror (needs >=0.18.5 — older builds abort with
+    // "surface not configured" because river, as a window-management-split
+    // compositor, sends the initial xdg configure only after reach's manage cycle,
+    // and <0.18.5 gives up after one roundtrip instead of waiting). The Process
+    // lives HERE, on the always-alive Scope, not in the view: closing the
+    // configurator must not tear the mirror down.
+    property string mirrorSource: ""
+    property string mirrorTarget: ""
+    readonly property bool mirroring: mirrorProc.running
+
+    function startMirror(source, target): void {
+        if (!source || !target || source === target) return;
+        root.mirrorSource = source;
+        root.mirrorTarget = target;
+        mirrorProc.running = true;
+    }
+    function stopMirror(): void { mirrorProc.running = false; }
+
+    Process {
+        id: mirrorProc
+        // --fullscreen-output puts the clone on <target>; the bare arg is the
+        // captured source. running:false sends SIGTERM, so Stop ends the clone.
+        command: ["wl-mirror", "--fullscreen-output", root.mirrorTarget, root.mirrorSource]
+        running: false
+    }
+
     // ---- identify -----------------------------------------------------------
     // Windows' "Identify": every head shows its output name — what the canvas
     // boxes are labelled with — for a few seconds. Works with the window closed
@@ -124,10 +151,11 @@ Scope {
             anchors.fill: parent
             active: root.open
             sourceComponent: MonitorsView {
+                scope: root
                 onCloseRequested: root.open = false
                 onIdentifyRequested: root.identify()
             }
-            onLoaded: item.reload()
+            onLoaded: { item.reload(); item.forceActiveFocus(); }
         }
     }
 }

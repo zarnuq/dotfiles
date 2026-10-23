@@ -96,6 +96,7 @@ Singleton {
         { key: "processes",           group: "Session",     label: "Process killer" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
+        { key: "powermode",           group: "Session",     label: "Power modes (laptop)" },
         { key: "screenshot",          group: "Session",     label: "Screenshots" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },

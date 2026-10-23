@@ -101,6 +101,7 @@
             .{ .key = "t", .action = .{ .spawn = "qs ipc call bluetooth toggle" } },
             .{ .key = "u", .action = .{ .spawn = "qs ipc call drives toggle" } },
             .{ .key = "m", .action = .{ .spawn = "qs ipc call monitors toggle" } },
+            .{ .key = "p", .action = .{ .spawn = "qs ipc call powermode toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },
 

@@ -20,10 +20,8 @@
 // swaps them in the layout.
 .{
     .monitors = .{
-        .{ .name = "DP-5", .w = 1920, .h = 1080, .x = 2257, .y = 0 },
-        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1800 },
-        .{ .name = "DP-3", .w = 1920, .h = 1080, .x = 3000, .y = 1080, .transform = .rotate_270 },
-        .{ .name = "DP-4", .w = 1920, .h = 1080, .x = 1920, .y = 1080, .transform = .rotate_270 },
-        .{ .name = "DP-7", .w = 1920, .h = 1080, .x = 0, .y = 720 },
+        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 0, .y = 1080 },
+        .{ .name = "DP-1", .w = 1920, .h = 1200, .x = 1920, .y = 360, .transform = .rotate_90 },
+        .{ .name = "DP-2", .w = 1920, .h = 1080, .x = 0, .y = 0 },
     },
 }

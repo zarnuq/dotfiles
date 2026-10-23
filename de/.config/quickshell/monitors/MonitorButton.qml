@@ -24,6 +24,11 @@ Rectangle {
          : root.accent ? (hover.hovered && root.accentHover ? Theme.lavender : Theme.mauve)
          : (hover.hovered ? Theme.surface1 : Theme.surface0)
 
+    // A border so the button is visible even on a surface0 background (the
+    // inspector bar) — without it a surface0 button vanished into the bar.
+    border.width: 1
+    border.color: root.accent ? root.color : Theme.surface1
+
     Txt {
         id: text
         anchors.centerIn: parent

@@ -31,6 +31,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 Widget {
     id: root
 
+    pinName: "eDP-1"   // the laptop panel — the battery warning belongs there even when docked
     anchors { bottom: true; right: true }
     implicitWidth: s(300)
     implicitHeight: s(75)

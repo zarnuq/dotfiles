@@ -347,14 +347,24 @@ def cmd_save(name, body):
 
 
 def cmd_delete(name):
+    if not os.path.isfile(preset_path(name)):
+        return fail("no layout named '%s'" % name)
+    # Deleting the live layout would leave monitors.zon dangling (reach reads that
+    # as no file), so switch the link to another layout FIRST, then remove the file
+    # and reload. Refuse only when it is the last one — there is nowhere to switch.
+    switched = None
     if active_name() == name:
-        # Deleting the live layout would leave monitors.zon dangling, which
-        # reach reads as no file — a layout nobody chose and nothing shows.
-        return fail("'%s' is active; switch to another layout first" % name)
+        others = [n for n in preset_names() if n != name]
+        if not others:
+            return fail("can't delete the only layout")
+        switched = others[0]
+        point_link(switched)
     try:
         os.unlink(preset_path(name))
     except OSError as exc:
         return fail("cannot delete '%s': %s" % (name, exc))
+    if switched is not None:
+        return ok(reloaded=reload_reach(), active=switched)
     return ok(reloaded=False)
 
 

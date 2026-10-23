@@ -19,6 +19,14 @@ FocusScope {
     signal closeRequested()
     signal identifyRequested()
 
+    // The owning Scope (Monitors.qml) — it holds the mirror Process, which must
+    // outlive this window.
+    property var scope: null
+
+    // The names of the heads currently plugged in — the mirror dropdown's choices
+    // (you can't clone onto a head that is not there).
+    readonly property var connected: (root.outputs || []).map(o => o.name)
+
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/monitors.py"
 
     // What is on disk.
@@ -43,6 +51,18 @@ FocusScope {
     // the moment a control forgot to set the flag.
     property string savedState: ""
     readonly property bool dirty: savedState !== "" && savedState !== JSON.stringify(includedOnly())
+
+    // A layout being built from scratch (New) has nothing saved to diff against,
+    // so `dirty` can't light Apply — `isNew` does. Apply is offered whenever there
+    // is something to write and it either differs from disk or is brand new.
+    property bool isNew: false
+    property bool naming: false
+    // The layout currently LOADED in the canvas. Picking a layout only loads it
+    // here (no live switch) — Apply is what re-points the symlink. So Apply is
+    // offered when there is something to write and it differs from disk: edited,
+    // brand new, or a different layout than the one currently live.
+    property string loaded: ""
+    readonly property bool canApply: includedOnly().length > 0 && (dirty || isNew || loaded !== activeName)
 
     // ---- geometry helpers ---------------------------------------------------
     // A rotated head's w/h are its MODE; the transform is what swaps them in the
@@ -110,6 +130,8 @@ FocusScope {
         }
         root.working = out;
         root.selected = 0;
+        root.isNew = false;
+        root.loaded = name;
         root.savedState = JSON.stringify(root.includedOnly());
         root.status = preset ? ""
             : root.activeMissing ? "monitors.zon points at '" + name + "', which no longer exists"
@@ -196,6 +218,23 @@ FocusScope {
         root.patch(index, { included: !m.included });
     }
 
+    /// Remove (Delete / the inspector button): a head that is plugged in only
+    /// leaves the layout (toggleIncluded — it can be re-added, so keep drawing it),
+    /// but a head that is NOT connected has no reason to stay on the canvas at all,
+    /// so it is dropped from the working copy. A save then omits it for good.
+    function removeOrToggle(index): void {
+        var m = root.working[index];
+        if (m.connected) { root.toggleIncluded(index); return; }
+        if (m.included && root.includedOnly().length <= 1) {
+            root.status = "a preset needs at least one output";
+            return;
+        }
+        var next = root.working.slice();
+        next.splice(index, 1);
+        root.working = next;
+        if (root.selected >= next.length) root.selected = Math.max(0, next.length - 1);
+    }
+
     /// What gets written: the included heads, shifted so the top-left of the
     /// arrangement sits at 0,0. Normalising here rather than preserving negative
     /// coordinates keeps the saved file looking like one a human would write, and
@@ -212,7 +251,44 @@ FocusScope {
         });
     }
 
+    /// A blank layout: every connected output, included, laid left-to-right. No
+    /// file is touched until Apply names it — this only swaps the working copy.
+    function newLayout(): void {
+        var x = 0, out = [];
+        for (var k = 0; k < root.outputs.length; k++) {
+            var o = root.outputs[k];
+            var modes = o.modes || [];
+            var mode = modes.find(m => m.current) || modes[0] || { width: 0, height: 0 };
+            var e = root.entry({ name: o.name, w: mode.width, h: mode.height, x: x }, true);
+            x += root.effW(e);
+            out.push(e);
+        }
+        root.working = out;
+        root.selected = 0;
+        root.isNew = true;
+        root.loaded = "";
+        root.savedState = "";
+        root.status = out.length ? "new layout — arrange, then Apply to name it"
+                                 : "no outputs connected";
+    }
+
     // ---- commands -----------------------------------------------------------
+
+    /// Apply opens an inline name prompt rather than writing straight away: a
+    /// layout is a named file, and the name is the one thing the canvas can't
+    /// supply. Pre-filled with the active name so re-applying an edit is just Enter.
+    function startNaming(): void {
+        if (root.includedOnly().length === 0) { root.status = "nothing to save"; return; }
+        nameField.text = root.isNew ? "" : root.loaded;
+        root.naming = true;
+        nameField.forceActiveFocus();
+        nameField.selectAll();
+    }
+
+    function applyName(name): void {
+        root.naming = false;
+        root.save(name);
+    }
 
     function run(args, note): void {
         root.status = note;
@@ -233,12 +309,20 @@ FocusScope {
 
     function removePreset(name): void { root.run(["delete", name], "deleting " + name + "…"); }
 
-    /// Switching is re-pointing the symlink, so an unsaved canvas would be
-    /// silently abandoned — say so instead. Clicking the ACTIVE one re-reads it,
-    /// which is the natural "revert" gesture.
+    /// Picking a layout only LOADS it into the canvas to view/edit — it does not
+    /// switch the live output. Apply is what re-points the symlink. Unsaved edits
+    /// would be lost by loading another, so refuse until applied or reverted.
     function pick(name): void {
-        if (name === root.activeName) root.loadPreset(name);
-        else root.activate(name);
+        if (name === root.loaded) return;
+        if (root.dirty) { root.status = "unsaved changes — Apply or Revert first"; return; }
+        root.loadPreset(name);
+    }
+
+    /// Apply: save edits (prompting for a name) if the canvas was changed or is a
+    /// new layout, otherwise just switch the live output to the loaded layout.
+    function apply(): void {
+        if (root.dirty || root.isNew) root.startNaming();
+        else root.activate(root.loaded);
     }
 
     // Both are one-shot: `running: false` parks Poll's timer, so a run happens
@@ -272,7 +356,8 @@ FocusScope {
         if (event.key === Qt.Key_Escape) { root.closeRequested(); event.accepted = true; }
         else if (event.key === Qt.Key_I) { root.identifyRequested(); event.accepted = true; }
         else if (event.key === Qt.Key_R && root.working.length) { root.cycleTransform(root.selected); event.accepted = true; }
-        else if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier)) { root.save(root.activeName); event.accepted = true; }
+        else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && root.working.length) { root.removeOrToggle(root.selected); event.accepted = true; }
+        else if (event.key === Qt.Key_S && (event.modifiers & Qt.ControlModifier)) { root.startNaming(); event.accepted = true; }
         else if (event.key === Qt.Key_Tab && root.working.length) {
             root.selected = (root.selected + 1) % root.working.length;
             event.accepted = true;
@@ -302,53 +387,46 @@ FocusScope {
                 MonitorButton {
                     id: layoutBtn
                     required property var modelData
-                    readonly property bool isActive: layoutBtn.modelData.name === root.activeName
-                    label: layoutBtn.modelData.name
-                    accent: layoutBtn.isActive
+                    // Mauve accent = the layout loaded in the canvas (selected).
+                    // The live one (the symlink target) gets a teal dot when it is
+                    // not the one you are looking at — Apply is what makes the
+                    // selected layout live.
+                    readonly property bool isSelected: layoutBtn.modelData.name === root.loaded && !root.isNew
+                    readonly property bool isLive: layoutBtn.modelData.name === root.activeName
+                    label: layoutBtn.modelData.name + (layoutBtn.isSelected && root.dirty ? " *" : "")
+                    accent: layoutBtn.isSelected
                     accentHover: false
                     hPad: Config.s(22)
+                    // Click only LOADS the layout into the canvas; Apply switches.
+                    // Deleting a layout lives on the inspector's "Remove layout"
+                    // button, so a chip can't be trashed by a stray click.
                     onClicked: root.pick(layoutBtn.modelData.name)
 
-                    // Delete, on hover, and never on the active layout: removing
-                    // it would leave monitors.zon dangling. The script refuses
-                    // that too — this just doesn't offer it.
-                    Txt {
-                        anchors.right: parent.right
-                        anchors.rightMargin: Config.s(4)
+                    // Live marker: a teal dot, only when live ≠ selected.
+                    Rectangle {
+                        width: Config.s(6); height: width; radius: width / 2
+                        color: Theme.teal
                         anchors.top: parent.top
-                        text: "×"
-                        visible: layoutBtn.hovered && !layoutBtn.isActive
-                        color: Theme.red
-                        font.pixelSize: Config.s(12)
-                        TapHandler { onTapped: root.removePreset(layoutBtn.modelData.name) }
+                        anchors.right: parent.right
+                        anchors.margins: Config.s(4)
+                        visible: layoutBtn.isLive && !layoutBtn.isSelected
                     }
                 }
             }
 
-            // Save-as: a name field rather than a second command path, because
-            // "save under a new name" and "rename this layout" are the same act.
-            Rectangle {
-                width: Config.s(150)
-                height: Config.s(30)
-                color: Theme.surface0
-                border.width: 1
-                border.color: newName.activeFocus ? Theme.mauve : Theme.surface1
-                Field {
-                    id: newName
-                    anchors.fill: parent
-                    anchors.leftMargin: Config.s(8)
-                    font.pixelSize: Config.s(13)
-                    selectByMouse: true
-                    onAccepted: if (text.length) { root.save(text); text = ""; }
-                    Txt {
-                        anchors.fill: parent
-                        verticalAlignment: Text.AlignVCenter
-                        visible: !newName.text.length && !newName.activeFocus
-                        text: "save as…"
-                        color: Theme.overlay0
-                        font.pixelSize: Config.s(13)
-                    }
-                }
+            MonitorButton {
+                label: "+ New"
+                onClicked: root.newLayout()
+            }
+
+            // Shown only while a brand-new layout is being arranged: nothing on
+            // disk is current, so the layout chips go dim and this marks where you
+            // are. Clicking it opens the name prompt (same as Apply).
+            MonitorButton {
+                label: "unsaved — Apply to name"
+                accent: true
+                visible: root.isNew
+                onClicked: root.startNaming()
             }
         }
 
@@ -367,16 +445,16 @@ FocusScope {
         }
 
         // --- footer ---
-        Item {
+        // --- footer: the path/status line, then one merged action row ---
+        Column {
             id: footer
             width: parent.width
-            height: Config.s(34)
+            spacing: Config.s(8)
 
             Txt {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - Config.s(360)
+                width: parent.width
                 elide: Text.ElideRight
+                visible: !root.naming
                 text: root.status !== "" ? root.status
                     : root.activeName !== "" ? root.linkPath + " → monitors/" + root.activeName + ".zon"
                     : root.linkPath + " (no layout linked yet)"
@@ -384,26 +462,104 @@ FocusScope {
                 font.pixelSize: Config.s(12)
             }
 
+            Item {
+                width: parent.width
+                height: Config.s(34)
+
+                // Left: destructive actions, kept apart from Apply on the right.
+                Row {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Config.s(8)
+                    visible: !root.naming
+
+                    MonitorButton {
+                        readonly property var sel: root.working[root.selected] || null
+                        label: sel && sel.included ? "Remove monitor" : "Add monitor"
+                        enabled: root.working.length > 0
+                        onClicked: root.removeOrToggle(root.selected)
+                    }
+                    // Two-step so a layout file can't be trashed by accident.
+                    MonitorButton {
+                        id: rmLayout
+                        property bool confirming: false
+                        Timer { id: rmTimer; interval: 2500; onTriggered: rmLayout.confirming = false }
+                        label: rmLayout.confirming ? "Delete '" + root.activeName + "' — confirm" : "Remove layout"
+                        accent: rmLayout.confirming
+                        enabled: root.activeName !== ""
+                        onClicked: {
+                            if (rmLayout.confirming) { rmLayout.confirming = false; root.removePreset(root.activeName); }
+                            else { rmLayout.confirming = true; rmTimer.restart(); }
+                        }
+                    }
+                }
+
+                // Right: view/apply actions.
+                Row {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Config.s(8)
+                    visible: !root.naming
+
+                    MonitorButton {
+                        label: "Identify"
+                        onClicked: root.identifyRequested()
+                    }
+                    MonitorButton {
+                        label: "Revert"
+                        enabled: root.dirty
+                        onClicked: root.loadPreset(root.loaded)
+                    }
+                    MonitorButton {
+                        label: "Apply"
+                        accent: true
+                        enabled: root.canApply
+                        onClicked: root.apply()
+                    }
+                }
+
+            // Name prompt, shown in place of the action row while Apply is pending.
             Row {
+                anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Config.s(8)
+                visible: root.naming
 
-                MonitorButton {
-                    label: "Identify"
-                    onClicked: root.identifyRequested()
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Layout name:"
+                    color: Theme.subtext0
+                    font.pixelSize: Config.s(13)
+                }
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Config.s(180)
+                    height: Config.s(30)
+                    color: Theme.surface0
+                    border.width: 1
+                    border.color: nameField.activeFocus ? Theme.mauve : Theme.surface1
+                    Field {
+                        id: nameField
+                        anchors.fill: parent
+                        anchors.leftMargin: Config.s(8)
+                        font.pixelSize: Config.s(13)
+                        selectByMouse: true
+                        onAccepted: if (text.length) root.applyName(text)
+                        Keys.onEscapePressed: root.naming = false
+                    }
                 }
                 MonitorButton {
-                    label: "Revert"
-                    enabled: root.dirty
-                    onClicked: root.loadPreset(root.activeName)
-                }
-                MonitorButton {
-                    label: "Apply"
+                    label: "Save"
                     accent: true
-                    enabled: root.dirty && root.activeName !== ""
-                    onClicked: root.save(root.activeName)
+                    enabled: nameField.text.length > 0
+                    onClicked: root.applyName(nameField.text)
                 }
+                MonitorButton {
+                    label: "Cancel"
+                    onClicked: root.naming = false
+                }
+            }
             }
         }
     }

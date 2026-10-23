@@ -92,6 +92,13 @@ Scope {
         function onBrightnessChanged(): void { root.flash("󰃟", Reach.brightness, false); }
     }
 
+    // ---- power mode -------------------------------------------------------
+    // Flashed by PowerProfile.apply() — the name (no bar), like the sink mode.
+    Connections {
+        target: PowerProfile
+        function onFlashed(mode): void { root.flash(PowerProfile.iconFor(mode), 0, false, PowerProfile.labelFor(mode)); }
+    }
+
     // ---- surface ----------------------------------------------------------
     Variants {
         model: Quickshell.screens

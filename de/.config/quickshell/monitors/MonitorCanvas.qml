@@ -69,10 +69,14 @@ Item {
             height: root.view.effH(mon) * root.zoom
 
             color: mon.included ? (isSelected ? Theme.surface1 : Theme.surface0) : "transparent"
+            // Border encodes CONNECTION STATE (peach = in layout but unplugged,
+            // overlay0 = plugged in but not in layout, else the mauve/surface1
+            // in-layout pair). Selection is shown by the thicker border + brighter
+            // fill, so it never hides the peach "not connected" warning.
             border.width: isSelected ? Config.s(2) : 1
-            border.color: isSelected ? Theme.mauve
-                        : !mon.included ? Theme.overlay0
-                        : mon.connected ? Theme.surface1 : Theme.peach
+            border.color: !mon.included ? Theme.overlay0
+                        : !mon.connected ? Theme.peach
+                        : isSelected ? Theme.mauve : Theme.surface1
 
             Column {
                 anchors.centerIn: parent
