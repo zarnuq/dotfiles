@@ -94,6 +94,7 @@ Singleton {
         { key: "bluetooth",           group: "Session",     label: "Bluetooth menu" },
         { key: "drives",              group: "Session",     label: "Removable drives" },
         { key: "processes",           group: "Session",     label: "Process killer" },
+        { key: "tmux",                group: "Session",     label: "tmux sessions" },
         { key: "music",               group: "Session",     label: "Music player" },
         { key: "monitors",            group: "Session",     label: "Display configurator" },
         { key: "powermode",           group: "Session",     label: "Power modes (laptop)" },

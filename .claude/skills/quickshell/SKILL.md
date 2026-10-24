@@ -58,7 +58,10 @@ Every file follows these; qmllint enforces most of them.
   (`modelData`, `index`, ListModel roles) stop being injected — declare every one
   you use.
 - Functions that return nothing are `: void`. **Leave parameters untyped** unless
-  you've checked every caller: a QML annotation coerces the argument (`int`
+  you've checked every caller — **except in an `IpcHandler`, where every argument
+  must be typed** (`n: int`, `s: string`): an untyped one is a QVariant, which IPC
+  can't carry, so the function is never registered (only a log warning; lint
+  catches it). Elsewhere: a QML annotation coerces the argument (`int`
   truncates a real, `string` turns `null` into `"null"`).
 - A file in a subfolder needs `import ".."` for `Theme`/`Config`/`Txt`/`Poll` and
   the root singletons.

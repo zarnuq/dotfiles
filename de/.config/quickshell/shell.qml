@@ -53,6 +53,7 @@ ShellRoot {
     LazyLoader { active: Config.on("drives");              Drives {} }
     LazyLoader { active: Config.on("powermode") && Config.batteryPresent; PowerMode {} }
     LazyLoader { active: Config.on("processes");           Processes {} }
+    LazyLoader { active: Config.on("tmux");                Tmux {} }
     LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("screenshot");          Screenshot {} }

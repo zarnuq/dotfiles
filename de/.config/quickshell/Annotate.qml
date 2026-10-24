@@ -42,8 +42,10 @@ FloatingWindow {
     property int rev: 0              // bumped on every edit: shapes is mutated in place
     property var editing: null       // the text shape being typed into
     property string tool: "pen"
-    readonly property var colors: [Theme.red, Theme.peach, Theme.yellow, Theme.green, Theme.blue, Theme.mauve]
-    property color colour: Theme.red
+    // Plain colours, not the theme: these end up in screenshots sent to people
+    // who don't use Catppuccin, and pastels wash out on white pages.
+    readonly property var colors: ["#ff0000", "#ffd400", "#00c000", "#0066ff", "#000000", "#ffffff"]
+    property color colour: colors[0]
     readonly property int strokeWidth: 5     // image px
     property string after: ""               // shell run on the exported file ($1) — "" while not exporting
 

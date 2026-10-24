@@ -59,6 +59,15 @@ for f in $files; do
                  d += gsub(/\{/, "{") - gsub(/\}/, "}") }
          END { exit !bad }' "$f" \
         && { echo "$f: IpcHandler has show() — 'qs ipc call <t> show' never reaches it; use open()"; status=1; }
+    # An untyped IpcHandler argument is a QVariant, which IPC can't carry:
+    # quickshell only logs a warning and never registers the function.
+    awk '/IpcHandler[ \t]*\{/ { d = 1; next }
+         d > 0 { if (match($0, /function[ \t]+[A-Za-z_0-9]+[ \t]*\([^)]*\)/)) {
+                     a = substr($0, RSTART, RLENGTH); sub(/^[^(]*\(/, "", a); sub(/\)$/, "", a)
+                     n = split(a, p, ","); for (i = 1; i <= n; i++) if (p[i] ~ /[^ \t]/ && p[i] !~ /:/) bad = 1 }
+                 d += gsub(/\{/, "{") - gsub(/\}/, "}") }
+         END { exit !bad }' "$f" \
+        && { echo "$f: IpcHandler function has an untyped argument — IPC drops it; annotate it (n: int, s: string)"; status=1; }
 done
 
 if [ $status -eq 0 ]; then

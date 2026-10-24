@@ -80,6 +80,7 @@
         // launchers
         .{ .key = "Super+p", .action = .{ .spawn = "qs ipc call lock lock" } },
         .{ .key = "Super+Tab", .action = .{ .spawn = "kitty" } },
+        .{ .key = "Super+Shift+Tab", .action = .{ .spawn = "qs ipc call tmux toggle" } },
         .{ .key = "Super+space", .action = .{ .spawn = "qs ipc call launcher toggle" } },
         .{ .key = "Super+Shift+Escape", .action = .{ .spawn = "qs ipc call settings toggle" } },
         .{ .key = "Super+BackSpace", .action = .{ .spawn = "kitty --class float" } },
