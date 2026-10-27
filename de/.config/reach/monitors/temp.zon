@@ -1,0 +1,11 @@
+// monitors/temp.zon — one reach display layout, written by the display configurator.
+//
+// Selected by the `monitors.zon` symlink in the parent directory; reach opens
+// that path and applies whatever `.monitors` it finds. This header is preserved
+// across saves; anything else added by hand below it is not.
+.{
+    .monitors = .{
+        .{ .name = "DP-1", .w = 1920, .h = 1200, .x = 0, .y = 0 },
+        .{ .name = "eDP-1", .w = 1920, .h = 1200, .x = 1920, .y = 0 },
+    },
+}

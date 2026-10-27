@@ -25,7 +25,11 @@ Singleton {
         stdout: StdioCollector { id: got }
         onExited: root.mode = got.text.trim()
     }
-    Process { id: setter; stderr: StdioCollector {} }
+    Process {
+        id: setter
+        stderr: StdioCollector {}
+        onExited: root.refresh()
+    }
 
     function refresh(): void { getter.running = true; }
 
@@ -42,11 +46,6 @@ Singleton {
     function cycle(): void {
         var i = root.order.indexOf(root.mode);
         root.apply(root.order[(i + 1) % root.order.length]);
-    }
-
-    Connections {
-        target: setter
-        function onExited(): void { root.refresh(); }
     }
 
     // Keybind / debug entry point. Separate target from the "powermode" menu so

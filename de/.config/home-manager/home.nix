@@ -23,13 +23,10 @@
     chromium
     claude-code
     vscode
-    tree-sitter # nvim-treesitter (main branch) needs the CLI to compile parsers
     termius
     firefox-bin
     signal-desktop
     tealdeer
-    beets
-    chromaprint
     caligula
     codex
     mistral-vibe

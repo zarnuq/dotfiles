@@ -76,7 +76,6 @@
     nuclei
 
     # WEB APPLICATION TESTING
-    burpsuite                 # Intercepting proxy
     sqlmap                    # automatic SQL injection
     gobuster                  # directory/DNS brute-forcer
     ffuf                      # fast web fuzzer
@@ -132,18 +131,17 @@
     }))
     smbclient-ng              # Enhanced SMB client
 
+    katana
     nfs-utils
     zip
     penelope
     samba
     openldap
     remmina
-    adalanche
     dig
     thc-hydra
     swaks
     websocat
-    qFlipper
     yt-dlp
     ligolo-ng
     avalonia-ilspy
