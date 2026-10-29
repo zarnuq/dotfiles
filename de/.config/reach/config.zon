@@ -1,7 +1,9 @@
 .{
     // --- layout / behavior -------------------------------------------------
     .outer_gap = 0,
-    .inner_gap = 0,
+    // Must be >= border_thickness: the divider sits just outside the focused
+    // window, so a narrower gutter lays it over the neighbour's first pixels.
+    .inner_gap = 5,
     .sloppy_focus = true,
     .repeat_rate = 50,
     .repeat_delay = 300,
@@ -22,6 +24,9 @@
     },
 
     // --- tmux-style focused-window border ----------------------------------
+    // Fallback only: theme-set's colors.zon (gitignored, beside this file)
+    // overrides both colours. These apply until it has run once on a machine,
+    // or under a reach binary that predates colors.zon.
     .border_active = 0xcba6f7,
     .border_inactive = 0x45475a,
     .border_thickness = 5,
@@ -102,6 +107,7 @@
             .{ .key = "t", .action = .{ .spawn = "qs ipc call bluetooth toggle" } },
             .{ .key = "u", .action = .{ .spawn = "qs ipc call drives toggle" } },
             .{ .key = "m", .action = .{ .spawn = "qs ipc call monitors toggle" } },
+            .{ .key = "c", .action = .{ .spawn = "qs ipc call theme toggle" } },
             .{ .key = "p", .action = .{ .spawn = "qs ipc call powermode toggle" } },
             .{ .key = "s", .action = .{ .spawn = "exec steam </dev/null >/dev/null 2>&1" } },
         } },

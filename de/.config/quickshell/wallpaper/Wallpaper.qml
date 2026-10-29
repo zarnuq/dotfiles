@@ -34,6 +34,11 @@ Singleton {
         stdout: StdioCollector { onStreamFinished: root.current = text.trim() || root.current }
     }
 
+    // Every new wallpaper goes to theme-set, which re-themes from it when
+    // following the wallpaper and only records it while pinned to Mocha.
+    onCurrentChanged: if (root.current)
+        Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/theme-set", "--wallpaper", root.current])
+
     function random(): void { pick.running = true; }
     function set(path): void { root.current = path; }
 

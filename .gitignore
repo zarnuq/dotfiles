@@ -27,3 +27,10 @@ de/.local/sv/*/log/@*
 # ~/.local/state/quickshell/features.json lives outside the repo. The layouts
 # themselves are committed; only the choice is not.
 de/.config/reach/monitors.zon
+
+# theme-set renders this from de/.config/theme/templates; btop only finds
+# themes in its own dir, which is a stow symlink into the repo.
+de/.config/btop/themes/current.theme
+
+# theme-set renders this (border colours); same reason as btop above.
+de/.config/reach/colors.zon

@@ -34,6 +34,7 @@
     obsidian
     ydotool
     wf-recorder
+    matugen # theme-set: wallpaper -> palette (only its --json output is used)
     python314Packages.python-openstackclient
 
     (texlive.combine {

@@ -78,6 +78,7 @@ Singleton {
     readonly property var features: [
         { key: "wallpaper",           group: "Background",  label: "Wallpaper" },
         { key: "wallpaperPicker",     group: "Background",  label: "Wallpaper picker" },
+        { key: "themeMenu",           group: "Background",  label: "Palette menu (Mocha / wallpaper)" },
 
         { key: "notificationPopups",  group: "Notifications", label: "Popups (D-Bus server)" },
         { key: "notificationHistory", group: "Notifications", label: "History + DND menu" },

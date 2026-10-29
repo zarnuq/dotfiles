@@ -25,9 +25,9 @@
                 (key: "L", label: "Open file browser config", run: Edit("~/.config/lazi/files.ron")),
             ],
             style: (
-                title: (fg: "#89b4fa", bold: true),
-                key: (fg: "#cba6f7"),
-                cursor: (bg: "#45475a"),
+                title: (fg: "blue", bold: true),
+                key: (fg: "magenta"),
+                cursor: (bg: "black"),
             ),
             keys: {
                 "j": Down, "k": Up, "Down": Down, "Up": Up, "g g": Top, "G": Bottom,
@@ -50,20 +50,21 @@
                 unmerged: "=", ahead: "⇡", behind: "⇣", clean: "✓",
             ),
             style: (
-                root: (fg: "#89b4fa", bold: true),
-                branch: (fg: "#cba6f7"),
-                status: (fg: "#f9e2af"),
-                arrows: (fg: "#fab387"),
-                clean: (fg: "#a6e3a1"),
-                error: (fg: "#f38ba8"),
+                root: (fg: "blue", bold: true),
+                branch: (fg: "magenta"),
+                status: (fg: "yellow"),
+                arrows: (fg: "cyan"),
+                clean: (fg: "green"),
+                error: (fg: "red"),
+                age: (fg: "darkgray"),
                 // A background, not reversed: reversing turns every coloured span into a block.
-                cursor: (bg: "#45475a"),
+                cursor: (bg: "black"),
                 // The status view's diff: whole rows coloured for added and removed lines, as in
                 // delta.
                 added: (bg: "#1e3a29"),
                 removed: (bg: "#4a2228"),
-                hunk: (fg: "#89b4fa"),
-                line_number: (fg: "#6c7086"),
+                hunk: (fg: "blue"),
+                line_number: (fg: "darkgray"),
             ),
             keys: {
                 "j": Down, "k": Up, "Down": Down, "Up": Up, "g g": Top, "G": Bottom,
@@ -132,9 +133,9 @@
         hidden: true,
         exclude: [".git", ".cache", ".local/share", ".local/state", ".cargo", ".rustup", ".npm", ".mozilla", ".zen", "node_modules"],
         style: (
-            section: (fg: "#89b4fa", bold: true),
-            line_number: (fg: "#6c7086"),
-            cursor: (bg: "#45475a"),
+            section: (fg: "blue", bold: true),
+            line_number: (fg: "darkgray"),
+            cursor: (bg: "black"),
         ),
         // Unbound printable keys type into the query.
         keys: {

@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""theme-set — render one palette into every app that themes from it.
+
+  theme-set NAME             pin a fixed palette, ~/.config/theme/NAME.json
+                             (mocha, gruvbox; mocha is the default)
+  theme-set auto             follow the wallpaper: colours from matugen, starting
+                             with the wallpaper quickshell last reported
+  theme-set --wallpaper IMG  quickshell's hook on every wallpaper change: records
+                             IMG, and re-themes from it unless a palette is pinned
+
+Every palette uses Catppuccin's key names, so each consumer reads the same names
+whichever mode is on; a new preset is a JSON file with all of mocha.json's keys.
+Following the wallpaper only replaces the neutrals and the accent
+(mauve/lavender/onAccent); the named hues (red, green, blue, ...) stay Mocha's,
+because they carry meaning — ok/warn/error, ANSI colours — that a
+wallpaper-derived scheme has no equivalent for.
+
+Outputs, all in $XDG_STATE_HOME/theme unless noted:
+  palette.json   read live by quickshell's Theme.qml, and by nvim at startup
+  kitty.conf     included by kitty.conf; running kittys reload on SIGUSR1
+  ~/.config/btop/themes/current.theme   (btop only finds themes in its own dir;
+                 gitignored, since ~/.config/btop is a stow symlink into the repo)
+  zhimmer.zsh    zhimmer's colour tables; sourced by new shells (theme-file)
+  ~/.config/reach/colors.zon            border colours; reach reloads on SIGHUP
+                 (gitignored, same reason as btop)
+  <zen profile>/chrome/user{Chrome,Content}.css   for every Zen profile
+                 (see zen_profiles); Zen reads them at startup only
+  <vault>/.obsidian/snippets/palette.css   for every vault Obsidian knows;
+                 Obsidian reloads a changed snippet live
+
+Templates write {{key}} for "#rrggbb", {{key|bare}} for "rrggbb" and
+{{key|rgb}} for "r, g, b".
+"""
+import configparser
+import fcntl
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+HOME = Path.home()
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "theme"
+STATE = Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local/state") / "theme"
+BTOP = HOME / ".config/btop/themes/current.theme"
+REACH = HOME / ".config/reach/colors.zon"
+
+# Catppuccin key <- matugen role (dark scheme). Plain names are entries of
+# matugen's "colors"; "palette:tone" picks a tone from its tonal palettes, for
+# the overlay/subtext steps the roles have no slot for.
+FROM_MATUGEN = {
+    "crust": "surface_container_lowest",
+    "mantle": "surface",
+    "base": "surface_container_low",
+    "surface0": "surface_container_high",
+    "surface1": "surface_container_highest",
+    "surface2": "outline_variant",
+    "overlay0": "neutral_variant:50",
+    "overlay1": "neutral_variant:60",
+    "overlay2": "neutral_variant:70",
+    "subtext0": "on_surface_variant",
+    "subtext1": "neutral_variant:90",
+    "text": "on_surface",
+    "mauve": "primary",
+    "lavender": "secondary",
+    "onAccent": "on_primary",
+}
+
+
+def write(path, text):
+    """Atomic replace, so a watcher never reads half a file. True if it changed."""
+    try:
+        if path.read_text() == text:
+            return False
+    except FileNotFoundError:
+        pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text)
+    os.replace(tmp, path)
+    return True
+
+
+def matugen_palette(image):
+    exe = shutil.which("matugen") or str(HOME / ".nix-profile/bin/matugen")
+    # --source-color-index: matugen otherwise prompts when an image yields
+    # several candidate colours. --dry-run: render nothing, run no hooks.
+    out = subprocess.run(
+        [exe, "image", image, "--mode", "dark", "--json", "hex", "--dry-run",
+         "--source-color-index", "0"],
+        capture_output=True, text=True, check=True).stdout
+    scheme = json.loads(out)
+    pal = json.loads((CONFIG / "mocha.json").read_text())
+    for key, role in FROM_MATUGEN.items():
+        if ":" in role:
+            name, tone = role.split(":")
+            pal[key] = scheme["palettes"][name][tone]["color"]
+        else:
+            pal[key] = scheme["colors"][role]["dark"]["color"]
+    return pal
+
+
+FILTERS = {
+    "": lambda h: h,
+    "bare": lambda h: h[1:],
+    "rgb": lambda h: ", ".join(str(int(h[i:i + 2], 16)) for i in (1, 3, 5)),
+}
+
+
+def render(template, pal):
+    # An unknown {{key}} or |filter raises KeyError rather than rendering blank.
+    return re.sub(r"\{\{\s*(\w+)(?:\|(\w+))?\s*\}\}",
+                  lambda m: FILTERS[m.group(2) or ""](pal[m.group(1)]),
+                  template.read_text())
+
+
+# Where Zen keeps its profiles: the classic dir, the XDG one newer builds use,
+# and the flatpak's. Every one that exists is themed, so any machine works.
+ZEN_ROOTS = [HOME / ".zen", HOME / ".config/zen", HOME / ".var/app/app.zen_browser.zen/.zen"]
+STYLESHEETS_PREF = 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);'
+
+
+def ini(path):
+    parser = configparser.ConfigParser(interpolation=None, strict=False)
+    parser.read(path)
+    return parser
+
+
+def zen_profiles():
+    """Every Zen profile on this machine, launched or not: each [Profile*] in
+    profiles.ini, plus each install's Default (installs.ini, or [Install<hash>]
+    in profiles.ini) in case one isn't listed there. A relative path is under
+    the root; an absolute one (IsRelative=0) replaces it, which `/` does on its
+    own.
+    """
+    dirs = set()
+    for root in ZEN_ROOTS:
+        installs, profiles = ini(root / "installs.ini"), ini(root / "profiles.ini")
+        paths = [profiles[s]["path"] for s in profiles.sections()
+                 if s.startswith("Profile") and "path" in profiles[s]]
+        paths += [installs[s]["default"] for s in installs.sections() if "default" in installs[s]]
+        paths += [profiles[s]["default"] for s in profiles.sections()
+                  if s.startswith("Install") and "default" in profiles[s]]
+        dirs |= {root / p for p in paths}
+    return sorted(d for d in dirs if d.is_dir())
+
+
+def ensure_stylesheets_pref(profile):
+    """userChrome/userContent are ignored unless this pref is on. Adds it to the
+    profile's user.js when that file doesn't mention it at all; an explicit
+    `false` there is left alone."""
+    userjs = profile / "user.js"
+    text = userjs.read_text() if userjs.exists() else ""
+    if "toolkit.legacyUserProfileCustomizations.stylesheets" in text:
+        return
+    write(userjs, text + ("\n" if text and not text.endswith("\n") else "") + STYLESHEETS_PREF + "\n")
+
+
+def obsidian_vaults():
+    try:
+        known = json.loads((HOME / ".config/obsidian/obsidian.json").read_text())["vaults"]
+    except (FileNotFoundError, KeyError, ValueError):
+        return []
+    return [Path(v["path"]) for v in known.values() if (Path(v["path"]) / ".obsidian").is_dir()]
+
+
+def apply(pal):
+    t = CONFIG / "templates"
+    write(STATE / "palette.json", json.dumps(pal, indent=2) + "\n")
+    write(BTOP, render(t / "btop.theme", pal))
+    if write(STATE / "kitty.conf", render(t / "kitty.conf", pal)):
+        subprocess.run(["pkill", "-USR1", "-x", "kitty"])
+    write(STATE / "zhimmer.zsh", render(t / "zhimmer.zsh", pal))
+    if write(REACH, render(t / "reach-colors.zon", pal)):
+        subprocess.run(["pkill", "-HUP", "-x", "reach"])
+    for profile in zen_profiles():
+        ensure_stylesheets_pref(profile)
+        write(profile / "chrome/userChrome.css", render(t / "zen-userChrome.css", pal))
+        write(profile / "chrome/userContent.css", render(t / "zen-userContent.css", pal))
+    for vault in obsidian_vaults():
+        write(vault / ".obsidian/snippets/palette.css", render(t / "obsidian-palette.css", pal))
+
+
+def preset(name):
+    """A fixed palette, or None. The name check keeps it inside CONFIG."""
+    path = CONFIG / f"{name}.json"
+    if not re.fullmatch(r"[a-z0-9-]+", name) or not path.is_file():
+        return None
+    pal = json.loads(path.read_text())
+    missing = set(json.loads((CONFIG / "mocha.json").read_text())) - set(pal)
+    if missing:
+        sys.exit(f"theme-set: {path} lacks {', '.join(sorted(missing))}")
+    return pal
+
+
+def main(argv):
+    if len(argv) == 1 and (argv[0] == "auto" or preset(argv[0]) is not None):
+        mode = argv[0]
+        write(STATE / "mode", mode + "\n")
+    elif len(argv) == 2 and argv[0] == "--wallpaper":
+        write(STATE / "wallpaper", argv[1] + "\n")
+        mode = None
+    else:
+        sys.exit(__doc__)
+
+    if mode is None:
+        try:
+            mode = (STATE / "mode").read_text().strip()
+        except FileNotFoundError:
+            mode = "mocha"
+
+    if mode != "auto":
+        # A mode file naming a preset that has since been deleted falls back
+        # to mocha rather than leaving the last render in place.
+        apply(preset(mode) or preset("mocha"))
+        return
+    try:
+        image = (STATE / "wallpaper").read_text().strip()
+    except FileNotFoundError:
+        sys.exit("theme-set: no wallpaper recorded yet — set one from quickshell first")
+    try:
+        apply(matugen_palette(image))
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"theme-set: matugen failed on {image}:\n{e.stderr.strip()}")
+
+
+if __name__ == "__main__":
+    STATE.mkdir(parents=True, exist_ok=True)
+    # ponytail: one lock serialises overlapping runs (rapid wallpaper changes);
+    # it doesn't order them, so a slow older run can still land last.
+    with open(STATE / "lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        main(sys.argv[1:])

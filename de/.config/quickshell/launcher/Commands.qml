@@ -34,6 +34,7 @@ Singleton {
         { name: "Displays",         desc: "monitor layouts",     glyph: "󰍹", args: ["monitors",        "open"] },
         { name: "Power modes",      desc: "perf / balanced / saver", glyph: "󰓅", args: ["powermode",   "open"] },
         { name: "Wallpaper picker", desc: "thumbnail grid",      glyph: "󰋩", args: ["wallpaperpicker", "open"] },
+        { name: "Palette",          desc: "Mocha / wallpaper",   glyph: "󰏘", args: ["theme",           "open"] },
         { name: "Music",            desc: "MPD client",          glyph: "󰝚", args: ["music",           "open"] },
         { name: "Settings",         desc: "feature switches",    glyph: "󰒓", args: ["settings",        "open"] },
 

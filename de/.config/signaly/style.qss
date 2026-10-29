@@ -1,0 +1,90 @@
+/* signaly theme. Colours are palette keys in double braces ({{base}}, {{mauve}}, ...) from
+   theme-set's ~/.local/state/theme/palette.json
+   (Catppuccin key names; falls back to ~/.config/theme/mocha.json). Reloads live on
+   save and on every theme-set run.
+   Object names:
+     sidebar search conversations status
+     chat title mediaButton pinned scroll messages reply replyText cancelReply
+     composer emoji stickers attach input voice emojiGrid stickerGrid typing
+     date sender bubble quote sticker attachment preview meta reactions   ([out="true"|"false"] on bubble, quote, attachment, preview, meta)
+     mediaTabs back sort media audio links files
+   Avatar size: #conversations { qproperty-iconSize: 36px 36px; }
+   Pinned message bubble: #bubble[pinned="true"]; read receipt: #meta[read="true"] */
+
+* { border-radius: 0; }
+QWidget {
+    background: {{base}}; color: {{text}};
+    font-family: "JetBrainsMono Nerd Font"; font-size: 11pt;
+    selection-background-color: {{mauve}}; selection-color: {{crust}};
+}
+QLabel { background: transparent; }
+QToolTip { background: {{mantle}}; color: {{text}}; border: 1px solid {{surface1}}; }
+
+#sidebar { background: {{mantle}}; }
+#search, #input { background: {{surface0}}; border: 1px solid {{surface0}}; padding: 8px; }
+#search:focus, #input:focus { border-color: {{mauve}}; }
+#conversations { background: transparent; border: none; outline: none; }
+#conversations::item { padding: 8px; border-left: 2px solid transparent; }
+#conversations::item:selected { background: {{surface0}}; color: {{text}}; border-left-color: {{mauve}}; }
+#conversations::item:hover:!selected { background: {{base}}; }
+#status { color: {{overlay0}}; font-size: 9pt; }
+
+#title { font-size: 13pt; font-weight: bold; padding: 6px 4px; }
+#pinned { background: {{mantle}}; border-left: 2px solid {{mauve}}; padding: 6px 10px; color: {{subtext0}}; }
+#scroll, #messages { border: none; background: {{base}}; }
+#sender { color: {{lavender}}; font-size: 9pt; margin-left: 2px; }
+#bubble { padding: 8px 12px; }
+#bubble[out="false"] { background: {{surface0}}; }
+#bubble[out="true"] { background: {{mauve}}; color: {{crust}}; }
+#bubble[pinned="true"] { border: 1px solid {{yellow}}; }
+#quote { color: {{subtext0}}; font-size: 9pt; border-left: 2px solid {{mauve}}; padding: 2px 8px; }
+#reactions { font-size: 10pt; margin: 0 6px; }
+#attachment { border: none; padding: 4px; text-align: left; }
+#attachment:hover { background: {{surface0}}; }
+#preview { background: {{mantle}}; border: none; border-left: 2px solid {{blue}}; padding: 6px 10px; text-align: left; }
+#preview:hover { background: {{surface0}}; }
+#meta { color: {{overlay0}}; font-size: 8pt; margin: 0 2px 4px 2px; }
+#meta[read="true"] { color: {{blue}}; }
+#date { color: {{subtext0}}; font-size: 9pt; padding: 8px; }
+#typing { color: {{subtext0}}; font-size: 9pt; font-style: italic; padding: 2px 4px; }
+
+#reply { background: {{mantle}}; border-left: 2px solid {{mauve}}; padding: 4px 8px; }
+#replyText { color: {{subtext0}}; }
+
+QToolButton { background: transparent; border: none; padding: 4px 6px; font-size: 14pt; }
+QToolButton:hover { background: {{surface0}}; }
+QToolButton::menu-indicator { image: none; width: 0; }
+
+QMenu { background: {{mantle}}; border: 1px solid {{surface1}}; padding: 4px; }
+QMenu::item { padding: 6px 18px; }
+QMenu::item:selected { background: {{surface1}}; }
+QMenu::item:disabled { color: {{overlay0}}; }
+QMenu::separator { height: 1px; background: {{surface1}}; margin: 4px 8px; }
+#emojiGrid, #stickerGrid { background: {{mantle}}; border: none; }
+#emojiGrid QToolButton { font-size: 16pt; padding: 2px; }
+#stickerGrid::item:hover { background: {{surface0}}; }
+
+#mediaTabs::pane { border: none; }
+#mediaTabs::tab-bar { alignment: center; }
+QTabBar { qproperty-drawBase: 0; }
+QTabBar::tab { background: transparent; color: {{subtext0}}; padding: 6px 16px; margin: 4px 2px; border-bottom: 2px solid transparent; }
+QTabBar::tab:selected { color: {{text}}; border-bottom-color: {{mauve}}; }
+QTabBar::tab:hover:!selected { background: {{surface0}}; }
+#media, #audio, #links, #files { background: {{base}}; border: none; outline: none; }
+#audio::item, #links::item, #files::item { padding: 8px; border-bottom: 1px solid {{surface0}}; }
+#media::item:selected, #audio::item:selected, #links::item:selected, #files::item:selected { background: {{surface0}}; color: {{text}}; }
+
+QPushButton { background: {{surface0}}; border: 1px solid {{surface1}}; padding: 6px 14px; }
+QPushButton:hover { border-color: {{mauve}}; }
+QComboBox { background: {{surface0}}; border: 1px solid {{surface1}}; padding: 4px 8px; }
+QComboBox QAbstractItemView { background: {{mantle}}; selection-background-color: {{surface1}}; selection-color: {{text}}; }
+
+QSplitter::handle { background: {{crust}}; width: 1px; }
+QScrollBar:vertical { background: transparent; width: 8px; }
+QScrollBar::handle:vertical { background: {{surface1}}; min-height: 24px; }
+QScrollBar::handle:vertical:hover { background: {{overlay0}}; }
+QScrollBar:horizontal { background: transparent; height: 8px; border: none; }
+QScrollBar::handle:horizontal { background: {{surface1}}; min-width: 24px; }
+QScrollBar::handle:horizontal:hover { background: {{overlay0}}; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; border: none; }
+QScrollBar::add-page, QScrollBar::sub-page { background: none; }

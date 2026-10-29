@@ -50,6 +50,8 @@ source $ZPLUG_HOME/init.zsh
 zplug "jeffreytse/zsh-vi-mode"
 zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
 zstyle ':zhimmer:*' prompt yes
+# theme-set's render of the palette; a missing file keeps zhimmer's defaults.
+zstyle ':zhimmer:*' theme-file "${XDG_STATE_HOME:-$HOME/.local/state}/theme/zhimmer.zsh"
 # menu-style is gone: zhimmer draws the drop-down itself and complist is no
 # longer a backend for it, so this setting no longer exists (2026-08-30).
 # zstyle ':zhimmer:*' menu-style zle
@@ -61,7 +63,8 @@ fi
 zplug load
 
 HISTORY_IGNORE='(ls|cd|pwd|exit)'
-RPROMPT='%F{#6c7086}%D{%H:%M:%S}%f'
+# Expanded now, after zhimmer loaded its theme file: overlay0 from the palette.
+RPROMPT="%F{${ZHIMMER_HEADER_COLOR:-#6c7086}}%D{%H:%M:%S}%f"
 export MANPAGER="nvim +Man!"
 bindkey -r '^R'
 bindkey -M emacs -r '^R'
