@@ -10,7 +10,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 Widget {
     id: root
     anchors { top: true; bottom: true; left: true }
-    margins { top: s(225); bottom: s(330) }
+    margins { top: s(280); bottom: s(330) }
     implicitWidth: s(420)
 
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"

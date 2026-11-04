@@ -107,6 +107,7 @@ Singleton {
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
         { key: "brightness",          group: "Panel",       label: "Brightness" },
+        { key: "syncthing",           group: "Panel",       label: "Syncthing status" },
         { key: "battery",             group: "Panel",       label: "Battery (laptop only)" },
         { key: "tray",                group: "Panel",       label: "System tray" }
     ]

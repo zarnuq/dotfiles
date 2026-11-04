@@ -34,6 +34,8 @@ A head that isn't connected is simply ignored. That used to mean the two groups 
 not both be live (`DP-3` and `DP-1` appear in both, and a duplicate name is two entries
 for one head); presets removed that constraint, since only one is applied at a time.
 
+**Split files (reach with directory merging, uncommitted in `~/Projects/reach` as of 2026-11-03).** reach reads **every top-level `*.zon`** in the config dir, each with config.zon's schema, overlaying config.zon first and then the rest **by name** (later wins; nested tables like `.gamma` merge field by field; a list — `binds`, `rules`, `monitors` — is replaced whole). Subdirectories (`monitors/`) and dotfiles are not read. **A broken file of any name fails the whole load** (at startup: compiled-in defaults, no binds). The first of `$XDG_CONFIG_HOME/reach`, `~/.config/reach`, `/etc/reach` holding any `*.zon` is the config dir; the others are ignored. This is how a quickshell widget owns one setting: write one small file, `pkill -HUP -x reach`. Current writers: `monitors.zon` (Displays window), `colors.zon` (theme-set), `brightness.zon` / `nightlight.zon` (Brightness card). `.gamma.brightness` is a setter: applied at startup and when a reload **changes** it, 0 = leave alone, routed to the backlight when there is one like the keys. An older binary ignores the extra files (it only knew config/monitors/colors).
+
 **Monitor layouts (`monitors.zon`)** — the layout is its own file beside `config.zon`,
 found by the same XDG lookup. **reach's entire share of this is: open that path, parse
 `.{ .monitors = ... }`, assign it.** No presets, no `active` field, no name matching —

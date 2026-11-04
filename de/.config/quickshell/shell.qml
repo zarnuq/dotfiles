@@ -65,6 +65,7 @@ ShellRoot {
     LazyLoader { active: Config.on("notificationHistory"); Notifications {} }
     LazyLoader { active: Config.on("calendar");            Calendar {} }
     LazyLoader { active: Config.on("brightness");          Brightness {} }
+    LazyLoader { active: Config.on("syncthing");           Syncthing {} }
     LazyLoader { active: Config.on("battery") && Config.batteryPresent; Battery {} }
     LazyLoader { active: Config.on("osd");                 Osd {} }
     LazyLoader { active: Config.on("spotlight");           Spotlight {} }

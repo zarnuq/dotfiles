@@ -34,3 +34,6 @@ de/.config/btop/themes/current.theme
 
 # theme-set renders this (border colours); same reason as btop above.
 de/.config/reach/colors.zon
+# Written by quickshell's Brightness card (per-machine state).
+de/.config/reach/brightness.zon
+de/.config/reach/nightlight.zon
