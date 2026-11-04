@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "skillHash": "sha256:39c43977e5837f37200ff469e9c5ba2c881b5fcec27a2846259318642aaa28a3",
+  "scoredAt": "2026-05-13T09:11:38.359Z",
+  "backend": "subagent",
+  "model": "claude-sonnet-4-6",
+  "quality": {
+    "score": 87,
+    "dimensions": {
+      "clarity": "PASS",
+      "completeness": "WEAK",
+      "conciseness": "PASS",
+      "actionability": "PASS",
+      "crossPlatform": "WEAK",
+      "examples": "PASS"
+    },
+    "issues": [
+      {
+        "severity": "MEDIUM",
+        "category": "completeness",
+        "detail": "The instructions lack explicit error handling for missing files, GPU errors, or invalid hash modes."
+      },
+      {
+        "severity": "MEDIUM",
+        "category": "crossPlatform",
+        "detail": "The skill assumes Linux file paths and tools, limiting portability to other operating systems."
+      }
+    ]
+  },
+  "security": {
+    "verdict": "SAFE",
+    "issues": []
+  },
+  "impact": {
+    "baselineAvg": 28,
+    "treatmentAvg": 95,
+    "multiplier": 3.39,
+    "scenarios": [
+      {
+        "name": "Crack NTLM dump from authorized AD engagement",
+        "baseline": 35,
+        "treatment": 95,
+        "rationale": "Baseline picks the right mode but defaults to brute force and skips engagement isolation; treatment uses -r best64.rule, -w 3, isolated --potfile-path and --session for resume, and --show/--left for follow-up."
+      },
+      {
+        "name": "Crack WPA2 handshake captured from own router",
+        "baseline": 20,
+        "treatment": 95,
+        "rationale": "Baseline calls deprecated -m 2500 / hccapx flow; treatment uses hcxpcapngtool to produce hc22000, runs current -m 22000 with rules and --session as the skill documents."
+      }
+    ]
+  }
+}

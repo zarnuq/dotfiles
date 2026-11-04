@@ -1,0 +1,3 @@
+interface:
+  display_name: "ydotool Desktop Control"
+  short_description: "Drive and test GUI apps on Miles's Wayland desktop with ydotool and AT-SPI"

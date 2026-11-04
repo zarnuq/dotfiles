@@ -16,6 +16,8 @@ System package manager is **Portage** (`emerge`). Elevation is **`doas`** (`app-
 
 ```
 de/                  # Stowed to $HOME
+├── .agents/         # AI config, one copy for every CLI: AGENTS.md (global instructions) + skills/ (see below)
+├── .claude/ .codex/ .vibe/  # links into .agents/, plus Claude's settings.json + statusline — never stow these dirs whole (auth, history)
 ├── .config/         # App configs (incl. reach/, dconf/, quickshell/{bar,cards,launcher,monitors,music,wallpaper}/)
 ├── .local/bin/      # Custom scripts
 ├── .local/sv/       # Per-user runit service definitions
@@ -158,6 +160,19 @@ comments, the never-installed xsettingsd) were fixed or removed on 2026-09-25. A
 > on `PATH` is live — `app-editors/emacs` is installed and `~/.config/emacs` is a Doom
 > checkout whose `bin/` holds `doom`, `doom-sync`, `doom-doctor`. Only the runit service
 > and the shell aliases were removed (commit `aa4b679f`). Leave the PATH entry alone.
+
+## AI agent config (`de/.agents/`)
+
+One real copy, linked into every CLI. `~/.agents/skills` is a folded stow link to the repo dir, so Codex, Antigravity, Copilot and other tools that read it directly see every skill. Claude Code and Vibe need a link per skill: `de/.claude/skills/<name>` and `de/.vibe/skills/<name>` → `../../.agents/skills/<name>`. `~/.claude/skills` stays a real dir because claude.ai keeps `synced/` there, which is not tracked. `AGENTS.md` is the global instructions file: `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` both link to it. `npx skills add -g` writes new skills straight into the repo, but it puts their Claude link in the real `~/.claude/skills`, so add the tracked link by hand. The repo is public: review a third-party skill before committing it.
+
+- `ai-cli-subagents`: delegates to the Codex, `agy` and Vibe CLIs and tracks quota. State lives in `~/.local/state/ai-cli-subagents/`. Check with `python3 de/.agents/skills/ai-cli-subagents/scripts/delegate.py selftest` (offline). `always-import.txt` lists the skills pasted into every subagent prompt. `never-import.txt` holds globs for skills that are never forwarded.
+- `ydotool`: Wayland input and widget locating. `scripts/inspect_desktop.py` is read-only diagnostics and must stay that way. `scripts/ui.py` needs `/usr/bin/python3` (system `gi`). `examples/*.sh` are the real-input tests, run against open LibreOffice windows. `runit/install.sh` installs the system `ydotoold` service as root.
+- `rg-search`, `find-skills`: small prompt-only skills. `find-skills` comes from vercel-labs/skills; update it with `npx skills update`.
+- `hashcat`, `john-the-ripper`: from TerminalSkills/skills (Apache-2.0), originally installed into Codex only.
+
+`de/.claude/` also tracks `settings.json` (plugins, marketplaces, model, statusline) and the statusline: `statusline-command.sh` sources `water.sh`, which reads `water-facts.txt` and `water-prices.txt` from its own dir. `water-learned-prices.txt` stays local. Keep `autoMode` out of the tracked `settings.json`: it names private repos. Claude Code rewrites `settings.json` on `/config` and `/plugin`, so after a change confirm `~/.claude/settings.json` is still a symlink. `~/.codex/rules/default.rules` is deliberately not tracked: it is one-off approvals that Codex appends to.
+
+Formerly the separate `github.com/zarnuq/skills` repo, whose history stays there.
 
 ## Tests
 

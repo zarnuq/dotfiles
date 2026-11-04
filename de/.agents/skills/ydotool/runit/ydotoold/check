@@ -1,0 +1,3 @@
+#!/bin/sh
+exec env YDOTOOL_SOCKET=/run/ydotoold/socket \
+    /home/miles/.nix-profile/bin/ydotool debug >/dev/null 2>&1

@@ -1,0 +1,3 @@
+# Skills imported into every subagent prompt, one per line (plugin:skill or bare name).
+# Lines naming a skill from a disabled or missing plugin are skipped.
+ponytail:ponytail

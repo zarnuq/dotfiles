@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+exec 2>&1
+export PATH=/usr/bin:/usr/sbin:/bin:/sbin
+
+if [ ! -c /dev/uinput ]; then
+    /usr/bin/modprobe uinput
+fi
+if [ ! -c /dev/uinput ]; then
+    echo 'ydotoold: /dev/uinput is unavailable' >&2
+    sleep 2
+    exit 1
+fi
+
+mkdir -p /run/ydotoold
+chmod 0755 /run/ydotoold
+exec /home/miles/.nix-profile/bin/ydotoold \
+    --socket-path=/run/ydotoold/socket \
+    --socket-own=1000:1000 \
+    --socket-perm=0600

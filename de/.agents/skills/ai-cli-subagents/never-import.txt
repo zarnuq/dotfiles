@@ -1,0 +1,34 @@
+# Skills never imported from the orchestrating session (fnmatch globs on plugin:skill or the bare name).
+# These only make sense inside Claude Code, or orchestrate Claude subagents and the user.
+# An explicit --skill still imports one of these.
+ai-cli-subagents
+using-superpowers
+brainstorming
+dispatching-parallel-agents
+subagent-driven-development
+writing-skills
+skill-creator
+finishing-a-development-branch
+diagnosing-superpowers
+caveman-*
+cavecrew*
+ponytail-help
+ponytail-gain
+artifact-*
+dataviz
+docs
+update-config
+keybindings-help
+plugin-authoring
+fewer-permission-prompts
+loop
+schedule
+init
+run
+built-in-browser
+chrome-browser
+computer-use
+deep-research
+morning
+import-memory
+google-workspace

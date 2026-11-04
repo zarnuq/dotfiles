@@ -1,0 +1,3 @@
+interface:
+  display_name: "AI CLI Subagents"
+  short_description: "Delegate work to Codex, Antigravity (agy) and Mistral Vibe subscriptions as headless subagents, tracking each one's quota"
