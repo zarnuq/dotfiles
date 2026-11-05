@@ -45,6 +45,11 @@
       pefile
       capstone
       ropper
+      angr                    # symbolic execution
+      # CTF crypto / solving
+      z3-solver
+      gmpy2
+      sympy
       # output / TUI
       rich
       colorama
@@ -107,15 +112,25 @@
     # POST-EXPLOITATION & TUNNELING
     netcat-openbsd            # The Swiss Army Knife of networking
     evil-winrm                # Interactive WinRM shell
+    certipy                   # AD CS abuse (ESC1-ESC16)
 
     # REVERSE ENGINEERING
     binaryninja-free          # Modern RE platform
     gdb                       # GNU debugger
+    gef                       # gdb exploit-dev plugin (`gef` wraps gdb; pwndbg isn't in nixpkgs)
+    one_gadget                # libc one-shot execve gadgets
+    ghidra                    # decompiler; analyzeHeadless for scripted decompiles
+    rizin                     # CLI RE; REA's rizin sessions use it
+    apktool                   # Android: decode/rebuild APKs
+    jadx                      # Android: dex -> Java
+    sage                      # CTF crypto math (lattices, ECC, Coppersmith)
 
     # FORENSICS & RECOVERY
     binwalk                   # firmware analysis
     steghide                  # steganography tool
     stegseek                  # fast steghide cracker
+    zsteg                     # PNG/BMP LSB stego
+    volatility3               # memory forensics (`vol`)
 
     # UTILITIES
     inetutils                 # provides telnet, ftp, etc.

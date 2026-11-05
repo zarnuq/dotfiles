@@ -7,7 +7,7 @@
      chat titleIcon title mediaButton pinned scroll messages reply replyText cancelReply
      composer emoji stickers attach input voice emojiGrid emojiSearch emojiRecent emojiAll emojiTabs
      stickerPicker stickerPacks stickerGrid typing more
-     date sender bubble quote sticker attachment preview meta reactions   ([out="true"|"false"] on bubble, quote, attachment, preview, meta)
+     date sender memberLabel bubble body quote quoteName quoteText sticker attachment preview meta reactions   ([out="true"|"false"] on bubble, quote, attachment, preview, meta)
      mediaTabs back sort media audio links files
    Avatar size: #conversations { qproperty-iconSize: 36px 36px; }
    Pinned message bubble: #bubble[pinned="true"]; read receipt: #meta[read="true"] */
@@ -33,24 +33,37 @@ QToolTip { background: {{mantle}}; color: {{text}}; border: 1px solid {{surface1
 #title { font-size: 13pt; font-weight: bold; padding: 6px 4px; }
 #pinned { background: {{mantle}}; border-left: 2px solid {{mauve}}; padding: 6px 10px; color: {{subtext0}}; }
 #scroll, #messages { border: none; background: {{base}}; }
-#sender { color: {{lavender}}; font-size: 9pt; margin-left: 2px; }
-#bubble { padding: 8px 12px; }
+#sender { color: {{lavender}}; font-size: 9pt; font-weight: bold; }
+#bubble { padding: 8px 12px; border-radius: 16px; }
 #bubble[out="false"] { background: {{surface0}}; }
-#bubble[out="true"] { background: {{mauve}}; color: {{crust}}; }
+#bubble[out="true"] { background: {{mauve}}; }
+#bubble[out="true"] #body, #bubble[out="true"] #meta, #bubble[out="true"] #quoteName, #bubble[out="true"] #quoteText { color: {{crust}}; }
 #bubble[pinned="true"] { border: 1px solid {{yellow}}; }
-#quote { color: {{subtext0}}; font-size: 9pt; border-left: 2px solid {{mauve}}; padding: 2px 8px; }
+#bubble[bare="true"] { background: transparent; padding: 0 4px; }
+#bubble[jumbo="true"] #body { font-size: 36pt; }
+#bubble[deleted="true"] { background: transparent; border: 1px solid {{surface1}}; }
+#bubble[deleted="true"] #body { color: {{overlay1}}; font-style: italic; }
+#memberLabel { background: {{surface1}}; color: {{subtext1}}; font-size: 8pt; padding: 1px 6px; border-radius: 8px; }
+#quote { background: {{mantle}}; border-left: 3px solid {{mauve}}; border-radius: 8px; padding: 4px 8px; }
+#quoteName, #quoteText { color: {{subtext0}}; font-size: 9pt; }
+#quoteName { font-weight: bold; }
 #reactions { font-size: 10pt; margin: 0 6px; }
 #attachment { border: none; padding: 4px; text-align: left; }
 #attachment:hover { background: {{surface0}}; }
 #preview { background: {{mantle}}; border: none; border-left: 2px solid {{blue}}; padding: 6px 10px; text-align: left; }
 #preview:hover { background: {{surface0}}; }
-#meta { color: {{overlay0}}; font-size: 8pt; margin: 0 2px 4px 2px; }
-#meta[read="true"] { color: {{blue}}; }
+#meta { color: {{overlay0}}; font-size: 8pt; }
+#meta[read="true"], #bubble[out="true"] #meta[read="true"] { color: {{blue}}; }
 #date { color: {{subtext0}}; font-size: 9pt; padding: 8px; }
 #typing { color: {{subtext0}}; font-size: 9pt; font-style: italic; padding: 2px 4px; }
 
 #reply { background: {{mantle}}; border-left: 2px solid {{mauve}}; padding: 4px 8px; }
 #replyText { color: {{subtext0}}; }
+
+#settings, #settingsBody { background: {{base}}; border: none; }
+#settings QLineEdit { background: {{surface0}}; border: 1px solid {{surface0}}; padding: 6px; }
+#settings QLineEdit:focus { border-color: {{mauve}}; }
+#sectionTitle { color: {{mauve}}; font-weight: bold; padding: 14px 0 4px 0; }
 
 QToolButton { background: transparent; border: none; padding: 4px 6px; font-size: 14pt; }
 QToolButton:hover { background: {{surface0}}; }
@@ -96,3 +109,4 @@ QScrollBar::handle:horizontal { background: {{surface1}}; min-width: 24px; }
 QScrollBar::handle:horizontal:hover { background: {{overlay0}}; }
 QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; border: none; }
 QScrollBar::add-page, QScrollBar::sub-page { background: none; }
+#hoverBar QToolButton { font-size: 11pt; padding: 2px 4px; color: {{subtext0}}; }
