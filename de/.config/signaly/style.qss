@@ -4,8 +4,9 @@
    save and on every theme-set run.
    Object names:
      sidebar search conversations status
-     chat title mediaButton pinned scroll messages reply replyText cancelReply
-     composer emoji stickers attach input voice emojiGrid stickerGrid typing
+     chat titleIcon title mediaButton pinned scroll messages reply replyText cancelReply
+     composer emoji stickers attach input voice emojiGrid emojiSearch emojiRecent emojiAll emojiTabs
+     stickerPicker stickerPacks stickerGrid typing more
      date sender bubble quote sticker attachment preview meta reactions   ([out="true"|"false"] on bubble, quote, attachment, preview, meta)
      mediaTabs back sort media audio links files
    Avatar size: #conversations { qproperty-iconSize: 36px 36px; }
@@ -63,6 +64,13 @@ QMenu::separator { height: 1px; background: {{surface1}}; margin: 4px 8px; }
 #emojiGrid, #stickerGrid { background: {{mantle}}; border: none; }
 #emojiGrid QToolButton { font-size: 16pt; padding: 2px; }
 #stickerGrid::item:hover { background: {{surface0}}; }
+#emojiAll, #emojiRecent { background: transparent; border: none; font-size: 18pt; }
+#stickerPicker { background: {{mantle}}; }
+#stickerPacks { background: transparent; border: none; font-size: 18pt; color: {{subtext0}}; }
+#stickerPacks::item:hover, #stickerPacks::item:selected { background: {{surface0}}; }
+#emojiTabs::tab { background: transparent; border: none; padding: 4px 0; font-size: 14pt; color: {{subtext0}}; }
+#emojiTabs::tab:hover { color: {{text}}; }
+#emojiTabs::tab:selected { color: {{mauve}}; border-bottom: 2px solid {{mauve}}; }
 
 #mediaTabs::pane { border: none; }
 #mediaTabs::tab-bar { alignment: center; }

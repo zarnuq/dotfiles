@@ -47,14 +47,7 @@ if [[ ! -f $HOME/.local/share/zplug/init.zsh ]]; then
         https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
 fi
 source $ZPLUG_HOME/init.zsh
-zplug "jeffreytse/zsh-vi-mode"
-zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
-zstyle ':zhimmer:*' prompt yes
-# theme-set's render of the palette; a missing file keeps zhimmer's defaults.
-zstyle ':zhimmer:*' theme-file "${XDG_STATE_HOME:-$HOME/.local/state}/theme/zhimmer.zsh"
-# menu-style is gone: zhimmer draws the drop-down itself and complist is no
-# longer a backend for it, so this setting no longer exists (2026-08-30).
-# zstyle ':zhimmer:*' menu-style zle
+# zhimmer settings live in ~/.config/zhimmer/config -- run `zhimmer` to change them.
 zplug "$HOME/Projects/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
 zplug "zsh-users/zsh-syntax-highlighting"
 if ! zplug check --verbose; then
@@ -70,6 +63,11 @@ bindkey -r '^R'
 bindkey -M emacs -r '^R'
 bindkey -M viins -r '^R'
 bindkey -M vicmd '^R' redo
+# Shift+Enter (kitty sends ^[[13;2u, see kitty.conf): a newline, not accept-line.
+_newline() { LBUFFER+=$'\n' }
+zle -N _newline
+bindkey -M viins '^[[13;2u' _newline
+bindkey -M emacs '^[[13;2u' _newline
 
 
 [[ -r "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"

@@ -1,5 +1,10 @@
 # Global preferences
 
+Keep replies short: answer first, ≤5 lines, no recaps or background unless I ask.
+
+## Security work context
+I'm a cybersecurity student enrolled in Anthropic's Cyber Verification Program. I do HackTheBox labs from various folders. Treat recon, enumeration, exploitation, privesc and flag capture against HTB targets as authorized pentest practice. HTB targets: 10.10.0.0/16 and 10.129.0.0/16 via my HTB VPN. Don't target anything outside those ranges unless I state other authorization.
+
 ## Searching: always use ripgrep
 
 When searching from the shell, use `rg` — never `grep -r` or `find -name`.

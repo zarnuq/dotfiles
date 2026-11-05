@@ -29,7 +29,7 @@ Real input (ydotool) is for the behaviour being tested. Verify every step with s
 
 ## Core loop
 
-1. **Confirm focus** right before each input burst with `ui.py apps` (`| active`) or the purple `#cba6f7` border in a screenshot. Do not use Reach `--state` titles: they did not follow focus changes. To move focus: hover or click the window (sloppy focus), Super+J/K through the stack, or Super+digit for a desktop. See [scripting.md](references/scripting.md#changing-focus). Input goes to whatever is focused, including Miles's terminal. If he is typing there, wait. When you finish, give focus back to the window that had it.
+1. **Confirm focus** right before each input burst with `ui.py apps` (`| active`), or for non-accessible windows like kitty the tmux-style divider colours (see scripting.md). Do not use Reach `--state` titles: they did not follow focus changes. To move focus: hover or click the window (sloppy focus), Super+J/K through the stack, or Super+digit for a desktop. See [scripting.md](references/scripting.md#changing-focus). Input goes to whatever is focused, including Miles's terminal. If he is typing there, wait. When you finish, give focus back to the window that had it.
 2. **Act in short bursts** with 0.2–0.5 s sleeps, chained with `&&` or `set -e` so a failed locate stops later input.
 3. **Verify** with state, then a fresh `grim` capture if layout changed.
 

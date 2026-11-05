@@ -72,8 +72,14 @@ All four methods were verified on 2026-10-12 with Writer, Calc and kitty tiled o
 **Check focus with a source that tracks it.** The Reach `--state` title did not change through any of the switches above. Do not use it to confirm focus. Use one of these instead:
 
 - `ui.py apps`. The focused accessible window ends in `| active`. No `active` line means focus is in a non-accessible window (kitty, Obsidian, Zen).
-- The border pixel. The focused window's border is `cba6f7`. Read one pixel on the target's edge: `grim -g "X,Y 1x1" -t ppm - | tail -c 3 | od -An -tx1`.
-- A screenshot. Look for the purple border.
+- The divider colours (needed for kitty, which has no AT-SPI tree). Borders are tmux-style: there is no full purple outline, only the 5 px dividers between tiles, coloured `cba6f7` (focused side) or `45475a`. Compare the pattern before and after a focus change. Hover each candidate window and read the column, then pick the pattern that belongs to your target:
+  ```sh
+  grim -g "1345,18 1x1182" -t ppm - | tail -c $((1182*3)) | od -An -v -tx1 -w3 | tr -d ' ' | uniq -c
+  ```
+  On 2026-10-12, with two kitty tiles, focusing the left one gave 591 px `cba6f7` over 591 px `45475a` at the divider. Focusing the right one moved the divider out of that column. The top 18 px is the purple Quickshell bar, so never sample there.
+- The screen with `grim -c -s 0.5`, to confirm which window is which before a destructive key.
+
+Before Super+Shift+Q, confirm focus with a reproducible signal (hover target, sample, hover elsewhere, sample, hover target, sample). The wrong focus kills the wrong window, which could be the agent's own terminal.
 
 Moving the pointer for any reason, including a click elsewhere, can move focus under sloppy focus. Re-check focus after a pointer move and before typing. When you finish, leave focus where Miles had it: hover his terminal or press Super+J/K back to it.
 
