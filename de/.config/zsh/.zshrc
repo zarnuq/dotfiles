@@ -47,7 +47,10 @@ if [[ ! -f $HOME/.local/share/zplug/init.zsh ]]; then
         https://raw.githubusercontent.com/zplug/installer/master/installer.zsh | zsh
 fi
 source $ZPLUG_HOME/init.zsh
-# zhimmer settings live in ~/.config/zhimmer/config -- run `zhimmer` to change them.
+zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
+zstyle ':zhimmer:*' prompt yes
+# theme-set's render of the palette; a missing file keeps zhimmer's defaults.
+zstyle ':zhimmer:*' theme-file "${XDG_STATE_HOME:-$HOME/.local/state}/theme/zhimmer.zsh"
 zplug "$HOME/Projects/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2
 zplug "zsh-users/zsh-syntax-highlighting"
 if ! zplug check --verbose; then
