@@ -1,13 +1,13 @@
 {
   "permissions": {
-    "defaultMode": "auto",
     "ask": [
       "Bash(doas *)",
       "Bash(sudo *)",
       "Bash(su *)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "claude-opus-4-8",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh --water-session --water-lifetime --water-equivalents"
@@ -54,6 +54,7 @@
       }
     }
   },
+  "outputStyle": "Concise",
   "effortLevel": "high",
   "modelSettings": {
     "claude-opus-5-5": {
@@ -66,6 +67,11 @@
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": false,
   "autoMode": {
+    "soft_deny": [
+      "$defaults",
+      "Bash(doas nmcli con mod:*) — VPN connection modification can silently destroy stored WireGuard private keys per CLAUDE.md; scope to this box's homelab/lab VPN profiles",
+      "Bash(nxc:*) and Bash(nmap:*) writes/scans targeting non-local, non-lab hosts — this repo's pentest toolkit (nxc, nmap, hydra, etc.) is installed for personal/lab use; scope aggressive scanning to declared lab targets"
+    ],
     "environment": [
       "### Org-wide",
       "**Organization**: None configured",
@@ -92,12 +98,6 @@
       "**Trusted repo**: /home/miles/Projects/lazi, remote github.com/zarnuq/lazi (PUBLIC — only this repo's own work belongs here; no secrets, no ported sensitive content)",
       "**Org-specific CLIs**: None configured",
       "Routine under github.com/zarnuq/ prefix: development and git operations in zarnuq-owned repos may be treated as routine, but each remains subject to its own visibility (lazi is public)"
-    ],
-    "soft_deny": [
-      "$defaults",
-      "Bash(doas nmcli con mod:*) — VPN connection modification can silently destroy stored WireGuard private keys per CLAUDE.md; scope to this box's homelab/lab VPN profiles",
-      "Bash(nxc:*) and Bash(nmap:*) writes/scans targeting non-local, non-lab hosts — this repo's pentest toolkit (nxc, nmap, hydra, etc.) is installed for personal/lab use; scope aggressive scanning to declared lab targets"
     ]
-  },
-  "outputStyle": "Concise"
+  }
 }
