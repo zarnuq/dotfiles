@@ -36,10 +36,12 @@ QToolTip { background: {{mantle}}; color: {{text}}; border: 1px solid {{surface1
 #sender { color: {{lavender}}; font-size: 9pt; font-weight: bold; }
 #bubble { padding: 8px 12px; border-radius: 16px; }
 #bubble[out="false"] { background: {{surface0}}; }
-#bubble[out="true"] { background: {{mauve}}; }
-#bubble[out="true"] #body, #bubble[out="true"] #meta, #bubble[out="true"] #quoteName, #bubble[out="true"] #quoteText { color: {{crust}}; }
+#bubble[out="true"] { background: {{mauve}}; color: {{crust}}; }
+#bubble[out="false"] #meta { color: {{subtext0}}; }
+#bubble[out="true"] #body, #bubble[out="true"] #meta, #bubble[out="true"] #meta[read="true"] { color: {{crust}}; }
 #bubble[pinned="true"] { border: 1px solid {{yellow}}; }
 #bubble[bare="true"] { background: transparent; padding: 0 4px; }
+#bubble[bare="true"] #meta, #bubble[bare="true"] #meta[read="true"] { color: {{overlay0}}; }
 #bubble[jumbo="true"] #body { font-size: 36pt; }
 #bubble[deleted="true"] { background: transparent; border: 1px solid {{surface1}}; }
 #bubble[deleted="true"] #body { color: {{overlay1}}; font-style: italic; }
@@ -53,7 +55,7 @@ QToolTip { background: {{mantle}}; color: {{text}}; border: 1px solid {{surface1
 #preview { background: {{mantle}}; border: none; border-left: 2px solid {{blue}}; padding: 6px 10px; text-align: left; }
 #preview:hover { background: {{surface0}}; }
 #meta { color: {{overlay0}}; font-size: 8pt; }
-#meta[read="true"], #bubble[out="true"] #meta[read="true"] { color: {{blue}}; }
+#meta[read="true"] { color: {{blue}}; }
 #date { color: {{subtext0}}; font-size: 9pt; padding: 8px; }
 #typing { color: {{subtext0}}; font-size: 9pt; font-style: italic; padding: 2px 4px; }
 
