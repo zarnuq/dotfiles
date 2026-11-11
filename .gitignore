@@ -37,3 +37,7 @@ de/.config/reach/colors.zon
 # Written by quickshell's Brightness card (per-machine state).
 de/.config/reach/brightness.zon
 de/.config/reach/nightlight.zon
+
+# claude.ai writes synced skills here; now reachable via de/.claude/skills
+# and de/.vibe/skills folder symlinks into de/.agents/skills/.
+de/.agents/skills/synced/
