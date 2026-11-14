@@ -19,7 +19,14 @@
     # wiped, leaving `nix: command not found`. Declaring it here makes
     # home-manager-path provide the CLI, so it survives switches.
     nix
-
+    kubectl
+    opentofu
+    talosctl
+    kubernetes-helm
+    cilium-cli
+    fluxcd
+    sops
+    age
     chromium
     claude-code
     vscode
