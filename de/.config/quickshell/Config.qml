@@ -108,6 +108,7 @@ Singleton {
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
         { key: "brightness",          group: "Panel",       label: "Brightness" },
+        { key: "aiUsage",             group: "Panel",       label: "Claude / Codex usage" },
         { key: "syncthing",           group: "Panel",       label: "Syncthing status" },
         { key: "battery",             group: "Panel",       label: "Battery (laptop only)" },
         { key: "tray",                group: "Panel",       label: "System tray" }
@@ -180,4 +181,8 @@ Singleton {
     // it, which is what every flag here buys you.
     FileView { id: batteryProbe; path: "/sys/class/power_supply/BAT0/capacity"; blockLoading: true; printErrors: false }
     readonly property bool batteryPresent: batteryProbe.text().trim().length > 0
+
+    // Bottom-right stack (battery, syncthing, AI usage). Syncthing sizes itself to
+    // its rows, so it publishes its height here for the card above it; 0 when off.
+    property real syncthingHeight: 0
 }

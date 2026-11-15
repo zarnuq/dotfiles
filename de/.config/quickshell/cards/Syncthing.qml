@@ -17,6 +17,11 @@ Widget {
     implicitWidth: s(300)
     implicitHeight: body.height + s(root.pad * 2)
 
+    // AiUsage stacks on top of this card and needs its live height.
+    onImplicitHeightChanged: Config.syncthingHeight = implicitHeight
+    Component.onCompleted: Config.syncthingHeight = implicitHeight
+    Component.onDestruction: Config.syncthingHeight = 0
+
     readonly property string api: "http://127.0.0.1:8384/rest/"
     property string apiKey: ""
     property bool up: false          // last request got an answer

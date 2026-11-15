@@ -190,6 +190,21 @@ Picker {
         root.hide();
     }
 
+    // OCR an image entry to text on the clipboard (so into history too). Grey +
+    // 3x upscale first: raw tesseract on a dark-themed screenshot read garbage,
+    // the scaled copy read it nearly clean. Meant for a crop of text — a photo
+    // gives noise. Nothing readable = clipboard untouched, toast says so.
+    function ocr(): void {
+        if (!root.cur || !root.cur.isImage) return;
+        Quickshell.execDetached(["sh", "-c",
+            't=$(cliphist decode "$1" | magick - -colorspace gray -resize 300% png:- | tesseract stdin stdout --psm 6 2>/dev/null); '
+            + 'if [ -n "$(printf %s "$t" | tr -d "[:space:]")" ]; then printf %s "$t" | wl-copy; '
+            + 'notify-send -a clipboard "Text copied" "$(printf %s "$t" | head -c 200)"; '
+            + 'else notify-send -a clipboard "No text found" "Clipboard unchanged"; fi',
+            "sh", root.cur.id]);
+        root.hide();
+    }
+
     // cliphist delete takes the whole list line on stdin, not an id.
     function remove(): void {
         if (!root.cur || deleter.running) return;
@@ -224,6 +239,7 @@ Picker {
                     if (!(e.modifiers & Qt.ControlModifier)) return;
                     if (e.key === Qt.Key_D) root.remove();
                     else if (e.key === Qt.Key_E) root.edit();
+                    else if (e.key === Qt.Key_T) root.ocr();
                     else if (e.key === Qt.Key_F) root.zoomed = !root.zoomed;
                     else return;
                     e.accepted = true;
@@ -322,7 +338,7 @@ Picker {
             PickerFooter {
                 id: footer
                 picker: root
-                hint: "⏎ copy   ^e edit   ^f full   ^d delete"
+                hint: "⏎ copy   ^e edit   ^t ocr   ^f full   ^d delete"
             }
         }
     }

@@ -47,6 +47,20 @@ Quickshell panel; its actions run View, Take control, Resume and Stop.
 `ISO_Left_Tab`, US layout): WayVNC's `send_key_with_level` otherwise rewrites the
 modifiers to the keysym's own level, so `Super+Shift+q` arrived as a bare `q`.
 
+## Claims, links, recording
+
+A claim (`claim NAME [IDLE_S]`, default 300 s idle) makes input, `clip`,
+`record`, `run`/`obsidian` and window commands refuse callers without its
+token (`AGENT_DESK_CLAIM`, sent with every request). `status` shows the holder.
+View/pause/resume/stop stay the user's and are never gated.
+
+Apps started by `run`/`obsidian` get `~/.local/state/agent-desk/bin` first in
+PATH, holding an `xdg-open` that appends to `opened.log` (Electron's link
+opening goes through it). It lives in state, not the runtime dir, because
+`/run/user` is mounted noexec; `start` refuses if apps would not resolve it.
+An unshimmed `xdg-open` once started a second Zen on the real profile inside
+the private desktop ("Close Zen" dialog).
+
 ## Runtime and control
 
 Default runtime is `$XDG_RUNTIME_DIR/agent-desk`, with private Wayland, Reach,
@@ -74,7 +88,15 @@ Commands:
 | `desktop N` | Select desktop 1–9 |
 | `geometry ID X Y W H` | Float and place a window using output-local geometry |
 | `close ID` | Ask the named app window to close |
-| `shot [--cursor] PATH` | Capture only the virtual output using grim |
+| `shot [--cursor] [--window ID] PATH` | Capture the virtual output (or one visible window) using grim |
+| `wait-window TEXT [--timeout S]` | Print the id of a window whose appId/title contains TEXT |
+| `clip set TEXT` / `get` / `types` / `clear` `[--type MIME]` | The private clipboard (wl-copy/wl-paste); never bridged to the host |
+| `record start PATH` / `record stop` | wf-recorder video of the output |
+| `claim NAME [IDLE_S]` / `unclaim` | Exclusive input lease; prints `export AGENT_DESK_CLAIM=…` |
+| `opened` | Links/`xdg-open` calls apps made (logged by a shim, never opened) |
+| `wait-idle [--timeout S] [--quiet S] [--threshold F] [--window ID]` | Until frames stop changing (a caret blink is under the threshold) |
+| `compare A B [--tolerance F] [--level N] [--diff OUT]` | Pixel diff (PIL); exit 1 above tolerance; diff = changes in red |
+| `find-text TEXT [--window ID] [--all]` | OCR (tesseract, `app-text/tesseract`): screen `X Y` of a phrase |
 | `move X Y` / `click [left\|middle\|right]` | Absolute pointer and buttons |
 | `scroll up\|down\|left\|right [COUNT]` | Scroll through virtual pointer events |
 | `drag X1 Y1 X2 Y2` | Left-button drag |
@@ -106,8 +128,9 @@ The override must exist before `~/notes` first opens in the profile, or Obsidian
 uses and rewrites the real `.obsidian`. The first launch therefore opens the
 scratch vault `~/.local/state/agent-desk/vault`, sets the override and plugin
 trust (`enable-plugin-<vaultId>`), quits cleanly (a killed renderer loses
-unflushed localStorage), and reads both back in a second, fresh process before
-writing the marker `obsidian-config-dir`. Delete that marker to force it again.
+unflushed localStorage), and reads both back in a second, fresh process. Every
+later launch first re-reads them from the scratch vault (~4 s) and only then
+opens `~/notes`; a mismatch rewrites and re-verifies them, or refuses.
 
 ```sh
 agent-desk obsidian-cli eval 'code=JSON.stringify({vault:app.vault.adapter.basePath,configDir:app.vault.configDir,file:app.workspace.getActiveFile()?.path})'

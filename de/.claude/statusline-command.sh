@@ -143,6 +143,15 @@ five_h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty'
 seven_d_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
 seven_d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
+# Mirror the limits for quickshell's AI usage card: this stdin is the only place
+# Claude Code exposes them locally. Write-then-mv so the card never reads half a file.
+rl_json=$(echo "$input" | jq -c '.rate_limits // empty')
+if [ -n "$rl_json" ]; then
+    rl_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ai-usage"
+    mkdir -p "$rl_dir" && printf '%s\n' "$rl_json" > "$rl_dir/claude.json.$$" \
+        && mv -f "$rl_dir/claude.json.$$" "$rl_dir/claude.json"
+fi
+
 circle_glyph() {
     # $1 = used percentage 0-100
     awk -v p="$1" 'BEGIN{

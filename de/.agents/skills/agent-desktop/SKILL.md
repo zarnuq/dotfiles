@@ -40,22 +40,52 @@ its reported runtime directory; do not send input to the host as a fallback.
 A paused/manual session belongs to the user. Do not resume it automatically;
 wait for the user to hand control back. Closing the viewer does not resume the
 agent. Input bursts are serialized. Held keys/buttons have a five-second lease;
-use `agent-desk release` on cancellation. Give one agent ownership of a GUI
-sequence at a time: command serialization does not make a multi-step test atomic.
+use `agent-desk release` on cancellation.
+
+Commands are serialized one at a time, but a multi-step sequence is not atomic.
+**Claim the desktop** for a sequence; other agents' input is then refused
+(the user's view/pause/resume/stop never are):
+
+```sh
+eval "$(agent-desk claim my-task 120)"   # exports AGENT_DESK_CLAIM; lapses after 120 s idle
+...                                      # every agent-desk call carries the token
+agent-desk unclaim
+```
+
+A refusal names the holder and its remaining idle time: wait, don't steal it.
 
 ## Act and verify
 
 ```sh
 agent-desk windows --json
 agent-desk focus 3
+agent-desk wait-window obsidian            # prints the id; fails after --timeout (20 s)
 agent-desk shot --cursor /tmp/agent.png
+agent-desk shot --window 3 /tmp/win.png    # cropped to one window
 agent-desk move 800 400
 agent-desk click left
 agent-desk type -- 'Literal text, including café and λ'
 agent-desk key Ctrl+s
 agent-desk scroll down 3
 agent-desk drag 800 400 1000 600
+agent-desk clip set -- '## Markdown'       # private clipboard; --type text/html for rich text
+agent-desk clip get                        # also: clip types, clip clear
+agent-desk record start /tmp/run.mp4       # video of the output; record stop finishes it
+agent-desk opened                          # links apps tried to open (logged, never opened)
+agent-desk wait-idle                       # until the screen stops changing; use instead of sleeps
+agent-desk find-text 'Save changes'        # OCR: prints 'X Y' to click (--all, --window ID)
+agent-desk compare base.png new.png --diff d.png   # exit 1 above --tolerance (0.002) of changed pixels
 ```
+
+`find-text` is for text with no DOM or accessibility tree (canvas grids,
+native dialogs). It returns matches in reading order, ignores accents, and
+retries across a caret blink. Check a click target from it on a screenshot:
+the same text can appear twice (a sheet's formula bar and cell).
+
+The clipboard is the private desktop's own, never bridged to the host's (the
+user's copies may hold secrets). Links and `xdg-open` calls from apps started
+by `run`/`obsidian` are logged to `opened.log` instead of opening a browser on
+the user's real profile; assert on `agent-desk opened`.
 
 Read a fresh screenshot before choosing coordinates. Coordinates are pixels in
 this desktop's output, normally 1920×1200 at scale 1: do not apply the host
@@ -84,7 +114,12 @@ doc-works has a ready suite: `npm run build && npm run test:gui [-- filter]` in
 the plugin if Obsidian is already open, edits fresh fixture copies in
 `~/notes/doc-works-test/gui-<time>/` through the GUI, checks the saved XML,
 deletes the folder on success and prints an evidence folder (screenshots +
-`results.json`). Extend it with a `test_*` function for new features.
+`results.json`). Each test also fails on uncaught errors or `console.error`
+lines logged while it ran. `test_visual_baselines` compares the untouched
+fixtures' page / slide / grid with approved images in
+`~/.local/state/agent-desk/baselines/doc-works/` (written on first run;
+`UPDATE_BASELINES=1 npm run test:gui -- visual` after a change you accept;
+a theme change counts). Extend it with a `test_*` function for new features.
 Run Python helpers that import `agent-desk` with `/usr/bin/python3`; Nix's
 python3 cannot load the system libxkbcommon.
 
@@ -102,8 +137,9 @@ never the user's installed copy; hashes are in
 `~/.local/state/agent-desk/plugin-build.json`. The host app's `.obsidian` is
 never written. Before trusting a run, check `app.vault.configDir` is
 `.obsidian-agent`; if it is `.obsidian`, stop the desktop at once (it would
-rewrite the user's workspace) and delete `~/.local/state/agent-desk/obsidian-config-dir`
-so the next launch bootstraps the profile again.
+rewrite the user's workspace) and report it. Every launch re-checks the
+override from a scratch vault first (~4 s) and refuses to open `~/notes` if it
+cannot be confirmed.
 
 The user's real settings apply: the quick switcher core plugin is **off**, so
 open files by clicking them in the file explorer (reveal via eval first).

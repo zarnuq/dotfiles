@@ -3,7 +3,9 @@
 import argparse
 import json
 from pathlib import Path
+import os
 import runpy
+import subprocess
 import struct
 import sys
 import tempfile
@@ -90,8 +92,48 @@ def smoke(artifacts):
         check('real Ctrl+a replacement', wait(lambda: text_is('isolated')))
         q('key', ['Shift+a'])  # WayVNC drops Shift for a level-1 keysym
         check('Shift chords reach the app', wait(lambda: text_is('isolatedA')))
+        q('clip', ['set', '--', 'clip café'])
+        check('private clipboard round trip', q('clip', ['get'])['output'] == 'clip café')
+        q('key', ['Ctrl+a'])
+        q('key', ['Ctrl+v'])
+        check('private clipboard pastes into the app', wait(lambda: text_is('clip café')))
+        desk = str(ROOT/'de/.local/bin/agent-desk')
+        check('wait-idle returns on a still screen',
+              subprocess.run([desk, 'wait-idle', '--timeout', '10'], capture_output=True).returncode == 0)
+        found = subprocess.run([desk, 'find-text', 'clip café'], capture_output=True, text=True)
+        check('OCR finds text typed into the app', found.returncode == 0 and len(found.stdout.split()) == 2)
+        q('shot', [str(artifacts/'same-a.png')])
+        q('shot', [str(artifacts/'same-b.png')])
+        check('compare passes identical frames',
+              subprocess.run([desk, 'compare', str(artifacts/'same-a.png'), str(artifacts/'same-b.png')],
+                             capture_output=True).returncode == 0)
         q('geometry', [str(window_id), '100', '80', '800', '600'])
         check('window geometry', wait(lambda: window()['x'] == 100 and window()['width'] == 800))
+        q('shot', ['--window', str(window_id), str(artifacts/'window.png')])
+        size = struct.unpack('>II', (artifacts/'window.png').read_bytes()[16:24])
+        check('window screenshot is cropped to the window', size == (window()['width'], window()['height']))
+        found = subprocess.run([str(ROOT/'de/.local/bin/agent-desk'), 'wait-window', title, '--timeout', '2'],
+                               capture_output=True, text=True)
+        check('wait-window finds the app', found.stdout.strip() == str(window_id))
+        token = q('claim', ['smoke', '30'])['token']
+        try:
+            q('key', ['Escape'])
+            raise AssertionError('claim did not refuse an unclaimed caller')
+        except RuntimeError:
+            pass
+        os.environ['AGENT_DESK_CLAIM'] = token
+        q('key', ['Escape'])
+        q('unclaim')
+        del os.environ['AGENT_DESK_CLAIM']
+        check('claim refuses other callers and admits its holder', q('status')['claim'] is None)
+        q('record', ['start', str(artifacts/'smoke.mp4')])
+        time.sleep(1.5)
+        q('record', ['stop'])
+        check('recording writes a video', (artifacts/'smoke.mp4').stat().st_size > 1000)
+        url = 'https://example.invalid/smoke-' + uuid.uuid4().hex[:6]
+        q('run', ['--', 'xdg-open', url])
+        opened = Path(q('status')['runtime'])/'opened.log'
+        check('links are logged, not opened', wait(lambda: opened.exists() and url in opened.read_text()))
         q('desktop', [str(window()['desktop'] % 9 + 1)])  # any desktop but the app's
         check('hidden windows remain listed', wait(lambda: not window()['visible']))
         # sloppy_focus (the real config): park the pointer on the app, or the

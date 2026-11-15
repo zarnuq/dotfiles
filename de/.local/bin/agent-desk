@@ -9,6 +9,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import secrets
 import select
 import shutil
 import signal
@@ -26,7 +27,8 @@ SCRIPT = str(Path(__file__).resolve())
 NOTES = Path.home() / 'notes'
 AGENT_CONFIG = '.obsidian-agent'
 MUTATIONS = {'run', 'obsidian-cli', 'obsidian', 'key', 'type', 'move', 'click', 'scroll', 'drag',
-             'focus', 'desktop', 'geometry', 'close'}
+             'focus', 'desktop', 'geometry', 'close', 'clip', 'release'}
+CLAIM_TTL = 300  # idle seconds before an unreleased claim lapses
 SESSION_KEYS = ('XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_STATE_HOME',
                 'XDG_CACHE_HOME', 'AGENT_DESK_RUNTIME', 'WAYLAND_DISPLAY', 'DISPLAY', 'AT_SPI_BUS_ADDRESS',
                 'DBUS_SESSION_BUS_ADDRESS', 'REACH_AGENT_SOCKET',
@@ -98,7 +100,8 @@ def request(command, args=(), root=None):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
         sock.settimeout(90)  # first `obsidian` bootstraps a profile
         sock.connect(str(root / 'control.sock'))
-        sock.sendall(json.dumps({'command': command, 'args': list(args)}).encode() + b'\n')
+        sock.sendall(json.dumps({'command': command, 'args': list(args),
+                                 'claim': os.environ.get('AGENT_DESK_CLAIM')}).encode() + b'\n')
         result = receive_line(sock)
     if not result.get('ok'):
         raise RuntimeError(result.get('error', 'session request failed'))
@@ -221,6 +224,8 @@ def reach_request(env, command):
 class Desktop:
     def __init__(self, root, reach, width, height, wayvnc, real_config=False):
         self.real_config = real_config
+        self.claim = None  # dict(name, token, ttl, last)
+        self.clip_proc = self.recorder = None
         self.root, self.reach = root, str(Path(reach).resolve())
         self.width, self.height = width, height
         self.wayvnc = wayvnc
@@ -346,6 +351,14 @@ class Desktop:
         if (self.rfb.width, self.rfb.height) != (self.width, self.height):
             raise RuntimeError('virtual output did not reach the requested size')
         self.viewer_server = self.start_vnc('view', True)
+        # $XDG_RUNTIME_DIR is mounted noexec here, so the shim lives in state.
+        bin_dir = self.shim_dir()
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        shim = bin_dir / 'xdg-open'
+        shim.write_text('#!/bin/sh\nprintf \'%s\\t%s\\n\' "$(date -Is)" "$*" >> "$AGENT_DESK_RUNTIME/opened.log"\n')
+        shim.chmod(0o700)
+        if shutil.which('xdg-open', path=self.app_env()['PATH']) != str(shim):
+            raise RuntimeError(f'{shim} is not what apps would run as xdg-open (noexec mount?)')
 
     def start_vnc(self, name, readonly):
         path = self.root / f'{name}.vnc'
@@ -374,8 +387,21 @@ class Desktop:
                     width=self.width, height=self.height, reach=self.reach,
                     reach_pid=self.reach_pid, reach_starttime=self.reach_identity,
                     reach_sha256=self.reach_sha256, real_config=self.real_config,
+                    claim=self.claim_info(), recording=self.recorder is not None and self.recorder.poll() is None,
                     processes=[dict(pid=p.pid, command=Path(p.args[0]).name, exit=p.poll()) for p in self.children],
                     viewer=self.viewer is not None and self.viewer.poll() is None)
+
+    @staticmethod
+    def shim_dir():
+        return Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'agent-desk/bin'
+
+    def app_env(self):
+        """Environment for apps: private display/bus/runtime, the host's config
+        and cache dirs, and an xdg-open that only logs (links must not open
+        host browsers on their real profiles)."""
+        env = dict(self.env, **app_dirs())
+        env['PATH'] = str(self.shim_dir()) + os.pathsep + env.get('PATH', '')
+        return env
 
     def owned_obsidian(self):
         return [p for p in self.children if Path(p.args[0]).name == 'obsidian' and p.poll() is None]
@@ -403,46 +429,82 @@ class Desktop:
             raise RuntimeError(output.strip())
         return output
 
-    def bootstrap_obsidian(self, profile, scratch, notes_id):
-        """Set ~/notes' per-device config folder and plugin trust in the
-        profile's localStorage, from a scratch vault, before ~/notes ever opens:
-        opened without them it uses (and writes) the real .obsidian. A second,
-        fresh process must read them back: a killed renderer loses unflushed
-        localStorage."""
+    def obsidian_override(self, profile, scratch, notes_id):
+        """Make sure ~/notes' per-device config folder and plugin trust are in
+        the profile's localStorage before ~/notes opens: without them Obsidian
+        uses (and writes) the real .obsidian. Checked from the scratch vault on
+        every launch (~4 s); written only when missing, then read back by a
+        fresh process, since a killed renderer loses unflushed localStorage."""
         keys = {f'{notes_id}-config': AGENT_CONFIG, f'enable-plugin-{notes_id}': 'true'}
-        for attempt in ('write', 'verify'):
-            proc = self.spawn(self.obsidian_args(profile, scratch), dict(self.env, **app_dirs()), 'app')
+        read = 'JSON.stringify([' + ','.join(f'localStorage.getItem({json.dumps(k)})' for k in keys) + '])'
+        write = ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v)});' for k, v in keys.items())
+        for attempt in ('check', 'write', 'verify'):
+            proc = self.spawn(self.obsidian_args(profile, scratch), self.app_env(), 'app')
             try:
-                code = ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v)});' for k, v in keys.items()) \
-                    if attempt == 'write' else ''
-                code += 'JSON.stringify([' + ','.join(f'localStorage.getItem({json.dumps(k)})' for k in keys) + '])'
                 deadline, output = time.monotonic() + 25, ''
                 while time.monotonic() < deadline:
                     try:
-                        output = self.obsidian_cli(['eval', 'code=' + code], cwd=scratch)
+                        output = self.obsidian_cli(['eval', 'code=' + (write if attempt == 'write' else '') + read],
+                                                   cwd=scratch)
                         break
                     except (OSError, RuntimeError):
                         time.sleep(.5)
-                if json.loads(output.removeprefix('=> ') or 'null') != list(keys.values()):
-                    raise RuntimeError(f'private Obsidian config override failed to {attempt}: {output!r}')
+                ok = json.loads(output.removeprefix('=> ') or 'null') == list(keys.values())
                 try:  # a clean quit flushes localStorage to disk
                     self.obsidian_cli(['eval', 'code=window.close()'], cwd=scratch)
                 except (OSError, RuntimeError):
                     pass
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
-                raise RuntimeError('bootstrap Obsidian did not quit; see app.log')
+                raise RuntimeError('scratch Obsidian did not quit; see app.log')
             finally:
                 self.terminate(proc)
+            if ok and attempt != 'write':
+                return
+            if not ok and attempt != 'check':
+                raise RuntimeError(f'private Obsidian config override failed to {attempt}: {output!r}')
 
     @staticmethod
     def obsidian_args(profile, vault):
         return ['obsidian', '--user-data-dir=' + str(profile), '--ozone-platform=wayland',
                 '--enable-features=UseOzonePlatform', '--force-renderer-accessibility', str(vault)]
 
-    def handle(self, command, args):
+    def claim_info(self):
+        if self.claim and time.monotonic() - self.claim['last'] > self.claim['ttl']:
+            self.claim = None
+        if not self.claim:
+            return None
+        return dict(name=self.claim['name'],
+                    expires_in=round(self.claim['ttl'] - (time.monotonic() - self.claim['last'])))
+
+    def handle(self, command, args, token=None):
         if command == 'status':
             return self.status()
+        if command == 'claim':
+            if not args or len(args) > 2:
+                raise ValueError('claim requires NAME [IDLE_SECONDS]')
+            held = self.claim_info()
+            if held and token != self.claim['token']:
+                raise RuntimeError(f"claimed by {held['name']} (lapses in {held['expires_in']} s idle)")
+            ttl = int(args[1]) if len(args) == 2 else CLAIM_TTL
+            if not 10 <= ttl <= 3600:
+                raise ValueError('claim idle time must be 10..3600 s')
+            self.claim = dict(name=args[0], token=token if held else secrets.token_hex(12),
+                              ttl=ttl, last=time.monotonic())
+            return dict(ok=True, token=self.claim['token'])
+        if command == 'unclaim':
+            if self.claim_info() and token != self.claim['token']:
+                raise RuntimeError(f"claimed by {self.claim['name']}; only its holder can release it")
+            self.claim = None
+            return dict(ok=True)
+        # The user's own controls (view, pause, resume, stop) are never gated.
+        if command in MUTATIONS or command == 'record':
+            held = self.claim_info()
+            if held and token != self.claim['token']:
+                raise RuntimeError(f"agent desktop is claimed by {held['name']}; set AGENT_DESK_CLAIM or wait "
+                                   f"({held['expires_in']} s idle left)")
+            if held:
+                self.claim['last'] = time.monotonic()
         if command == 'stop':
             self.running = False
             return dict(ok=True)
@@ -482,14 +544,77 @@ class Desktop:
                 self.viewer = self.spawn(args, dict(os.environ), 'viewer')
             return dict(ok=True, manual=self.manual, socket=str(self.root / 'view.vnc'))
         if command == 'shot':
-            cursor = args[:1] == ['--cursor']
-            if cursor: args = args[1:]
+            cursor = '--cursor' in args
+            args = [a for a in args if a != '--cursor']
+            region = ['-o', 'HEADLESS-1']
+            if args[:1] == ['--window']:
+                wid, args = int(args[1]), args[2:]
+                w = next((w for w in reach_request(self.env, 'list')['windows'] if w['id'] == wid), None)
+                if not w or not w.get('visible'):
+                    raise ValueError(f'window {wid} is not visible; focus it first')
+                region = ['-g', f"{w['x']},{w['y']} {w['width']}x{w['height']}"]
             if len(args) != 1:
                 raise ValueError('shot requires one PNG path')
             target = str(Path(args[0]).expanduser().absolute())
-            subprocess.run(['grim'] + (['-c'] if cursor else []) + ['-o', 'HEADLESS-1', target], env=self.env,
+            subprocess.run(['grim'] + (['-c'] if cursor else []) + region + [target], env=self.env,
                            check=True, capture_output=True, text=True, timeout=10)
             return dict(ok=True, path=target)
+        if command == 'record':
+            if args[:1] == ['start'] and len(args) == 2:
+                if self.recorder is not None and self.recorder.poll() is None:
+                    raise RuntimeError('already recording; record stop first')
+                target = str(Path(args[1]).expanduser().absolute())
+                self.recorder = self.spawn(['wf-recorder', '-y', '-o', 'HEADLESS-1', '-f', target], self.env, 'record')
+                time.sleep(.5)
+                if self.recorder.poll() is not None:
+                    raise RuntimeError('wf-recorder exited; see record.log')
+                self.recording_path = target
+                return dict(ok=True, path=target)
+            if args == ['stop']:
+                if self.recorder is None or self.recorder.poll() is not None:
+                    raise RuntimeError('not recording')
+                os.killpg(self.recorder.pid, signal.SIGINT)  # lets it finish the file
+                try:
+                    self.recorder.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    self.terminate(self.recorder)
+                return dict(ok=True, path=self.recording_path)
+            raise ValueError('record start PATH | record stop')
+        if command == 'clip':
+            # The private desktop's own clipboard; never bridged to the host's.
+            mime = 'text/plain;charset=utf-8'
+            # Options come before '--'; everything after it is literal text.
+            head, text = (args[:args.index('--')], args[args.index('--') + 1:]) if '--' in args else (args, [])
+            if '--type' in head:
+                i = head.index('--type')
+                mime, head = head[i + 1], head[:i] + head[i + 2:]
+            args = head + text
+            if args[:1] == ['set'] and len(args) == 2:
+                self.terminate(self.clip_proc)
+                self.clip_proc = self.spawn(['wl-copy', '--foreground', '--type', mime, '--', args[1]],
+                                            self.env, 'clip')
+                deadline = time.monotonic() + 3
+                while not any(t.startswith(mime.split(';')[0]) for t in subprocess.run(
+                        ['wl-paste', '--list-types'], env=self.env, capture_output=True,
+                        text=True, timeout=3).stdout.split()):
+                    if time.monotonic() > deadline or self.clip_proc.poll() is not None:
+                        raise RuntimeError('clipboard did not take the text; see clip.log')
+                    time.sleep(.05)
+                return dict(ok=True)
+            if args == ['get']:
+                out = subprocess.run(['wl-paste', '--no-newline', '--type', mime], env=self.env,
+                                     capture_output=True, text=True, timeout=5)
+                if out.returncode:
+                    raise RuntimeError(out.stderr.strip() or 'clipboard is empty')
+                return dict(ok=True, output=out.stdout)
+            if args == ['types']:
+                out = subprocess.run(['wl-paste', '--list-types'], env=self.env, capture_output=True, text=True, timeout=5)
+                return dict(ok=True, output=out.stdout)
+            if args == ['clear']:
+                self.terminate(self.clip_proc)
+                subprocess.run(['wl-copy', '--clear'], env=self.env, capture_output=True, timeout=5)
+                return dict(ok=True)
+            raise ValueError('clip set TEXT | get | types | clear  [--type MIME]')
         if command == 'windows':
             return reach_request(self.env, 'list')
         if command in ('focus', 'desktop', 'geometry', 'close'):
@@ -550,16 +675,14 @@ class Desktop:
                     write_json(enabled, list(dict.fromkeys(entries + [plugin_id])))
                     write_json(state / 'plugin-build.json', dict(source=str(plugin), id=plugin_id,
                                version=manifest['version'], vault=str(NOTES), config=AGENT_CONFIG, sha256=hashes))
-                marker = state / 'obsidian-config-dir'
-                if not running and (not marker.exists() or marker.read_text() != ids[NOTES]):
-                    self.bootstrap_obsidian(profile, scratch, ids[NOTES])
-                    marker.write_text(ids[NOTES])
+                if not running:
+                    self.obsidian_override(profile, scratch, ids[NOTES])
                 args = self.obsidian_args(profile, NOTES)
             if args and args[0] == '--':
                 args = args[1:]
             if not args:
                 raise ValueError('run requires a command')
-            proc = self.spawn(args, dict(self.env, **app_dirs()), 'app')
+            proc = self.spawn(args, self.app_env(), 'app')
             return dict(ok=True, pid=proc.pid)
         self.input(command, args)
         return dict(ok=True)
@@ -637,9 +760,9 @@ class Desktop:
                 pass
 
 
-def serve(root, reach, width, height, wayvnc, real_config):
+def serve(root, reach, width, height, wayvnc, options):
     os.umask(0o077)
-    desktop = Desktop(root, reach, width, height, wayvnc, real_config)
+    desktop = Desktop(root, reach, width, height, wayvnc, **options)
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     def stop_signal(*_):
         desktop.running = False
@@ -678,7 +801,7 @@ def serve(root, reach, width, height, wayvnc, real_config):
                     if peer[1] != os.getuid():
                         raise RuntimeError('wrong user')
                     message = receive_line(conn, 65536)
-                    result = desktop.handle(message['command'], message.get('args', []))
+                    result = desktop.handle(message['command'], message.get('args', []), message.get('claim'))
                 except Exception as error:
                     try:
                         desktop.rfb.release()
@@ -731,7 +854,8 @@ def start(args):
     with open(root / 'supervisor.log', 'ab') as log:
         proc = subprocess.Popen([sys.executable, SCRIPT, '_serve', str(root), reach,
                                  str(args.width), str(args.height), wayvnc,
-                                 'real' if args.real_config else 'agent'], stdin=subprocess.DEVNULL,
+                                 json.dumps(dict(real_config=args.real_config))],
+                                stdin=subprocess.DEVNULL,
                                 stdout=log, stderr=log, start_new_session=True)
     deadline = time.monotonic() + 25
     while time.monotonic() < deadline:
@@ -746,6 +870,136 @@ def start(args):
     raise RuntimeError(f'startup timed out; inspect {root}/supervisor.log')
 
 
+def capture(window=None):
+    """A fresh screenshot of the output (or one window) as a PIL image, plus its
+    screen offset. Goes through the supervisor like `shot`."""
+    from PIL import Image
+    path = runtime() / f'capture-{os.getpid()}.png'
+    try:
+        request('shot', (['--window', str(window)] if window is not None else []) + [str(path)])
+        image = Image.open(path)
+        image.load()
+    finally:
+        path.unlink(missing_ok=True)
+    offset = (0, 0)
+    if window is not None:
+        w = next(w for w in request('windows')['windows'] if w['id'] == window)
+        offset = (w['x'], w['y'])
+    return image.convert('RGB'), offset
+
+
+def changed_fraction(a, b, level=0):
+    """Share of pixels whose largest channel difference exceeds `level`."""
+    if a.size != b.size:
+        return 1.0
+    return change_mask(a, b, level).histogram()[255] / (a.size[0] * a.size[1])
+
+
+def change_mask(a, b, level):
+    from PIL import ImageChops
+    r, g, b_ = ImageChops.difference(a, b).split()
+    return ImageChops.lighter(ImageChops.lighter(r, g), b_).point(lambda v: 255 if v > level else 0)
+
+
+def wait_idle(args):
+    """Until the screen has stopped changing for --quiet seconds. A caret blink
+    changes a few hundred pixels, so a small --threshold of change counts as still."""
+    start = time.monotonic()
+    previous, still_since = None, None
+    while True:
+        frame, _ = capture(args.window)
+        now = time.monotonic()
+        if previous is not None and changed_fraction(previous, frame) <= args.threshold:
+            still_since = still_since or now
+            if now - still_since >= args.quiet:
+                print(f'idle after {now - start:.1f} s')
+                return
+        else:
+            still_since = None
+        if now - start > args.timeout:
+            raise RuntimeError(f'screen still changing after {args.timeout:g} s')
+        previous = frame
+        time.sleep(.1)
+
+
+def compare(args):
+    """Visual regression check: fraction of pixels that differ by more than
+    --level (per channel, 0-255; absorbs antialiasing noise). Writes a diff
+    image (changes in red over a dimmed copy of A) when asked."""
+    from PIL import Image
+    a, b = (Image.open(path).convert('RGB') for path in (args.a, args.b))
+    fraction = changed_fraction(a, b, args.level)
+    if args.diff and a.size == b.size:
+        mask = change_mask(a, b, args.level)
+        out = Image.blend(a, Image.new('RGB', a.size, 'black'), .6)
+        out.paste(Image.new('RGB', a.size, (255, 0, 0)), mask=mask)
+        out.save(args.diff)
+    size_note = '' if a.size == b.size else f' (sizes differ: {a.size} vs {b.size})'
+    print(f'{fraction:.5f} of pixels differ{size_note}')
+    if fraction > args.tolerance:
+        sys.exit(1)
+
+
+def find_text(args):
+    # A blinking caret beside a word can garble it; four shots 0.35 s apart
+    # span a whole blink cycle (GTK/Chromium: ~1.2 s).
+    for attempt in range(4):
+        try:
+            return find_text_once(args)
+        except LookupError:
+            if attempt == 3:
+                raise RuntimeError(f'text {args.text!r} not found on screen')
+            time.sleep(.35)
+
+
+def find_text_once(args):
+    """Screen coordinates of TEXT, found by OCR (tesseract) for apps with no DOM
+    or accessibility tree. Prints one 'X Y' centre per match, first match only
+    unless --all. Dark themes are inverted and the image upscaled 2x first."""
+    from PIL import ImageOps, ImageStat
+    if not shutil.which('tesseract'):
+        raise RuntimeError('missing tesseract (app-text/tesseract)')
+    image, (ox, oy) = capture(args.window)
+    gray = image.convert('L')
+    if ImageStat.Stat(gray).mean[0] < 128:
+        gray = ImageOps.invert(gray)
+    scale, pad = 2, 20  # tesseract misses glyphs touching the image edge
+    gray = ImageOps.expand(gray.resize((gray.width * scale, gray.height * scale)), pad, fill=255)
+    path = runtime() / f'ocr-{os.getpid()}.png'
+    try:
+        gray.save(path)
+        tsv = subprocess.run(['tesseract', str(path), '-', '--psm', '11', 'tsv'], capture_output=True,
+                             text=True, timeout=60, check=True).stdout
+    finally:
+        path.unlink(missing_ok=True)
+    words = []
+    for row in tsv.splitlines()[1:]:
+        cols = row.split('\t')
+        if len(cols) == 12 and cols[11].strip() and float(cols[10]) >= 0:
+            left, top, width, height = map(int, cols[6:10])
+            words.append((cols[11].strip(), left - pad, top - pad, width, height))
+    import unicodedata
+
+    def fold(text):  # OCR often drops accents: compare without them
+        return ''.join(c for c in unicodedata.normalize('NFKD', text.casefold()) if not unicodedata.combining(c))
+    wanted = fold(args.text).split()
+    matches = []
+    for i in range(len(words)):
+        run = words[i:i + len(wanted)]
+        # Sparse-text mode puts each word in its own block, so a phrase is
+        # words that sit on one baseline, each starting just after the last.
+        on_one_line = all(abs((a[2] + a[4] / 2) - (b[2] + b[4] / 2)) < max(a[4], b[4]) / 2 and
+                          0 <= b[1] - (a[1] + a[3]) < 2 * max(a[4], b[4]) for a, b in zip(run, run[1:]))
+        if len(run) == len(wanted) and on_one_line and all(want in fold(w[0]) for want, w in zip(wanted, run)):
+            left = min(w[1] for w in run); top = min(w[2] for w in run)
+            right = max(w[1] + w[3] for w in run); bottom = max(w[2] + w[4] for w in run)
+            matches.append((ox + (left + right) // (2 * scale), oy + (top + bottom) // (2 * scale)))
+    if not matches:
+        raise LookupError(args.text)
+    for x, y in (matches if args.all else matches[:1]):
+        print(x, y)
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == '_init':
         root = Path(sys.argv[2])
@@ -756,7 +1010,7 @@ def main():
         write_json(root / 'environment.json', {k: os.environ[k] for k in SESSION_KEYS if k in os.environ})
         os.execv(sys.argv[3], [sys.argv[3]])
     if len(sys.argv) > 1 and sys.argv[1] == '_serve':
-        serve(Path(sys.argv[2]), sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), sys.argv[6], sys.argv[7] == 'real')
+        serve(Path(sys.argv[2]), sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), sys.argv[6], json.loads(sys.argv[7]))
         return
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -770,16 +1024,36 @@ def main():
     for name in ('status', 'windows'):
         p = sub.add_parser(name)
         p.add_argument('--json', action='store_true')
-    for name in ('stop', 'pause', 'resume', 'release'):
+    for name in ('stop', 'pause', 'resume', 'release', 'unclaim', 'opened'):
         sub.add_parser(name)
+    p = sub.add_parser('wait-idle', help='wait until the screen stops changing')
+    p.add_argument('--timeout', type=float, default=15)
+    p.add_argument('--quiet', type=float, default=.5, help='seconds without change')
+    p.add_argument('--threshold', type=float, default=.0005, help='changed-pixel fraction still counted as idle')
+    p.add_argument('--window', type=int, metavar='ID')
+    p = sub.add_parser('compare', help='pixel-compare two images (exit 1 above --tolerance)')
+    p.add_argument('a')
+    p.add_argument('b')
+    p.add_argument('--tolerance', type=float, default=.002, help='allowed fraction of differing pixels')
+    p.add_argument('--level', type=int, default=24, help='per-channel difference ignored (0-255)')
+    p.add_argument('--diff', help='write a diff image here')
+    p = sub.add_parser('find-text', help='OCR: print screen X Y of TEXT')
+    p.add_argument('text')
+    p.add_argument('--window', type=int, metavar='ID')
+    p.add_argument('--all', action='store_true')
+    p = sub.add_parser('wait-window', help='wait for a window whose appId or title contains TEXT')
+    p.add_argument('text')
+    p.add_argument('--timeout', type=float, default=20)
     p = sub.add_parser('view')
     p.add_argument('--control', action='store_true', help='pause the agent and enable manual input')
     p.add_argument('--no-open', action='store_true', help='prepare viewer socket without opening a host window')
     for name in ('run', 'shot', 'key', 'type', 'move', 'click', 'scroll', 'drag',
-                 'focus', 'desktop', 'geometry', 'close', 'obsidian', 'obsidian-cli', 'a11y'):
+                 'focus', 'desktop', 'geometry', 'close', 'obsidian', 'obsidian-cli', 'a11y',
+                 'clip', 'claim', 'record'):
         p = sub.add_parser(name)
         if name == 'shot':
             p.add_argument('--cursor', action='store_true')
+            p.add_argument('--window', type=int, metavar='ID', help='crop to this window')
         if name == 'key':
             mode = p.add_mutually_exclusive_group()
             mode.add_argument('--down', action='store_true')
@@ -796,6 +1070,8 @@ def main():
         values = getattr(args, 'args', [])
         if values[:1] == ['--']:
             values = values[1:]
+        if args.command == 'shot' and args.window is not None:
+            values = ['--window', str(args.window)] + values
         if args.command == 'shot' and args.cursor:
             values.insert(0, '--cursor')
         if args.command == 'key':
@@ -808,6 +1084,24 @@ def main():
         if args.command == 'view' and args.no_open:
             values.append('--no-open')
         try:
+            if args.command in ('wait-idle', 'compare', 'find-text'):
+                {'wait-idle': wait_idle, 'compare': compare, 'find-text': find_text}[args.command](args)
+                return
+            if args.command == 'opened':
+                log = runtime() / 'opened.log'
+                print(log.read_text() if log.exists() else '', end='')
+                return
+            if args.command == 'wait-window':
+                deadline = time.monotonic() + args.timeout
+                while True:
+                    match = next((w for w in request('windows')['windows']
+                                  if args.text in w['appId'] or args.text in w['title']), None)
+                    if match:
+                        print(match['id'])
+                        return
+                    if time.monotonic() > deadline:
+                        raise RuntimeError(f'no window matching {args.text!r} within {args.timeout:g} s')
+                    time.sleep(.2)
             result = request(args.command, values)
         except (FileNotFoundError, ConnectionRefusedError):
             if args.command in ('status', 'stop'):
@@ -831,8 +1125,12 @@ def main():
     elif args.command == 'windows':
         for w in result['windows']:
             print(f"{w['id']:>3} {'*' if w['focused'] else ' '} {w['appId']} · {w['title']} (desktop {w['desktop']})")
-    elif args.command == 'obsidian-cli':
+    elif args.command in ('obsidian-cli', 'clip') and 'output' in result:
         print(result['output'], end='')
+    elif args.command == 'claim':
+        print(f"export AGENT_DESK_CLAIM={result['token']}")
+    elif args.command == 'record':
+        print(result['path'])
     elif args.command == 'a11y':
         print(json.dumps(result['accessibility'], ensure_ascii=False))
     elif args.command == 'view' and args.no_open:

@@ -212,7 +212,9 @@ exercise the particular app feature requested by the user.
 | `focus ID` succeeds but keys go elsewhere | `--real-config` sloppy focus: move the pointer onto the target window |
 | A Shift chord types a bare letter | Old `agent-desk`: it must send the shifted keysym (WayVNC level rewrite) |
 | App launched but not on screen | `--real-config` window rule sent it to another desktop; `focus ID` |
-| Private Obsidian `configDir` is `.obsidian` | Stop the desktop now; delete `~/.local/state/agent-desk/obsidian-config-dir`; relaunch |
+| Private Obsidian `configDir` is `.obsidian` | Stop the desktop now and report it (the launch check should have refused) |
+| `claimed by NAME` | Another agent holds the desktop; wait for it or its idle lapse |
+| A link didn't open | Expected: `agent-desk opened` lists it |
 | A shortcut does nothing in Obsidian | The user's hotkeys / core plugins apply (quick switcher is off) |
 | `libxkbcommon.so.0: cannot open` | Nix python3; use `/usr/bin/python3` |
 | App is absent | `status --json` process exit codes, then runtime `app.log`; check profile reuse |
