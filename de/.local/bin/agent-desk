@@ -1038,7 +1038,11 @@ def obsidian_reveal(args):
         point = json.loads(point)
     if not point:
         raise RuntimeError(f'{args.path} is not a file in the private vault (paths are vault-relative)')
-    print(*point)
+    # DOM coordinates are relative to the Obsidian window; tiling may move it.
+    win = next((w for w in request('windows')['windows'] if 'obsidian' in w['appId'].lower()), None)
+    if win is None or not win.get('visible'):
+        raise RuntimeError('the private Obsidian window is not visible; focus it first')
+    print(point[0] + win['x'], point[1] + win['y'])
 
 
 def main():
