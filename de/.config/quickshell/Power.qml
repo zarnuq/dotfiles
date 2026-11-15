@@ -4,8 +4,8 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// The battery and the mains supply, for the bar's battery block and the
-// bottom-right card.
+// The battery and the mains supply, for the bar's battery block, plus the
+// low-charge notification (the Battery card that used to own it is gone).
 //
 // upowerd isn't running on this box, so Quickshell.Services.UPower reports
 // nothing and sysfs is the only source. This used to be a section of Sys, which
@@ -42,6 +42,24 @@ Singleton {
     // Kept for what it actually names: charge moving upward. `Full` is on AC at
     // 100%, which is onAc, not charging.
     readonly property bool charging: status === "Charging"
+
+    // Below 20% OFF mains: one critical notification, latched until the level
+    // climbs back over 25% or a charger goes in, so a charge hovering on the
+    // threshold can't spam it. Gated on onAc, not !charging: a threshold hold or
+    // a charger too weak to outpace the draw must not say "plug in".
+    readonly property bool low: present && !onAc && level < 20
+    property bool warned: false
+    onLowChanged: root.warn()
+    onOnAcChanged: root.warn()
+    function warn(): void {
+        if (root.low && !root.warned) {
+            root.warned = true;
+            Quickshell.execDetached(["notify-send", "-u", "critical", "-a", "battery",
+                                     "Battery low", root.level + "% remaining — plug in."]);
+        } else if (root.warned && (root.onAc || root.level >= 25)) {
+            root.warned = false;
+        }
+    }
 
     FileView { id: capFile;  path: "/sys/class/power_supply/BAT0/capacity"; blockLoading: true; printErrors: false }
     FileView { id: battFile; path: "/sys/class/power_supply/BAT0/status";   blockLoading: true; printErrors: false }

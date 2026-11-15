@@ -3,14 +3,14 @@ import Quickshell
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Left bar, 420 wide: anchored top+bottom from under the brightness widget
-// (150+75) down to the top of the now-playing card, so it absorbs whatever
-// height is left over.
+// Left column, 420 wide: anchored top+bottom from under the now-playing card
+// (150) down to the top of the brightness card, so it absorbs whatever height
+// is left over.
 // ICS calendar via calendar.sh (stdlib Python), polled every 5 min.
 Widget {
     id: root
     anchors { top: true; bottom: true; left: true }
-    margins { top: s(280); bottom: s(330) }
+    margins { top: s(150); bottom: s(310) }
     implicitWidth: s(420)
 
     readonly property string script: Quickshell.env("HOME") + "/.config/quickshell/scripts/calendar.sh"

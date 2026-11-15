@@ -3,8 +3,8 @@ import Quickshell
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Top of the left bar's lower stack: sits directly under the clock (150 tall),
-// so the calendar below it can stretch into whatever is left. 420x130.
+// Bottom-left stack, above the usage + network card (swapped with the music
+// card, which now sits at the top of the left column). 420x130.
 //
 // Two sliders: brightness over night-light temperature. Both values arrive from
 // reach's state socket through the Reach singleton (no poll). The socket is
@@ -16,8 +16,8 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 // (gitignored), and written on release only — one reload per gesture.
 Widget {
     id: root
-    anchors { top: true; left: true }
-    margins { top: s(150) }
+    anchors { bottom: true; left: true }
+    margins { bottom: s(180) }
     implicitWidth: s(420)
     implicitHeight: s(130)
 

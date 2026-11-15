@@ -27,7 +27,7 @@ SCRIPT = str(Path(__file__).resolve())
 NOTES = Path.home() / 'notes'
 AGENT_CONFIG = '.obsidian-agent'
 MUTATIONS = {'run', 'obsidian-cli', 'obsidian', 'key', 'type', 'move', 'click', 'scroll', 'drag',
-             'focus', 'desktop', 'geometry', 'close', 'clip', 'release'}
+             'focus', 'desktop', 'geometry', 'close', 'clip', 'release', 'kill'}
 CLAIM_TTL = 300  # idle seconds before an unreleased claim lapses
 SESSION_KEYS = ('XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_STATE_HOME',
                 'XDG_CACHE_HOME', 'AGENT_DESK_RUNTIME', 'WAYLAND_DISPLAY', 'DISPLAY', 'AT_SPI_BUS_ADDRESS',
@@ -226,6 +226,7 @@ class Desktop:
         self.real_config = real_config
         self.claim = None  # dict(name, token, ttl, last)
         self.clip_proc = self.recorder = None
+        self.apps = []  # processes started by run/obsidian: the only ones `kill` may end
         self.root, self.reach = root, str(Path(reach).resolve())
         self.width, self.height = width, height
         self.wayvnc = wayvnc
@@ -276,6 +277,11 @@ class Desktop:
                 raise RuntimeError(f'missing {program}')
         if not os.access(self.reach, os.X_OK):
             raise RuntimeError(f'Reach is not executable: {self.reach}')
+        # Each session starts with fresh logs (they used to append across
+        # sessions, so an old session's lines read like the current one's).
+        for old in [*self.root.glob('*.log'), *self.root.glob('capture-*'), *self.root.glob('ocr-*')]:
+            if old.name != 'supervisor.log':  # the client truncated it for this session
+                old.unlink()
         config = self.root / 'config' / 'reach'
         if config.exists():
             shutil.rmtree(config)
@@ -556,7 +562,8 @@ class Desktop:
             if len(args) != 1:
                 raise ValueError('shot requires one PNG path')
             target = str(Path(args[0]).expanduser().absolute())
-            subprocess.run(['grim'] + (['-c'] if cursor else []) + region + [target], env=self.env,
+            kind = ['-t', 'ppm'] if target.endswith('.ppm') else []  # uncompressed: fast for polling
+            subprocess.run(['grim'] + (['-c'] if cursor else []) + kind + region + [target], env=self.env,
                            check=True, capture_output=True, text=True, timeout=10)
             return dict(ok=True, path=target)
         if command == 'record':
@@ -683,7 +690,19 @@ class Desktop:
             if not args:
                 raise ValueError('run requires a command')
             proc = self.spawn(args, self.app_env(), 'app')
+            self.apps.append(proc)
             return dict(ok=True, pid=proc.pid)
+        if command == 'kill':
+            # `close` only asks a window to close; an app can answer with a
+            # dialog. Windows carry no PID, so this ends a launched app by the
+            # PID `run`/`obsidian` printed (its whole process group).
+            if len(args) != 1:
+                raise ValueError('kill requires a PID printed by run/obsidian')
+            proc = next((p for p in self.apps if p.pid == int(args[0]) and p.poll() is None), None)
+            if proc is None:
+                raise ValueError(f'{args[0]} is not a running app this desktop launched')
+            self.terminate(proc)
+            return dict(ok=True)
         self.input(command, args)
         return dict(ok=True)
 
@@ -851,7 +870,7 @@ def start(args):
     wayvnc = args.wayvnc or str(Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'agent-desk/wayvnc-compat/wayvnc')
     if not os.access(wayvnc, os.X_OK):
         raise RuntimeError('build the private WayVNC compatibility binary first; see agent-desk README')
-    with open(root / 'supervisor.log', 'ab') as log:
+    with open(root / 'supervisor.log', 'wb') as log:
         proc = subprocess.Popen([sys.executable, SCRIPT, '_serve', str(root), reach,
                                  str(args.width), str(args.height), wayvnc,
                                  json.dumps(dict(real_config=args.real_config))],
@@ -874,7 +893,7 @@ def capture(window=None):
     """A fresh screenshot of the output (or one window) as a PIL image, plus its
     screen offset. Goes through the supervisor like `shot`."""
     from PIL import Image
-    path = runtime() / f'capture-{os.getpid()}.png'
+    path = runtime() / f'capture-{os.getpid()}.ppm'
     try:
         request('shot', (['--window', str(window)] if window is not None else []) + [str(path)])
         image = Image.open(path)
@@ -1000,6 +1019,28 @@ def find_text_once(args):
         print(x, y)
 
 
+def obsidian_reveal(args):
+    """Expand a vault file's folders in the private Obsidian's file explorer,
+    scroll it into view and print the screen X Y of its row, to click with real
+    input (the user's quick switcher is off)."""
+    code = f'''(async () => {{ const f = app.vault.getAbstractFileByPath({json.dumps(args.path)});
+        if (!f) return null;
+        const leaf = app.workspace.getLeavesOfType("file-explorer")[0];
+        await app.workspace.revealLeaf(leaf); leaf.view.revealInFolder(f);
+        await new Promise(r => setTimeout(r, 400));  // reveal scrolls smoothly
+        const el = document.querySelector(`.nav-file-title[data-path="${{CSS.escape(f.path)}}"]`);
+        if (!el) return null; const r = el.getBoundingClientRect();
+        return JSON.stringify([Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)]); }})()'''
+    out = request('obsidian-cli', ['eval', 'code=' + code])['output']
+    line = next((l for l in out.splitlines() if l.startswith('=> ')), '=> null')[3:]
+    point = json.loads(line) if line not in ('null', 'undefined', '') else None
+    if isinstance(point, str):
+        point = json.loads(point)
+    if not point:
+        raise RuntimeError(f'{args.path} is not a file in the private vault (paths are vault-relative)')
+    print(*point)
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == '_init':
         root = Path(sys.argv[2])
@@ -1041,6 +1082,8 @@ def main():
     p.add_argument('text')
     p.add_argument('--window', type=int, metavar='ID')
     p.add_argument('--all', action='store_true')
+    p = sub.add_parser('obsidian-reveal', help='print X Y of a vault file in the private file explorer')
+    p.add_argument('path', help='vault-relative, e.g. doc-works-test/x.docx')
     p = sub.add_parser('wait-window', help='wait for a window whose appId or title contains TEXT')
     p.add_argument('text')
     p.add_argument('--timeout', type=float, default=20)
@@ -1049,7 +1092,7 @@ def main():
     p.add_argument('--no-open', action='store_true', help='prepare viewer socket without opening a host window')
     for name in ('run', 'shot', 'key', 'type', 'move', 'click', 'scroll', 'drag',
                  'focus', 'desktop', 'geometry', 'close', 'obsidian', 'obsidian-cli', 'a11y',
-                 'clip', 'claim', 'record'):
+                 'clip', 'claim', 'record', 'kill'):
         p = sub.add_parser(name)
         if name == 'shot':
             p.add_argument('--cursor', action='store_true')
@@ -1084,8 +1127,9 @@ def main():
         if args.command == 'view' and args.no_open:
             values.append('--no-open')
         try:
-            if args.command in ('wait-idle', 'compare', 'find-text'):
-                {'wait-idle': wait_idle, 'compare': compare, 'find-text': find_text}[args.command](args)
+            if args.command in ('wait-idle', 'compare', 'find-text', 'obsidian-reveal'):
+                {'wait-idle': wait_idle, 'compare': compare, 'find-text': find_text,
+                 'obsidian-reveal': obsidian_reveal}[args.command](args)
                 return
             if args.command == 'opened':
                 log = runtime() / 'opened.log'

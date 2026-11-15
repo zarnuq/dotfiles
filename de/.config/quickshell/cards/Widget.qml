@@ -20,9 +20,8 @@ PanelWindow {
     default property alias content: body.data
     property int pad: 10                     // inner padding, unscaled (s() applied)
     property color borderColor: Theme.surface0
-    property int stackLayer: WlrLayer.Bottom // eww "bottom"; Battery raises itself to Overlay when low
-    // Output connector to pin to; empty = the main screen. Battery sets "eDP-1"
-    // so the low-battery warning lands on the laptop panel even when docked.
+    property int stackLayer: WlrLayer.Bottom // eww "bottom"
+    // Output connector to pin to; empty = the main screen.
     property string pinName: ""
 
     // Pin to pinName if that output is present, else the main screen, falling back

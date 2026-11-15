@@ -4,7 +4,7 @@ import Quickshell.Io
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Syncthing status, bottom-right (above the battery card when that one exists).
+// Syncthing status, bottom-right corner.
 //
 // Talks to syncthing's REST API with QML's own XMLHttpRequest — no curl fork
 // per tick. The API key is read out of syncthing's config.xml, so it never
@@ -13,7 +13,6 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 Widget {
     id: root
     anchors { bottom: true; right: true }
-    margins { bottom: Config.batteryPresent && Config.on("battery") ? s(75) : 0 }
     implicitWidth: s(300)
     implicitHeight: body.height + s(root.pad * 2)
 
@@ -62,15 +61,21 @@ Widget {
         });
         get("config/folders", function(fs) {
             if (!fs) return;
+            // Keep each folder's last known state until its new db/status lands;
+            // resetting to "…" made every row flicker on each 10s refresh.
+            var prev = {};
+            root.folders.forEach(function(f) { prev[f.id] = f; });
             var out = [];
             fs.forEach(function(f, i) {
-                out.push({ label: f.label || f.id, state: f.paused ? "paused" : "…", need: 0 });
+                var p = prev[f.id];
+                out.push({ id: f.id, label: f.label || f.id,
+                           state: f.paused ? "paused" : p ? p.state : "…", need: p && !f.paused ? p.need : 0 });
                 if (f.paused) return;
                 root.get("db/status?folder=" + encodeURIComponent(f.id), function(s) {
                     if (!s) return;
                     var copy = root.folders.slice();
                     if (!copy[i]) return;
-                    copy[i] = { label: copy[i].label, state: s.state, need: s.needBytes };
+                    copy[i] = { id: copy[i].id, label: copy[i].label, state: s.state, need: s.needBytes };
                     root.folders = copy;
                 });
             });

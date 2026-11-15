@@ -19,6 +19,8 @@ Canvas {
     property real maxv: 100
     property var samples: []
 
+    onMaxvChanged: requestPaint()   // an autoscaled ceiling redraws the history
+
     onValueChanged: {
         samples.push(value);
         while (samples.length > maxSamples)

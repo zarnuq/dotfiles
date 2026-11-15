@@ -5,6 +5,87 @@ command. The display is a real headless Wayland desktop; the examples never use
 host input injection. Obtain current window IDs with `windows`, rather than
 copying an ID from this page.
 
+## How the desktop is set up
+
+**Reach config**, copied from `~/.config/reach/*.zon` at `start` (restart the
+desktop for host config edits):
+
+- Default: the user's real binds (the compositor swallows the same chords as
+  on the host), but click-to-focus, no window rules, no gaps or borders.
+- `agent-desk stop && agent-desk start --real-config`: also the real sloppy
+  focus, window rules (Obsidian → desktop 2), gaps and borders. `status --json`
+  reports `real_config`. `start` reuses a running desktop, so stop it first.
+- Never carried: `.env` (host bus), autostart, gamma, shake-to-find, the
+  brightness binds (they drive the real backlight) and the reload bind (a
+  reload would read the host's Reach config). Quickshell doesn't run, so
+  `qs ipc` binds do nothing.
+- Apps get the host `XDG_CONFIG_HOME` / `XDG_CACHE_HOME` (only Reach uses a
+  private one), so GTK/dconf dark mode, fonts and app settings match the host.
+
+**Claims.** Commands are serialized, but a sequence isn't atomic. While a claim
+is held, input, `clip`, `record`, `run`/`obsidian`, `kill` and window commands
+from callers without its token are refused. The user's view, pause, resume and
+stop are never refused. `status --json` shows the holder and its idle time left.
+
+**Keys and text.** `key` takes XKB names (`Ctrl`, `Alt`, `Shift`, `Super`,
+`Return`, `Escape`, `space`, `plus`, `F1`). For Shift chords it sends the
+shifted keysym, because WayVNC otherwise drops every modifier to reach a
+lowercase keysym. `key --down Shift` / `key --up Shift` can bracket a short
+pointer operation; held input expires after 5 s. `type` uses wtype in the
+private desktop, handles leading spaces and Unicode, and refuses while input
+is held.
+
+**Clipboard and links.** The clipboard belongs to the private desktop and is
+never bridged to the host's (the user's copies may hold secrets). Apps started
+by `run`/`obsidian` get an `xdg-open` shim that logs to `opened.log` instead of
+opening a browser on the user's real profile; assert on `agent-desk opened`.
+
+**OCR.** `find-text` is for text with no DOM or accessibility tree (canvas
+grids, native dialogs). It returns matches in reading order, ignores accents,
+and retries across a caret blink. The same text can appear twice (a sheet's
+formula bar and its cell): check the target on a screenshot, or use `--all`.
+
+**Closing apps.** `close ID` asks a window to close, and an app can answer with
+a dialog (kitty: "Close OS window?"). Windows carry no PID, so `kill PID` ends
+an app by the PID `run`/`obsidian` printed; it refuses anything else.
+
+**Accessibility.** `a11y apps` / `a11y tree --depth 4` read the private bus
+only. The tested GTK app registers there; Obsidian/Electron does not, so use
+the private Obsidian CLI and the DOM for it. Window bounds there are
+client-relative; screenshots decide screen coordinates.
+
+**Obsidian config.** Each launch (when the private app isn't running) copies
+the real `.obsidian` into `~/notes/.obsidian-agent` without workspace files.
+The built plugin goes into `.obsidian-agent/plugins/`, never the user's copy;
+hashes are in `~/.local/state/agent-desk/plugin-build.json`. The host app's
+`.obsidian` is never written: every launch first checks the config-folder
+override from a scratch vault (~4 s) and refuses to open `~/notes` without it.
+Copying a bundle into a running app doesn't reload it: close the private
+Obsidian or disable/enable the plugin via eval. Use the wrapper's
+`obsidian-cli`, which talks only to the private instance; check the vault and
+active file in the same eval before any scripted edit.
+
+**doc-works suite** (`scripts/gui-test.py`): claims the desktop and records
+the run (the video is kept only on failure). It edits fresh fixture copies in
+`~/notes/doc-works-test/gui-<time>/` and checks the saved XML; a test also
+fails on uncaught errors or `console.error` lines logged while it ran.
+`test_visual_baselines` compares the untouched page / slide / grid with
+approved images in `~/.local/state/agent-desk/baselines/doc-works/` (written
+on the first run; `UPDATE_BASELINES=1 npm run test:gui -- visual` accepts a
+change, and a theme change counts). Python that imports `agent-desk` must run
+under `/usr/bin/python3`: Nix's python3 can't load the system libxkbcommon.
+
+**Shells.** Don't launch GUI apps from a shell in a private kitty: the user's
+zshrc resets `XDG_RUNTIME_DIR` to the host's, so they would open on the host
+desktop. Use `run`, or `kitty --config NONE … zsh -f`. Give other
+single-instance apps their own profile.
+
+**User controls.** The Agent desktop app entry (`agent-desk.desktop`, also in
+launcher `>` mode) opens the bar panel: Start, View, Take control,
+Pause/Resume, Stop. `view` = read-only viewer, `view --control` = pause the
+agent and give the user input, `resume` = hand back, `stop` = close this
+desktop and its apps. Logs start fresh on each `start`.
+
 ## See it and take over
 
 ```sh
@@ -75,14 +156,14 @@ Expect vault `/home/miles/notes` with `configDir` `.obsidian-agent` (add
 does not run the plugin build. `~/.local/state/agent-desk/plugin-build.json`
 records the copied asset hashes.
 
-Copy a fixture into the scratch folder, then open it through the GUI. The user's
-quick switcher is disabled, so reveal it in the file explorer and click it:
+Copy a fixture into the scratch folder, then open it through the GUI (the
+user's quick switcher is disabled):
 
 ```sh
 mkdir -p ~/notes/doc-works-test/agent && cp ~/Projects/doc-works/tests/fixtures/sample.docx ~/notes/doc-works-test/agent/
-agent-desk obsidian-cli eval 'code=(()=>{const l=app.workspace.getLeavesOfType("file-explorer")[0];app.workspace.revealLeaf(l);l.view.revealInFolder(app.vault.getAbstractFileByPath("doc-works-test/agent/sample.docx"));const r=document.querySelector(".nav-file-title[data-path=\"doc-works-test/agent/sample.docx\"]").getBoundingClientRect();return JSON.stringify([r.x+r.width/2,r.y+r.height/2])})()'
+agent-desk obsidian-reveal doc-works-test/agent/sample.docx   # prints X Y
 agent-desk move X Y && agent-desk click left
-agent-desk shot /tmp/doc-works-before.png
+agent-desk wait-idle && agent-desk shot /tmp/doc-works-before.png
 ```
 
 Check the active file is `doc-works-test/agent/sample.docx` with view type
@@ -101,6 +182,35 @@ Verify the saved scratch file or editor state, not only the displayed text. For
 Word files, join the `w:t` nodes when checking text: a phrase can span XML runs.
 Do not require a literal phrase to be contiguous in raw XML. Use CLI/eval for
 setup and assertions; do not replace the GUI interaction being tested with eval.
+
+## Verify a saved .docx
+
+Word splits text into runs, so join the `w:t` of each run and check its
+`w:rPr`. Poll: autosave lands a moment after the edit. Example: is "Plain" bold?
+
+```sh
+/usr/bin/python3 - ~/notes/doc-works-test/agent/sample.docx Plain <<'PY'
+import sys, time, zipfile, xml.etree.ElementTree as ET
+W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+path, word = sys.argv[1], sys.argv[2]
+for _ in range(40):
+    try:
+        body = ET.fromstring(zipfile.ZipFile(path).read('word/document.xml'))
+    except (zipfile.BadZipFile, KeyError):  # mid-write
+        time.sleep(.25); continue
+    for r in body.iter(W + 'r'):
+        text = ''.join(t.text or '' for t in r.iter(W + 't'))
+        b = r.find(f'{W}rPr/{W}b')
+        if word in text and b is not None and b.get(W + 'val', 'true') not in ('0', 'false'):
+            print('bold:', repr(text)); sys.exit(0)
+    time.sleep(.25)
+sys.exit(f'{word!r} is not bold in the saved file')
+PY
+```
+
+The same approach works for slides (`ppt/slides/slideN.xml`, `a:t`) and
+sheets (`xl/worksheets/*.xml` via `xl/workbook.xml` + its rels; strings in
+`xl/sharedStrings.xml`). `scripts/gui-test.py` has working parsers for all three.
 
 ## Refresh a plugin build without touching the host
 

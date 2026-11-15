@@ -60,6 +60,10 @@ Singleton {
     readonly property color rowSelectBg: crust
     readonly property color rowSelectFg: subtext1
 
+    // Text on a red alert fill (the bar's low-battery block). Pure white on
+    // purpose, outside the palette, so it reads at a glance whatever the theme.
+    readonly property color alertFg: "#ffffff"
+
     // The focused desktop's label on the bar, on mauve: plain white under Mocha
     // (carried over from reach's own bar), matugen's on_primary otherwise — a
     // wallpaper accent can be light enough that white vanishes on it.

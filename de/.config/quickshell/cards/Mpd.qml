@@ -4,7 +4,8 @@ import Quickshell.Services.Mpris
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Now-playing + volume widget, bottom-left stack (above the usage + network card).
+// Now-playing + volume widget, top of the left column, flush under the bar, so the
+// calendar below it can stretch into whatever is left. 420x150.
 //
 // Native throughout — no subprocess polling:
 //   - transport/metadata/art/progress via Quickshell.Services.Mpris (was `mpc`,
@@ -14,8 +15,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 //     wraps Quickshell.Services.Pipewire; was `wpctl`, polled 2×/s).
 Widget {
     id: root
-    anchors { bottom: true; left: true }
-    margins { bottom: s(180) }
+    anchors { top: true; left: true }
     implicitWidth: s(420)
     implicitHeight: s(150)
 

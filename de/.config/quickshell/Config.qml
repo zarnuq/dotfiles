@@ -103,14 +103,12 @@ Singleton {
         { key: "screenshot",          group: "Session",     label: "Screenshots" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
-        { key: "clock",               group: "Panel",       label: "Clock" },
         { key: "cpuGraph",            group: "Panel",       label: "Usage + network" },
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
         { key: "brightness",          group: "Panel",       label: "Brightness" },
         { key: "aiUsage",             group: "Panel",       label: "Claude / Codex usage" },
         { key: "syncthing",           group: "Panel",       label: "Syncthing status" },
-        { key: "battery",             group: "Panel",       label: "Battery (laptop only)" },
         { key: "tray",                group: "Panel",       label: "System tray" }
     ]
 

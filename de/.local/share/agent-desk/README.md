@@ -73,7 +73,7 @@ host bus.
 `status --json` includes running/paused/manual status, all managed windows,
 owned process summaries and the loaded Reach PID/starttime/binary SHA-256.
 `status.json` is also published for the widget without subprocess polling.
-Logs are `supervisor.log`, `river.log`, `input.log`, `view.log`, `viewer.log`
+Logs (fresh on every `start`; they used to append across sessions) are `supervisor.log`, `river.log`, `input.log`, `view.log`, `viewer.log`
 and `app.log` in that runtime directory. `error.json` records startup failures.
 
 Commands:
@@ -94,6 +94,8 @@ Commands:
 | `record start PATH` / `record stop` | wf-recorder video of the output |
 | `claim NAME [IDLE_S]` / `unclaim` | Exclusive input lease; prints `export AGENT_DESK_CLAIM=…` |
 | `opened` | Links/`xdg-open` calls apps made (logged by a shim, never opened) |
+| `obsidian-reveal PATH` | Reveal a vault file in the private Obsidian's explorer; print its row's X Y |
+| `kill PID` | End an app `run`/`obsidian` launched (its process group); `close` only asks |
 | `wait-idle [--timeout S] [--quiet S] [--threshold F] [--window ID]` | Until frames stop changing (a caret blink is under the threshold) |
 | `compare A B [--tolerance F] [--level N] [--diff OUT]` | Pixel diff (PIL); exit 1 above tolerance; diff = changes in red |
 | `find-text TEXT [--window ID] [--all]` | OCR (tesseract, `app-text/tesseract`): screen `X Y` of a phrase |

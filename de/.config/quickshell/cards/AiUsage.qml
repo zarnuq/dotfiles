@@ -17,7 +17,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 Widget {
     id: root
     anchors { bottom: true; right: true }
-    margins { bottom: Config.syncthingHeight + (Config.batteryPresent && Config.on("battery") ? s(75) : 0) }
+    margins { bottom: Config.syncthingHeight }
     implicitWidth: s(300)
     implicitHeight: body.height + s(root.pad * 2)
 

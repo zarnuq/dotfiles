@@ -60,7 +60,6 @@ ShellRoot {
     LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("screenshot");          Screenshot {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
-    LazyLoader { active: Config.on("clock");               Clock {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
     LazyLoader { active: Config.on("mpd");                 Mpd {} }
     LazyLoader { active: Config.on("notificationHistory"); Notifications {} }
@@ -68,7 +67,6 @@ ShellRoot {
     LazyLoader { active: Config.on("brightness");          Brightness {} }
     LazyLoader { active: Config.on("syncthing");           Syncthing {} }
     LazyLoader { active: Config.on("aiUsage");             AiUsage {} }
-    LazyLoader { active: Config.on("battery") && Config.batteryPresent; Battery {} }
     LazyLoader { active: Config.on("osd");                 Osd {} }
     LazyLoader { active: Config.on("spotlight");           Spotlight {} }
 }

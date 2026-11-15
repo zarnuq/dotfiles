@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 
 // Flat gauge: a surface0 track with a `fillColor` bar over
-// `fraction` (0..1) of it. Battery, Brightness, the Mpd progress bar, the OSD
+// `fraction` (0..1) of it. Brightness, the Mpd progress bar, the OSD
 // and the audio mixer's volume track each drew this pair of rectangles by hand.
 // A `radius` set on the track is carried onto the fill, so the two keep the
 // same shape. Children land above the fill (the mixer's drag MouseArea).

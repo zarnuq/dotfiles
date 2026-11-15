@@ -5,7 +5,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Usage and network in one card, bottom of the left stack. Two plot bands
 // because the scales don't mix: cpu/gpu/ram/disk in percent on top, down/up
-// MB/s (/proc/net/dev deltas, ceiling 25) below. IPs on one footer line.
+// MB/s (/proc/net/dev deltas, scaled to the last 30s peak) below. IPs on one footer line.
 Widget {
     id: root
     anchors { bottom: true; left: true }
@@ -15,6 +15,11 @@ Widget {
     property real down: 0     // MB/s
     property real up: 0
     property var ips: []      // [{ iface, ip }]
+
+    // Net plot ceiling: the peak of the last 30 samples (the graph's window),
+    // floored at 1 MB/s so an idle link isn't scaled up into noise.
+    property var _peaks: []
+    property real netMax: 1
 
     property real _prevRx: 0
     property real _prevTx: 0
@@ -34,6 +39,9 @@ Widget {
         }
         if (root._prevRx > 0) root.down = Math.max(0, (rx - root._prevRx) / 1e6);
         if (root._prevTx > 0) root.up   = Math.max(0, (tx - root._prevTx) / 1e6);
+        root._peaks.push(Math.max(root.down, root.up));
+        if (root._peaks.length > 30) root._peaks.shift();
+        root.netMax = Math.max(1, Math.max.apply(null, root._peaks));
         root._prevRx = rx;
         root._prevTx = tx;
     }
@@ -67,14 +75,21 @@ Widget {
 
                 Column {
                     Txt { text: "cpu"; font.pixelSize: root.s(18) }
-                    Txt { text: Sys.cpuTemp + "°"; color: Theme.subtext0; font.pixelSize: root.s(11) }
+                    Txt { text: Math.round(Sys.cpu) + "% · " + Sys.cpuTemp + "°"; color: Theme.subtext0; font.pixelSize: root.s(11) }
                 }
                 Column {
+                    visible: Sys.gpuPresent   // no nvidia (laptop): nothing to show
                     Txt { text: "gpu"; color: Theme.blue; font.pixelSize: root.s(18) }
-                    Txt { text: Sys.gpuTemp + "°"; color: Theme.subtext0; font.pixelSize: root.s(11) }
+                    Txt { text: Math.round(Sys.gpu) + "% · " + Sys.gpuTemp + "°"; color: Theme.subtext0; font.pixelSize: root.s(11) }
                 }
-                Txt { text: "ram";  color: Theme.green; font.pixelSize: root.s(18) }
-                Txt { text: "disk"; color: Theme.peach; font.pixelSize: root.s(18) }
+                Column {
+                    Txt { text: "ram"; color: Theme.green; font.pixelSize: root.s(18) }
+                    Txt { text: Math.round(Sys.ram) + "%"; color: Theme.subtext0; font.pixelSize: root.s(11) }
+                }
+                Column {
+                    Txt { text: "disk"; color: Theme.peach; font.pixelSize: root.s(18) }
+                    Txt { text: Math.round(Sys.disk) + "%"; color: Theme.subtext0; font.pixelSize: root.s(11) }
+                }
             }
 
             Column {
@@ -87,7 +102,7 @@ Widget {
                     Txt { text: "↑"; color: Theme.mauve; font.pixelSize: root.s(18) }
                     Txt { text: root.up.toFixed(1); color: Theme.subtext0; font.pixelSize: root.s(11); anchors.verticalCenter: parent.verticalCenter }
                 }
-                Txt { anchors.right: parent.right; text: "MB/s"; color: Theme.subtext0; font.pixelSize: root.s(11) }
+                Txt { anchors.right: parent.right; text: "MB/s · max " + root.netMax.toFixed(1); color: Theme.subtext0; font.pixelSize: root.s(11) }
             }
         }
 
@@ -100,7 +115,7 @@ Widget {
                 width: parent.width
                 height: Math.round(parent.height * 0.6)
                 Graph { value: Sys.cpu;  lineColor: Theme.text }
-                Graph { value: Sys.gpu;  lineColor: Theme.blue;  thickness: root.s(3) }
+                Graph { value: Sys.gpu;  lineColor: Theme.blue;  thickness: root.s(3); visible: Sys.gpuPresent }
                 Graph { value: Sys.ram;  lineColor: Theme.green }
                 Graph { value: Sys.disk; lineColor: Theme.peach }
             }
@@ -111,8 +126,8 @@ Widget {
                 y: Math.round(parent.height * 0.6) + 1
                 width: parent.width
                 height: parent.height - y
-                Graph { value: root.down; lineColor: Theme.teal;  maxv: 25 }
-                Graph { value: root.up;   lineColor: Theme.mauve; maxv: 25 }
+                Graph { value: root.down; lineColor: Theme.teal;  maxv: root.netMax }
+                Graph { value: root.up;   lineColor: Theme.mauve; maxv: root.netMax }
             }
         }
 

@@ -84,6 +84,7 @@ Row {
     Delim {}
     Block {
         text: root.statusData.clock
+        color: Theme.subtext1
     }
     Delim {
         visible: Power.present
@@ -91,11 +92,18 @@ Row {
     Block {
         visible: Power.present
         text: root.statusData.batteryGlyph + " " + Power.level + "%"
-        // Red only when actually off mains: `Not charging` on AC under 20% is a
-        // threshold hold, not a battery about to die (same reason the card's
-        // warning is gated on Power.onAc).
-        color: Power.charging ? Theme.green
-             : Power.onAc ? Theme.teal
-             : (Power.level < 20 ? Theme.red : root.normalFg)
+        // Bright grey like the clock. Low (Power.low, gated on onAc — a
+        // threshold hold on AC is not a dying battery) turns it into a red
+        // block with white text.
+        color: Power.low ? Theme.alertFg : Theme.subtext1
+        leftPadding: Power.low ? Config.s(6) : 0
+        rightPadding: leftPadding
+        Rectangle {
+            z: -1
+            anchors.fill: parent
+            visible: Power.low
+            color: Theme.red
+            radius: Theme.borderRadius
+        }
     }
 }
