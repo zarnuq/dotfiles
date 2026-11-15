@@ -23,6 +23,7 @@ Singleton {
     // Picker and Music both expose `open` for this (`show` is unusable — the
     // CLI eats `qs ipc call <target> show` as its own `qs ipc show`).
     readonly property var catalogue: [
+        { name: "Agent desktop",    desc: "isolated app testing", glyph: "󰚩", args: ["agentdesk", "open"] },
         { name: "Network",          desc: "Wi-Fi + VPN",         glyph: "󰤨", args: ["network",         "open"] },
         { name: "Bluetooth",        desc: "devices + pairing",   glyph: "󰂯", args: ["bluetooth",       "open"] },
         { name: "Drives",           desc: "mount + eject USB",   glyph: "󰋊", args: ["drives",          "open"] },

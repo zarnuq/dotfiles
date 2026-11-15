@@ -69,8 +69,9 @@ Scope {
         if (act === "logout") {
             // reach's own .quit SIGTERMs river (its parent) rather than just
             // exiting, so the compositor is never left running without a window
-            // manager. Signalling river directly ends the session the same way.
-            Quickshell.execDetached(["pkill", "-TERM", "-x", "river"]);
+            // manager. Resolve this session through its Reach socket; a broad
+            // pkill would also stop a headless agent desktop.
+            Quickshell.execDetached([Quickshell.env("HOME") + "/.local/bin/session-signal", "river", "TERM"]);
             return;
         }
 

@@ -1,0 +1,418 @@
+--- /dev/null
++++ b/src/agent.zig
+@@ -0,0 +1,271 @@
++// Opt-in agent control. The existing read-only panel socket is unchanged.
++// SOCK_SEQPACKET keeps request boundaries explicit; no partial-line parser can
++// block the WM. Mutations run only in river's manage phase.
++const std = @import("std");
++const linux = std.os.linux;
++const Context = @import("context.zig");
++const config = @import("config.zig");
++const query = @import("query.zig");
++const Window = @import("window.zig").Window;
++const log = std.log.scoped(.agent);
++
++pub const max_clients = 8;
++pub var listen_fd: ?i32 = null;
++pub var client_fds: [max_clients]i32 = undefined;
++pub var client_count: usize = 0;
++var requests: [max_clients]?Request = .{null} ** max_clients;
++var socket_path: ?[:0]const u8 = null;
++
++const Geometry = struct { id: u64, x: i32, y: i32, width: i32, height: i32 };
++
++const Request = union(enum) {
++    focus: u64,
++    desktop: u32,
++    geometry: Geometry,
++    close: u64,
++};
++
++pub fn start() void {
++    const p = std.c.getenv("REACH_AGENT_SOCKET") orelse return;
++    const path = std.mem.span(p);
++    if (path.len == 0 or path.len >= 108 or path[0] != '/') {
++        log.err("REACH_AGENT_SOCKET must be an absolute Unix socket path", .{});
++        return;
++    }
++    const fd = std.c.socket(linux.AF.UNIX, linux.SOCK.SEQPACKET | linux.SOCK.NONBLOCK | linux.SOCK.CLOEXEC, 0);
++    if (fd < 0) return;
++    var addr = linux.sockaddr.un{ .path = .{0} ** 108 };
++    @memcpy(addr.path[0..path.len], path);
++    // Do not unlink an existing endpoint: that could detach another live WM.
++    if (std.c.bind(fd, @ptrCast(&addr), @sizeOf(linux.sockaddr.un)) < 0 or std.c.listen(fd, max_clients) < 0) {
++        _ = std.c.close(fd);
++        log.err("cannot bind agent socket {s}", .{path});
++        return;
++    }
++    socket_path = path;
++    listen_fd = fd;
++    log.info("agent protocol 1 listening on {s}", .{path});
++}
++
++pub fn stop() void {
++    while (client_count > 0) drop(client_count - 1);
++    if (listen_fd) |fd| _ = std.c.close(fd);
++    listen_fd = null;
++    if (socket_path) |path| _ = std.c.unlink(path.ptr);
++    socket_path = null;
++}
++
++pub fn onAccept() void {
++    const fd = listen_fd orelse return;
++    while (true) {
++        const peer = std.c.accept4(fd, null, null, linux.SOCK.NONBLOCK | linux.SOCK.CLOEXEC);
++        if (peer < 0) return;
++        const Credentials = extern struct { pid: i32, uid: u32, gid: u32 };
++        var credentials: Credentials = undefined;
++        var credentials_len: std.c.socklen_t = @sizeOf(Credentials);
++        const authenticated = std.c.getsockopt(peer, linux.SOL.SOCKET, linux.SO.PEERCRED, &credentials, &credentials_len) == 0 and
++            credentials_len == @sizeOf(Credentials) and credentials.uid == linux.getuid();
++        if (!authenticated or client_count == max_clients) {
++            _ = std.c.close(peer);
++            continue;
++        }
++        client_fds[client_count] = peer;
++        requests[client_count] = null;
++        client_count += 1;
++    }
++}
++
++fn drop(i: usize) void {
++    _ = std.c.close(client_fds[i]);
++    client_count -= 1;
++    if (i != client_count) {
++        client_fds[i] = client_fds[client_count];
++        requests[i] = requests[client_count];
++    }
++    requests[client_count] = null;
++}
++
++fn reply(i: usize, value: anytype) void {
++    const gpa = Context.get().gpa;
++    const data = std.json.Stringify.valueAlloc(gpa, value, .{}) catch return;
++    defer gpa.free(data);
++    _ = std.c.send(client_fds[i], data.ptr, data.len, linux.MSG.NOSIGNAL | linux.MSG.DONTWAIT);
++}
++
++fn fail(i: usize, message: []const u8) void {
++    reply(i, .{ .ok = false, .@"error" = message });
++}
++
++pub fn onClient(i: usize) bool {
++    var buf: [256]u8 = undefined;
++    const n = std.c.recv(client_fds[i], &buf, buf.len, linux.MSG.DONTWAIT | linux.MSG.TRUNC);
++    if (n <= 0) {
++        drop(i);
++        return false;
++    }
++    if (n > buf.len) {
++        fail(i, "request too long");
++        return false;
++    }
++    const text = std.mem.trim(u8, buf[0..@intCast(n)], " \t\r\n");
++    if (std.mem.eql(u8, text, "list")) {
++        snapshot(i);
++        return false;
++    }
++    if (requests[i] != null) {
++        fail(i, "request already pending");
++        return false;
++    }
++    requests[i] = parse(text) catch {
++        fail(i, "invalid command or arguments");
++        return false;
++    };
++    return true;
++}
++
++fn number(comptime T: type, tokens: *std.mem.TokenIterator(u8, .any)) !T {
++    return std.fmt.parseInt(T, tokens.next() orelse return error.MissingArgument, 10);
++}
++
++fn parse(text: []const u8) !Request {
++    var tokens = std.mem.tokenizeAny(u8, text, " \t");
++    const verb = tokens.next() orelse return error.MissingCommand;
++    const request: Request = if (std.mem.eql(u8, verb, "focus"))
++        .{ .focus = try number(u64, &tokens) }
++    else if (std.mem.eql(u8, verb, "close"))
++        .{ .close = try number(u64, &tokens) }
++    else if (std.mem.eql(u8, verb, "desktop")) blk: {
++        const desktop = try number(u32, &tokens);
++        if (!config.validDesktop(desktop)) return error.InvalidDesktop;
++        break :blk .{ .desktop = desktop };
++    } else if (std.mem.eql(u8, verb, "geometry")) blk: {
++        const geometry: Geometry = .{
++            .id = try number(u64, &tokens),
++            .x = try number(i32, &tokens),
++            .y = try number(i32, &tokens),
++            .width = try number(i32, &tokens),
++            .height = try number(i32, &tokens),
++        };
++        if (geometry.width <= 0 or geometry.height <= 0 or geometry.width > 32768 or geometry.height > 32768 or
++            geometry.x < -32768 or geometry.x > 32768 or geometry.y < -32768 or geometry.y > 32768) return error.InvalidGeometry;
++        break :blk .{ .geometry = geometry };
++    } else return error.UnknownCommand;
++    if (tokens.next() != null) return error.ExtraArgument;
++    return request;
++}
++
++fn find(id: u64) ?*Window {
++    for (Context.get().windows.items) |w| if (w.agent_id == id) return w;
++    return null;
++}
++
++// Requests are revalidated here: a window may have closed since it was queued.
++pub fn apply() void {
++    const ctx = Context.get();
++    for (0..client_count) |i| {
++        const request = requests[i] orelse continue;
++        requests[i] = null;
++        switch (request) {
++            .desktop => |d| {
++                const out = ctx.current_output orelse {
++                    fail(i, "no output");
++                    continue;
++                };
++                out.desktop = d;
++                ctx.focused = query.topVisibleOn(out);
++            },
++            .focus => |id| {
++                const w = find(id) orelse {
++                    fail(i, "unknown window");
++                    continue;
++                };
++                if (!w.mapped) {
++                    fail(i, "window is not mapped");
++                    continue;
++                }
++                if (w.output) |out| out.desktop = w.desktop;
++                ctx.focus(w);
++            },
++            .geometry => |g| {
++                const w = find(g.id) orelse {
++                    fail(i, "unknown window");
++                    continue;
++                };
++                if (!w.mapped or w.fullscreen) {
++                    fail(i, "geometry requires a mapped non-fullscreen window");
++                    continue;
++                }
++                w.floating = true;
++                w.rule_floating = true;
++                w.float_placed = true;
++                w.x = g.x;
++                w.y = g.y;
++                w.width = g.width;
++                w.height = g.height;
++            },
++            .close => |id| {
++                const w = find(id) orelse {
++                    fail(i, "unknown window");
++                    continue;
++                };
++                w.rwm.close();
++            },
++        }
++        reply(i, .{ .ok = true });
++    }
++}
++
++const WindowInfo = struct {
++    id: u64,
++    title: []const u8,
++    appId: []const u8,
++    desktop: u32,
++    output: []const u8,
++    focused: bool,
++    mapped: bool,
++    visible: bool,
++    floating: bool,
++    x: i32,
++    y: i32,
++    width: i32,
++    height: i32,
++};
++
++fn snapshot(i: usize) void {
++    const ctx = Context.get();
++    const windows = ctx.gpa.alloc(WindowInfo, ctx.windows.items.len) catch {
++        fail(i, "out of memory");
++        return;
++    };
++    defer ctx.gpa.free(windows);
++    for (ctx.windows.items, windows) |w, *info| {
++        info.* = .{
++            .id = w.agent_id,
++            .title = w.title orelse "",
++            .appId = w.app_id orelse "",
++            .desktop = w.desktop,
++            .output = if (w.output) |o| o.name orelse "" else "",
++            .focused = ctx.focused == w,
++            .mapped = w.mapped,
++            .visible = w.visible(),
++            .floating = w.floating,
++            .x = w.x,
++            .y = w.y,
++            .width = w.drawnWidth(),
++            .height = w.drawnHeight(),
++        };
++    }
++    reply(i, .{ .ok = true, .protocol = 1, .pid = std.os.linux.getpid(), .windows = windows });
++}
++
++test "agent requests reject extra arguments, invalid desktops and geometry" {
++    const r = try parse("focus 42");
++    try std.testing.expectEqual(@as(u64, 42), r.focus);
++    try std.testing.expectError(error.ExtraArgument, parse("focus 42 extra"));
++    try std.testing.expectError(error.InvalidDesktop, parse("desktop 0"));
++    try std.testing.expectError(error.InvalidGeometry, parse("geometry 1 0 0 -1 300"));
++    try std.testing.expectError(error.MissingArgument, parse("geometry 1 0"));
++    const g = try parse("geometry 1 -10 20 800 600");
++    try std.testing.expectEqual(@as(i32, -10), g.geometry.x);
++    try std.testing.expectError(error.UnknownCommand, parse("spawn shell"));
++}
+--- a/src/main.zig
++++ b/src/main.zig
+@@ -36,6 +36,7 @@
+ const action = @import("action.zig");
+ const signals = @import("signals.zig");
+ const ipc = @import("ipc.zig");
++const agent = @import("agent.zig");
+ const shake = @import("shake.zig");
+ const seat = @import("seat.zig");
+ const outputconfig = @import("outputconfig.zig");
+@@ -141,6 +142,8 @@
+     // bar itself, so this is the only way any of that leaves the window manager.
+     ipc.start();
+     defer ipc.stop();
++    agent.start();
++    defer agent.stop();
+ 
+     // Cursor theme/size, and shake-to-find's pointer devices if enabled.
+     seat.cursor_dirty = true;
+@@ -250,3 +253,7 @@
+     _ = @import("gamma.zig");
+     _ = @import("reload.zig");
+ }
++
++test {
++    _ = @import("agent.zig");
++}
+--- a/src/wm.zig
++++ b/src/wm.zig
+@@ -26,6 +26,7 @@
+ const shake = @import("shake.zig");
+ const reload = @import("reload.zig");
+ const ipc = @import("ipc.zig");
++const agent = @import("agent.zig");
+ const Window = @import("window.zig").Window;
+ const Output = @import("output.zig").Output;
+ const seat = @import("seat.zig");
+@@ -52,7 +53,7 @@
+         // Slot 0 is always Wayland; the rest are added when their subsystem is
+         // live. Sized for wayland + the signalfd + shake timer + devices + the
+         // ipc listener and its clients.
+-        var fds: [4 + shake.device_fds.len + ipc.max_clients]std.posix.pollfd = undefined;
++        var fds: [5 + shake.device_fds.len + ipc.max_clients + agent.max_clients]std.posix.pollfd = undefined;
+         var n: usize = 1;
+         fds[0] = .{ .fd = wl_fd, .events = std.posix.POLL.IN, .revents = 0 };
+         const signal_slot = addFd(&fds, &n, signals.fd);
+@@ -64,6 +65,11 @@
+         const ipc_polled = ipc.client_count;
+         for (ipc.client_fds[0..ipc_polled]) |fd| _ = addFd(&fds, &n, fd);
+ 
++        const agent_slot = addFd(&fds, &n, agent.listen_fd);
++        const agent_first = n;
++        const agent_polled = agent.client_count;
++        for (agent.client_fds[0..agent_polled]) |fd| _ = addFd(&fds, &n, fd);
++
+         _ = std.posix.poll(fds[0..n], -1) catch |err| {
+             log.err("poll failed: {}", .{err});
+             return err;
+@@ -101,6 +107,16 @@
+         }
+         if (ipc_slot) |s| if (fds[s].revents & std.posix.POLL.IN != 0) ipc.onAccept();
+ 
++        var agent_client = agent_polled;
++        while (agent_client > 0) {
++            agent_client -= 1;
++            const revents = fds[agent_first + agent_client].revents;
++            if (revents & (std.posix.POLL.IN | std.posix.POLL.HUP | std.posix.POLL.ERR) != 0) {
++                dirty = agent.onClient(agent_client) or dirty;
++            }
++        }
++        if (agent_slot) |slot| if (fds[slot].revents & std.posix.POLL.IN != 0) agent.onAccept();
++
+         // Wayland LAST: dispatch can run a manage/render cycle that reloads shake
+         // (new device and timer fds) or drops ipc clients, which would leave the
+         // slot indices above pointing at the wrong fds.
+@@ -134,6 +150,7 @@
+     // already sees the new config. Deferring to here is what makes it safe to
+     // request a reload from a keybinding's own handler.
+     reload.apply();
++    agent.apply();
+ 
+     // Activate any keybindings created since the last cycle (the protocol only
+     // allows enable() inside a manage sequence).
+--- a/src/window.zig
++++ b/src/window.zig
+@@ -20,7 +20,10 @@
+ const Output = @import("output.zig").Output;
+ const query = @import("query.zig");
+ 
++var next_agent_id: u64 = 1;
++
+ pub const Window = struct {
++    agent_id: u64 = 0,
+     rwm: *river.WindowV1,
+     node: *river.NodeV1,
+ 
+@@ -109,7 +112,8 @@
+             ctx.gpa.destroy(self);
+             return err;
+         };
+-        self.* = .{ .rwm = rwm, .node = node };
++        self.* = .{ .rwm = rwm, .node = node, .agent_id = next_agent_id };
++        next_agent_id += 1;
+         errdefer self.destroy();
+         rwm.setListener(*Window, listener, self);
+ 
+--- a/README.md
++++ b/README.md
+@@ -381,3 +381,35 @@
+ Because it is launched through the system dynamic loader, `main.zig` calls
+ `prctl(PR_SET_NAME, "reach")` to fix `/proc/self/comm` (and make `pidof reach`
+ work).
++
++## Optional agent control
++
++Reach creates no command socket by default. Set `REACH_AGENT_SOCKET` to an
++absolute path in a private runtime directory to enable agent protocol 1. The
++existing `reach.sock` panel stream stays read-only and unchanged.
++
++The agent endpoint uses Unix `SOCK_SEQPACKET`. Each packet is one UTF-8 command
++(no newline required); each response is a JSON object with `ok` and, on failure,
++`error`. Only peers with the same Unix UID are accepted. Requests are limited to
++256 bytes and eight concurrent peers. This is a same-user control interface,
++not an application or filesystem sandbox. Anyone running as that user already
++has access to their apps; keep the parent directory mode 0700. There is no
++shell-execution command. Malformed commands never run as shell text.
++
++Commands:
++
++- `list`: protocol version, Reach PID, and every managed window, including
++  windows on hidden desktops. IDs are monotonic within this Reach process;
++  discard them when the process/session changes. Geometry is output-local.
++- `focus ID`: select the window's output/desktop and focus it.
++- `desktop N`: change the selected output's desktop (1–9).
++- `geometry ID X Y WIDTH HEIGHT`: set a mapped non-fullscreen window floating
++  and assign its geometry. Client minimum sizes can affect the rendered size.
++- `close ID`: request that the client close the named window.
++
++Mutations are queued and revalidated during a river manage sequence. `ok` means
++the WM applied the request; it does not guarantee the application finished
++rendering, accepted a size, saved a file, or agreed to close. Inspect subsequent
++state/screenshots for those assertions. Unknown or closed IDs return an error.
++No commands modify the normal desktop unless that desktop explicitly enables
++this endpoint and a client explicitly connects to it.

@@ -174,7 +174,7 @@ def apply(pal):
         subprocess.run(["pkill", "-USR1", "-x", "kitty"])
     write(STATE / "zhimmer.zsh", render(t / "zhimmer.zsh", pal))
     if write(REACH, render(t / "reach-colors.zon", pal)):
-        subprocess.run(["pkill", "-HUP", "-x", "reach"])
+        subprocess.run([str(Path.home() / ".local/bin/session-signal"), "reach", "HUP"])
     for profile in zen_profiles():
         ensure_stylesheets_pref(profile)
         write(profile / "chrome/userChrome.css", render(t / "zen-userChrome.css", pal))

@@ -26,6 +26,7 @@ import "wallpaper"
 ShellRoot {
     id: root
     Settings {}
+    LazyLoader { active: Config.on("agentDesktop"); AgentDesktop {} }
 
     // Volume keys. No flag, like Settings: the binds must work whatever is off.
     IpcHandler {

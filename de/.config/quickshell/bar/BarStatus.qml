@@ -36,6 +36,24 @@ Row {
         rightPadding: Config.s(8)
     }
 
+    Loader {
+        active: Config.on("agentDesktop")
+        anchors.verticalCenter: parent.verticalCenter
+        sourceComponent: Txt {
+            font.pixelSize: root.fontSize
+            color: !AgentDesktopState.status.running ? root.normalFg
+                 : AgentDesktopState.status.paused ? Theme.peach : Theme.green
+            text: !AgentDesktopState.status.running ? "AI off"
+                : AgentDesktopState.status.paused ? "AI paused"
+                : "AI · " + (AgentDesktopState.status.windows || []).length
+            MouseArea {
+                anchors.fill: parent
+                onClicked: AgentDesktopState.panelOpen = !AgentDesktopState.panelOpen
+            }
+        }
+    }
+    Delim { visible: Config.on("agentDesktop") }
+
     Block {
         text: root.statusData.ip
     }

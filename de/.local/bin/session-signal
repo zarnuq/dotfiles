@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+"""Signal only the Reach/river owning this environment's Reach state socket."""
+import argparse
+import json
+import os
+from pathlib import Path
+import signal
+import socket
+import struct
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('target', choices=('reach', 'river'))
+parser.add_argument('signal', choices=('HUP', 'TERM'))
+parser.add_argument('--check', action='store_true', help='identify the target without signalling it')
+args = parser.parse_args()
+try:
+    runtime = Path(os.environ.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}'))
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.settimeout(2)
+        sock.connect(str(runtime / 'reach.sock'))
+        peer, uid, _ = struct.unpack('3i', sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+        if uid != os.getuid() or Path(f'/proc/{peer}/comm').read_text().strip() != 'reach':
+            raise RuntimeError('state socket is not owned by this user\'s Reach')
+        # Keep the connection open while resolving its process ancestry.
+        pid = peer
+        if args.target == 'river':
+            for _ in range(8):
+                tail = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+                pid = int(tail[1])
+                if pid <= 1:
+                    raise RuntimeError('no river ancestor for this Reach')
+                if Path(f'/proc/{pid}/comm').read_text().strip() == 'river':
+                    break
+            else:
+                raise RuntimeError('no river ancestor for this Reach')
+        # pidfd pins this process; a recycled numeric PID cannot receive a signal.
+        identity = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
+        fd = os.pidfd_open(pid)
+        try:
+            current = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
+            if current != identity or Path(f'/proc/{pid}/comm').read_text().strip() != args.target:
+                raise RuntimeError('target process changed while resolving the session')
+            if args.check:
+                print(json.dumps({'target': args.target, 'pid': pid, 'reach_pid': peer,
+                                  'runtime': str(runtime), 'signal': args.signal}))
+            else:
+                signal.pidfd_send_signal(fd, getattr(signal, 'SIG' + args.signal))
+        finally:
+            os.close(fd)
+except (OSError, RuntimeError, ValueError) as error:
+    parser.exit(1, f'session-signal: {error}\n')

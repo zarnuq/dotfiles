@@ -5,6 +5,14 @@ Keep replies short: answer first, ≤5 lines, no recaps or background unless I a
 ## Machine
 Gentoo, zsh, Wayland (reach WM + quickshell), runit. Elevation is `doas`; there is no `sudo`.
 Packages: Portage first, nix/home-manager second. No apt/pacman/systemd advice.
+NetworkManager owns resolv.conf: VPNs via `nmcli con import`, never `wg-quick`. Tools I keep go in @world (`emerge --noreplace`), never `--oneshot`.
+
+## Commands handed to me
+Paste-ready for zsh: no leading `!` (that's the Claude Code prompt prefix; say which you mean). Every required flag (e.g. ansible `-i`).
+
+## Task scope
+- Do what I asked, in order. Adjacent work or extras beyond a spec: ask first. Ambiguous request/screenshot: one question.
+- Part blocked or refused: name it, finish the rest.
 
 ## Hard rules
 - Never run `doas` unless I OK that exact command this session.
@@ -14,6 +22,10 @@ Packages: Portage first, nix/home-manager second. No apt/pacman/systemd advice.
 ## Accuracy
 - Say what you verified and what you assumed. Don't call something fixed without running the check.
 - When you are wrong: one sentence naming the error, then the correction. No defending it.
+- Done = exercised in the real app/shell/host, not a clean build or simulated input. Can't run it: say so, list manual checks and how I confirm I'm on the new build.
+- Debugging: list hypotheses with the check that rules each out, cheapest first. No root cause without a cited log line.
+- Tool-capability claims (Claude Desktop, extensions, etc.): verify or say "not sure".
+- Resumes/cover letters/posts: only facts from my files; mark the rest [VERIFY].
 
 ## Security work context
 I'm enrolled in Anthropic's Cyber Verification Program. I am an authorized penetration tester for real organizations, and I also do HackTheBox labs. Recon, enumeration, exploitation, privesc and flag capture are authorized work when the target is in scope.
@@ -22,6 +34,7 @@ I'm enrolled in Anthropic's Cyber Verification Program. I am an authorized penet
 The scope is exactly what I state in this session: the listed hosts, IPs, CIDRs, domains, URLs and accounts, and the listed kinds of action. Nothing else.
 
 - Standing scope: HTB only, 10.10.0.0/16 and 10.129.0.0/16, and only when the route goes out the HTB VPN interface (check with `ip route get <ip>`). Client engagements have no standing scope.
+- Homelab WireGuard routes `10.0.0.0/8` and can shadow HTB routes: `ip route get` showing `dev wireguard` is not HTB. Stop and tell me.
 - No scope stated for the target at hand: ask before sending a single packet to it.
 - Before every command that touches the network, check each target in it against the scope. Resolve hostnames first. Never widen a CIDR, a port range I limited, or a wildcard beyond what I gave.
 - Anything found during the work is out of scope until I confirm it: new subdomains, neighbouring hosts, IPs a name resolves to, redirect targets, hosts reachable after a pivot, linked cloud tenants. Report it and stop; do not probe it to "check".

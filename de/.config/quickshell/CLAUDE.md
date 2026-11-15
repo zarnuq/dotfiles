@@ -80,3 +80,17 @@ Each is reached with a directory import in `shell.qml` (`import "bar"`, `import 
 ## Card layout
 
 **Card layout** (unscaled units; `s()` shrinks it to 0.85 on the laptop). Left column, 420 wide: clock `0–150`, brightness `150–280` (brightness + night-light sliders), calendar `280 → screen−330` (it absorbs the slack), then bottom-up mpd `180–330`, usage+net `0–180`. Right: battery bottom (`0–75`, laptop only), syncthing above it (sized to its rows; drops to `0` when there is no battery card). The numbers are a chain — moving one card means moving everything below it, which is why removing the ports card (it used to hold `300–450`) meant sliding mpd and weather down and shortening the calendar; dropping weather (`450–600`) and folding net into the usage card did the same.
+
+## Agent desktop
+
+`AgentDesktopState.qml` reads the private supervisor's status.json directly;
+`AgentDesktop.qml` is an opt-in panel behind the bar's AI badge and the
+`agentdesk open/hide/toggle` IPC target. Config feature: `agentDesktop`. The
+launcher includes the panel. Controls call `~/.local/bin/agent-desk`; View is
+read-only and Take control pauses the agent. It intentionally opens no viewer
+until requested. The private desktop is a second river/Reach, not another TTY.
+
+Logout and Reach reload callers use `session-signal` so they select the current
+session through its Reach socket instead of signalling every Reach/river.
+See `de/.local/share/agent-desk/README.md` for the runtime, compatibility build
+and real-app verification.

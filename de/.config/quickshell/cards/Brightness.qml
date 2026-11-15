@@ -25,8 +25,8 @@ Widget {
 
     // Atomic write (tmp + mv, so a reload never reads half a file), then reload.
     function write(file, zon): void {
-        Quickshell.execDetached(["sh", "-c", 'printf "%s\\n" "$1" > "$2.tmp" && mv "$2.tmp" "$2" && pkill -HUP -x reach',
-                                 "sh", zon, root.dir + "/" + file]);
+        Quickshell.execDetached(["sh", "-c", 'printf "%s\\n" "$1" > "$2.tmp" && mv "$2.tmp" "$2" && "$3" reach HUP',
+                                 "sh", zon, root.dir + "/" + file, Quickshell.env("HOME") + "/.local/bin/session-signal"]);
     }
 
     Column {

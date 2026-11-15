@@ -5,6 +5,10 @@ description: Use when driving or testing GUI applications on Miles's local Wayla
 
 # Miles's desktop control
 
+For app/plugin GUI tests that should leave Miles's work alone, use
+[agent-desktop](../agent-desktop/SKILL.md). Use this host-input workflow only
+when the task explicitly requires his existing desktop.
+
 Machine-specific: River 0.4.8 with the Reach window manager, Quickshell shell, Nix ydotool 1.0.4, runit (not systemd). Do not substitute `riverctl`, Sway, Hyprland or X11 tools.
 
 ## Readiness

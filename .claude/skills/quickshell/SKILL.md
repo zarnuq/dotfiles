@@ -161,7 +161,8 @@ qs log 2>&1 | sed 's/\x1b\[[0-9;]*m//g' | grep -vE 'INFO|portal.Settings'
 
 The only expected log noise is the `org.freedesktop.portal.Settings` warning.
 **Never call `lock lock`** to test — it locks the user's session. `qs ipc show`
-lists every target.
+lists every target. Input behaviour (scroll, keys, clicks, focus) needs real
+input via the `ydotool` skill; qmltestrunner doesn't cover it.
 
 Unit tests can only load files that import nothing but `QtQuick` — Quickshell's
 plugin is linked into the `qs` binary, so `qmltestrunner` can't import it. Keep

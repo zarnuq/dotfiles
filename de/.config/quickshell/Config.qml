@@ -76,6 +76,7 @@ Singleton {
     // The settings menu itself is deliberately absent: it is always built, or
     // turning it off would leave no way to turn anything back on.
     readonly property var features: [
+        { key: "agentDesktop",        group: "Session",     label: "Agent desktop" },
         { key: "wallpaper",           group: "Background",  label: "Wallpaper" },
         { key: "wallpaperPicker",     group: "Background",  label: "Wallpaper picker" },
         { key: "themeMenu",           group: "Background",  label: "Palette menu (Mocha / wallpaper)" },

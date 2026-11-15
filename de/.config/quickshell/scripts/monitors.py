@@ -284,7 +284,7 @@ def reload_reach():
     """SIGHUP. reach re-reads both config files and re-applies the monitor table
     only if it changed by value, so this is cheap and idempotent."""
     try:
-        return subprocess.run(["pkill", "-HUP", "-x", "reach"]).returncode == 0
+        return subprocess.run([os.path.expanduser("~/.local/bin/session-signal"), "reach", "HUP"]).returncode == 0
     except OSError:
         return False
 

@@ -41,6 +41,7 @@
     obsidian
     ydotool
     wf-recorder
+    nemo
     matugen # theme-set: wallpaper -> palette (only its --json output is used)
     python314Packages.python-openstackclient
 

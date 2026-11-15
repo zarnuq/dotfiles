@@ -1,0 +1,851 @@
+#!/usr/bin/python3
+"""A private headless river/Reach desktop. No host input fallback."""
+import argparse
+import ast
+import hashlib
+import ctypes
+import ctypes.util
+import fcntl
+import json
+import os
+from pathlib import Path
+import select
+import shutil
+import signal
+import socket
+import stat
+import struct
+import subprocess
+import sys
+import time
+
+SCRIPT = str(Path(__file__).resolve())
+# Private Obsidian opens the real vault (files 1:1) with its own config folder,
+# a per-device override, so the host app's workspace and plugin builds are
+# never touched. The folder is in ~/notes/.stignore.
+NOTES = Path.home() / 'notes'
+AGENT_CONFIG = '.obsidian-agent'
+MUTATIONS = {'run', 'obsidian-cli', 'obsidian', 'key', 'type', 'move', 'click', 'scroll', 'drag',
+             'focus', 'desktop', 'geometry', 'close'}
+SESSION_KEYS = ('XDG_RUNTIME_DIR', 'XDG_CONFIG_HOME', 'XDG_STATE_HOME',
+                'XDG_CACHE_HOME', 'AGENT_DESK_RUNTIME', 'WAYLAND_DISPLAY', 'DISPLAY', 'AT_SPI_BUS_ADDRESS',
+                'DBUS_SESSION_BUS_ADDRESS', 'REACH_AGENT_SOCKET',
+                'XDG_SESSION_TYPE', 'XDG_CURRENT_DESKTOP', 'PATH', 'XDG_DATA_DIRS')
+HOST_ENDPOINTS = ('DISPLAY', 'WAYLAND_DISPLAY', 'WAYLAND_SOCKET',
+                  'DBUS_SESSION_BUS_ADDRESS', 'AT_SPI_BUS_ADDRESS',
+                  'SWAYSOCK', 'REACH_AGENT_SOCKET', 'YDOTOOL_SOCKET',
+                  'DBUS_STARTER_ADDRESS', 'DBUS_STARTER_BUS_TYPE',
+                  'SESSION_MANAGER', 'XAUTHORITY', 'DESKTOP_STARTUP_ID',
+                  'XDG_ACTIVATION_TOKEN', 'QT_IM_MODULE', 'GTK_IM_MODULE')
+
+
+def runtime():
+    base = os.environ.get('AGENT_DESK_RUNTIME')
+    return Path(base).expanduser().absolute() if base else Path(os.environ.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')) / 'agent-desk'
+
+
+def private_dir(path):
+    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    info = path.lstat()
+    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o700:
+        raise RuntimeError(f'{path} must be an owned directory with mode 0700')
+
+
+def write_json(path, value):
+    temp = path.with_suffix('.tmp')
+    temp.write_text(json.dumps(value))
+    temp.chmod(0o600)
+    temp.replace(path)
+
+
+def app_dirs():
+    """The host's config/cache dirs. Reach runs with private ones (its config),
+    but apps must read the user's real GTK/dconf/fontconfig/app settings."""
+    home = Path.home()
+    return dict(XDG_CONFIG_HOME=os.environ.get('XDG_CONFIG_HOME', str(home / '.config')),
+                XDG_CACHE_HOME=os.environ.get('XDG_CACHE_HOME', str(home / '.cache')))
+
+
+def base_env():
+    env = dict(os.environ)
+    for key in HOST_ENDPOINTS:
+        env.pop(key, None)
+    env.update(XDG_SESSION_TYPE='wayland', XDG_CURRENT_DESKTOP='river',
+               QT_QPA_PLATFORM='wayland', GDK_BACKEND='wayland',
+               ELECTRON_OZONE_PLATFORM_HINT='wayland')
+    return env
+
+
+def process_identity(pid):
+    # starttime disambiguates reused PIDs; comm may contain spaces/parentheses.
+    return Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
+
+
+def receive_line(sock, limit=1024 * 1024):
+    data = bytearray()
+    while b'\n' not in data:
+        block = sock.recv(min(65536, limit + 1 - len(data)))
+        if not block:
+            raise RuntimeError('session closed the connection')
+        data.extend(block)
+        if len(data) > limit:
+            raise RuntimeError('session response exceeds limit')
+    return json.loads(data.split(b'\n', 1)[0])
+
+
+def request(command, args=(), root=None):
+    root = root or runtime()
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+        sock.settimeout(90)  # first `obsidian` bootstraps a profile
+        sock.connect(str(root / 'control.sock'))
+        sock.sendall(json.dumps({'command': command, 'args': list(args)}).encode() + b'\n')
+        result = receive_line(sock)
+    if not result.get('ok'):
+        raise RuntimeError(result.get('error', 'session request failed'))
+    return result
+
+
+class RFB:
+    """Only input messages over a private WayVNC Unix socket; no TCP or clipboard."""
+    def __init__(self, path):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.settimeout(5)
+        self.sock.connect(str(path))
+        version = self.read(12)
+        if version != b'RFB 003.008\n':
+            raise RuntimeError(f'unsupported RFB version {version!r}')
+        self.sock.sendall(version)
+        count = self.read(1)[0]
+        if not count or 1 not in self.read(count):
+            raise RuntimeError('private WayVNC did not offer unauthenticated Unix-socket access')
+        self.sock.sendall(b'\x01')
+        if self.read(4) != b'\0' * 4:
+            raise RuntimeError('private WayVNC handshake failed')
+        self.sock.sendall(b'\x01')  # shared connection
+        init = self.read(24)
+        self.width, self.height = struct.unpack('>HH', init[:4])
+        self.read(struct.unpack('>I', init[20:])[0])
+        # No framebuffer requests or clipboard extensions. grim captures frames.
+        self.sock.sendall(struct.pack('>BBH', 2, 0, 0))
+        self.x = self.y = self.buttons = 0
+        self.keys = set()
+        self.last_input = time.monotonic()
+
+    def read(self, length):
+        data = bytearray()
+        while len(data) < length:
+            block = self.sock.recv(length - len(data))
+            if not block:
+                raise RuntimeError('WayVNC disconnected')
+            data.extend(block)
+        return bytes(data)
+
+    def key(self, symbol, down):
+        self.sock.sendall(struct.pack('>BBHI', 4, bool(down), 0, symbol))
+        (self.keys.add if down else self.keys.discard)(symbol)
+        self.last_input = time.monotonic()
+
+    def pointer(self, x=None, y=None, buttons=None):
+        x, y = self.x if x is None else x, self.y if y is None else y
+        if not 0 <= x < self.width or not 0 <= y < self.height:
+            raise ValueError(f'pointer must be inside {self.width}x{self.height}')
+        self.x, self.y = x, y
+        if buttons is not None:
+            self.buttons = buttons
+        self.sock.sendall(struct.pack('>BBHH', 5, self.buttons, x, y))
+        self.last_input = time.monotonic()
+
+    def release(self):
+        for key in list(self.keys):
+            self.key(key, False)
+        self.pointer(buttons=0)
+
+    def close(self):
+        try:
+            self.release()
+        except (OSError, RuntimeError):
+            pass
+        self.sock.close()
+
+
+_xkb = None
+
+def keysym(name):
+    global _xkb
+    aliases = {'Ctrl': 'Control_L', 'Control': 'Control_L', 'Alt': 'Alt_L',
+               'Super': 'Super_L', 'Shift': 'Shift_L', 'Enter': 'Return',
+               'Esc': 'Escape', 'Space': 'space'}
+    if _xkb is None:
+        _xkb = ctypes.CDLL(ctypes.util.find_library('xkbcommon'))
+        _xkb.xkb_keysym_from_name.argtypes = (ctypes.c_char_p, ctypes.c_int)
+        _xkb.xkb_keysym_from_name.restype = ctypes.c_uint32
+    value = _xkb.xkb_keysym_from_name(aliases.get(name, name).encode(), 0)
+    if not value:
+        raise ValueError(f'unknown key {name!r}; use XKB key names')
+    return value
+
+
+# WayVNC presses the keycode for a keysym at that keysym's own level and
+# rewrites the modifiers to reach it: Shift+q arrives as a bare q, dropping
+# Shift *and* Ctrl/Super. A real keyboard with Shift held produces the level-2
+# symbol, so send that one (wayvnc.conf fixes the layout to us).
+SHIFTED = dict(zip('1234567890', ['exclam', 'at', 'numbersign', 'dollar', 'percent',
+                                  'asciicircum', 'ampersand', 'asterisk', 'parenleft', 'parenright']),
+               minus='underscore', equal='plus', bracketleft='braceleft', bracketright='braceright',
+               backslash='bar', semicolon='colon', apostrophe='quotedbl', grave='asciitilde',
+               comma='less', period='greater', slash='question', Tab='ISO_Left_Tab')
+
+
+def chord_symbols(chord):
+    names = chord.split('+')
+    if 'Shift' in names[:-1]:
+        last = names[-1]
+        names[-1] = last.upper() if len(last) == 1 and last.isalpha() else SHIFTED.get(last, last)
+    return [keysym(name) for name in names]
+
+
+def reach_request(env, command):
+    with socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET) as sock:
+        sock.settimeout(5)
+        sock.connect(env['REACH_AGENT_SOCKET'])
+        sock.sendall(command.encode())
+        data, _, flags, _ = sock.recvmsg(1024 * 1024)
+        if flags & socket.MSG_TRUNC:
+            raise RuntimeError('Reach response was truncated')
+        result = json.loads(data)
+    if not result.get('ok'):
+        raise RuntimeError(result.get('error', 'Reach command failed'))
+    return result
+
+
+class Desktop:
+    def __init__(self, root, reach, width, height, wayvnc, real_config=False):
+        self.real_config = real_config
+        self.root, self.reach = root, str(Path(reach).resolve())
+        self.width, self.height = width, height
+        self.wayvnc = wayvnc
+        self.children = []
+        self.river = self.vnc = self.viewer_server = None
+        self.rfb = None
+        self.paused = False
+        self.manual = False
+        self.viewer = None
+        self.running = True
+        self.env = None
+
+    def spawn(self, args, env, name, grouped=True):
+        log = open(self.root / f'{name}.log', 'ab', buffering=0)
+        try:
+            proc = subprocess.Popen(args, env=env, stdin=subprocess.DEVNULL,
+                                    stdout=log, stderr=log, start_new_session=grouped)
+        finally:
+            log.close()
+        self.children.append(proc)
+        return proc
+
+    @staticmethod
+    def terminate(proc):
+        if proc is None or proc.poll() is not None:
+            return
+        # Every owned child is its own process-group leader.
+        os.killpg(proc.pid, signal.SIGTERM)
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait(timeout=3)
+
+    def wait_file(self, path, proc, timeout=12):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                raise RuntimeError(f'{proc.args[0]} exited {proc.returncode}; see {self.root}')
+            if path.exists():
+                return
+            time.sleep(.05)
+        raise RuntimeError(f'timed out waiting for {path}; see {self.root}')
+
+    def start(self):
+        for program in ('river', 'grim', 'wayvnc', 'dbus-run-session', 'wlr-randr', 'wtype'):
+            if not shutil.which(program):
+                raise RuntimeError(f'missing {program}')
+        if not os.access(self.reach, os.X_OK):
+            raise RuntimeError(f'Reach is not executable: {self.reach}')
+        config = self.root / 'config' / 'reach'
+        if config.exists():
+            shutil.rmtree(config)
+        config.mkdir(parents=True)
+        # The real session's top-level *.zon (Reach merges them by name), so
+        # its binds decide which chords reach apps, as on the host.
+        # monitors.zon names physical heads; the headless output ignores it.
+        host = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config'))) / 'reach'
+        # Brightness binds drive the host's real backlight, which Reach opens
+        # even when headless. A reload would re-read config from the host
+        # XDG_CONFIG_HOME that .env below hands to Reach's children.
+        for source in host.glob('*.zon'):
+            if source.name != 'monitors.zon':
+                lines = source.read_text().splitlines(keepends=True)
+                (config / source.name).write_text(''.join(
+                    line for line in lines if '.action = .{ .brightness' not in line
+                    and '.action = .reload' not in line))
+        # Loaded last ("zz"): drop what would reach the host session. .env names
+        # the host bus and BROWSER (a second Zen on its profile); autostart
+        # starts runsvdir and loads host dconf; shake reads host /dev/input;
+        # headless outputs have no gamma LUT.
+        # Agent defaults (not with --real-config): focus moves only on click or
+        # `focus` (a parked pointer must not steal it), apps open on the current
+        # desktop, windows fill the output with no gap or border offset.
+        agent = '' if self.real_config else ''' .sloppy_focus = false, .rules = .{},
+ .outer_gap = 0, .inner_gap = 0, .border_thickness = 0,
+'''
+        (config / 'zz-agent-desk.zon').write_text('''.{
+ .env = .{
+  .{ "XDG_CURRENT_DESKTOP", "river" }, .{ "XDG_SESSION_TYPE", "wayland" },
+  .{ "QT_QPA_PLATFORM", "wayland" },
+''' + ''.join(f'  .{{ "{k}", {json.dumps(v)} }},\n' for k, v in app_dirs().items()) + ''' },
+ .autostart = .{},
+ .gamma = .{ .temperature = 6500 },
+ .cursor = .{ .shake = .{ .enabled = false } },
+''' + agent + '}\n')
+        private_dir(self.root / 'session')
+        env = base_env()
+        env.update(XDG_RUNTIME_DIR=str(self.root / 'session'),
+                   XDG_CONFIG_HOME=str(self.root / 'config'),
+                   XDG_CACHE_HOME=str(self.root / 'cache'),
+                   REACH_AGENT_SOCKET=str(self.root / 'session' / 'agent.sock'),
+                   AGENT_DESK_RUNTIME=str(self.root),
+                   WLR_BACKENDS='headless', WLR_HEADLESS_OUTPUTS='1')
+        # Prevent stale inherited renderer/backend options from adding devices.
+        for key in ('WLR_DRM_DEVICES', 'WLR_RENDER_DRM_DEVICE'):
+            env.pop(key, None)
+        import shlex
+        init = shlex.join([sys.executable, SCRIPT, '_init', str(self.root), self.reach])
+        self.river = self.spawn(['dbus-run-session', '--', 'river', '-log-level', 'info', '-c', init], env, 'river')
+        self.wait_file(self.root / 'environment.json', self.river)
+        self.env = base_env()
+        self.env.update(json.loads((self.root / 'environment.json').read_text()))
+        self.wait_file(Path(self.env['REACH_AGENT_SOCKET']), self.river)
+        bus = subprocess.run(['gdbus', 'call', '--session', '--dest', 'org.a11y.Bus',
+                              '--object-path', '/org/a11y/bus', '--method', 'org.a11y.Bus.GetAddress'],
+                             env=self.env, check=True, capture_output=True, text=True, timeout=8)
+        self.env['AT_SPI_BUS_ADDRESS'] = ast.literal_eval(bus.stdout.strip())[0]
+        write_json(self.root / 'environment.json', {k: self.env[k] for k in SESSION_KEYS if k in self.env})
+        info = reach_request(self.env, 'list')
+        if info.get('protocol') != 1:
+            raise RuntimeError('Reach agent protocol 1 is required')
+        self.reach_pid = info['pid']
+        self.reach_identity = process_identity(self.reach_pid)
+        self.reach_sha256 = hashlib.sha256(Path(self.reach).read_bytes()).hexdigest()
+        subprocess.run(['wlr-randr', '--output', 'HEADLESS-1', '--custom-mode',
+                        f'{self.width}x{self.height}@60Hz', '--scale', '1'],
+                       env=self.env, check=True, capture_output=True, text=True, timeout=8)
+        # Xwayland may start lazily; native Wayland apps don't need DISPLAY.
+        (self.root / 'wayvnc.conf').write_text('enable_auth=false\nxkb_layout=us\n')
+        self.vnc = self.start_vnc('input', False)
+        self.rfb = RFB(self.root / 'input.vnc')
+        if (self.rfb.width, self.rfb.height) != (self.width, self.height):
+            raise RuntimeError('virtual output did not reach the requested size')
+        self.viewer_server = self.start_vnc('view', True)
+
+    def start_vnc(self, name, readonly):
+        path = self.root / f'{name}.vnc'
+        ctl = self.root / f'{name}.ctl'
+        for endpoint in (path, ctl):
+            endpoint.unlink(missing_ok=True)
+        args = [self.wayvnc, '-r', '-C', str(self.root / 'wayvnc.conf'), '-S', str(ctl),
+                '-R', '-f', '15', '-o', 'HEADLESS-1', '-n', 'Agent desktop']
+        if readonly:
+            args.append('-d')
+        args.extend(['-u', str(path)])
+        proc = self.spawn(args, dict(self.env, WAYVNC_NO_CURSOR_CAPTURE='1'), name)
+        self.wait_file(path, proc)
+        return proc
+
+    def healthy(self):
+        return (self.river is not None and self.river.poll() is None and
+                self.vnc is not None and self.vnc.poll() is None and
+                self.viewer_server is not None and self.viewer_server.poll() is None and
+                process_identity(self.reach_pid) == self.reach_identity)
+
+    def status(self):
+        windows = reach_request(self.env, 'list')['windows'] if self.env else []
+        return dict(ok=True, running=self.healthy(), paused=self.paused,
+                    manual=self.manual, windows=windows, runtime=str(self.root),
+                    width=self.width, height=self.height, reach=self.reach,
+                    reach_pid=self.reach_pid, reach_starttime=self.reach_identity,
+                    reach_sha256=self.reach_sha256, real_config=self.real_config,
+                    processes=[dict(pid=p.pid, command=Path(p.args[0]).name, exit=p.poll()) for p in self.children],
+                    viewer=self.viewer is not None and self.viewer.poll() is None)
+
+    def owned_obsidian(self):
+        return [p for p in self.children if Path(p.args[0]).name == 'obsidian' and p.poll() is None]
+
+    def obsidian_cli(self, args, cwd=NOTES):
+        path = Path(self.env['XDG_RUNTIME_DIR']) / '.obsidian-cli.sock'
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as cli:
+            cli.settimeout(15)
+            cli.connect(str(path))
+            peer, uid, _ = struct.unpack('3i', cli.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+            # Electron rewrites its process title/environment memory, so
+            # /proc/PID/environ is not a reliable instance identity.
+            if uid != os.getuid() or os.getpgid(peer) not in {p.pid for p in self.owned_obsidian()}:
+                raise RuntimeError('Obsidian CLI peer is not an owned private-session process')
+            cli.sendall(json.dumps(dict(argv=args, tty=False, cwd=str(cwd))).encode() + b'\n')
+            chunks = bytearray()
+            while True:
+                block = cli.recv(65536)
+                if not block: break
+                chunks.extend(block)
+                if len(chunks) > 1024*1024:
+                    raise RuntimeError('Obsidian CLI output exceeds 1 MiB')
+        output = chunks.decode('utf-8')
+        if output.startswith(('Error:', 'Command line interface is not enabled.', 'Vault not found.')):
+            raise RuntimeError(output.strip())
+        return output
+
+    def bootstrap_obsidian(self, profile, scratch, notes_id):
+        """Set ~/notes' per-device config folder and plugin trust in the
+        profile's localStorage, from a scratch vault, before ~/notes ever opens:
+        opened without them it uses (and writes) the real .obsidian. A second,
+        fresh process must read them back: a killed renderer loses unflushed
+        localStorage."""
+        keys = {f'{notes_id}-config': AGENT_CONFIG, f'enable-plugin-{notes_id}': 'true'}
+        for attempt in ('write', 'verify'):
+            proc = self.spawn(self.obsidian_args(profile, scratch), dict(self.env, **app_dirs()), 'app')
+            try:
+                code = ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v)});' for k, v in keys.items()) \
+                    if attempt == 'write' else ''
+                code += 'JSON.stringify([' + ','.join(f'localStorage.getItem({json.dumps(k)})' for k in keys) + '])'
+                deadline, output = time.monotonic() + 25, ''
+                while time.monotonic() < deadline:
+                    try:
+                        output = self.obsidian_cli(['eval', 'code=' + code], cwd=scratch)
+                        break
+                    except (OSError, RuntimeError):
+                        time.sleep(.5)
+                if json.loads(output.removeprefix('=> ') or 'null') != list(keys.values()):
+                    raise RuntimeError(f'private Obsidian config override failed to {attempt}: {output!r}')
+                try:  # a clean quit flushes localStorage to disk
+                    self.obsidian_cli(['eval', 'code=window.close()'], cwd=scratch)
+                except (OSError, RuntimeError):
+                    pass
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                raise RuntimeError('bootstrap Obsidian did not quit; see app.log')
+            finally:
+                self.terminate(proc)
+
+    @staticmethod
+    def obsidian_args(profile, vault):
+        return ['obsidian', '--user-data-dir=' + str(profile), '--ozone-platform=wayland',
+                '--enable-features=UseOzonePlatform', '--force-renderer-accessibility', str(vault)]
+
+    def handle(self, command, args):
+        if command == 'status':
+            return self.status()
+        if command == 'stop':
+            self.running = False
+            return dict(ok=True)
+        if not self.healthy():
+            raise RuntimeError('agent desktop is unhealthy; stop and start it again')
+        if command in MUTATIONS and self.paused:
+            raise RuntimeError('agent input is paused; resume explicitly before acting')
+        if command in ('pause', 'resume'):
+            self.rfb.release()
+            self.paused = command == 'pause'
+            if command == 'resume' and self.manual:
+                self.terminate(self.viewer)
+                self.terminate(self.viewer_server)
+                self.viewer_server = self.start_vnc('view', True)
+                self.manual = False
+            return dict(ok=True, paused=self.paused)
+        if command == 'view':
+            no_open = '--no-open' in args
+            control = '--control' in args
+            if control:
+                self.rfb.release()
+                self.paused = True
+            if control != self.manual:
+                self.terminate(self.viewer)
+                self.terminate(self.viewer_server)
+                self.viewer_server = self.start_vnc('view', not control)
+                self.manual = control
+            if not no_open and (self.viewer is None or self.viewer.poll() is not None):
+                # Viewer launches on the host, using the supervisor's original
+                # environment, never the private compositor's environment.
+                args = ['vncviewer', '-Shared=1', '-AcceptClipboard=0', '-SendClipboard=0',
+                        '-SetPrimary=0', '-SendPrimary=0', '-RemoteResize=0',
+                        '-AlertOnFatalError=0', '-ReconnectOnError=0', '-ViewOnly=' + ('0' if control else '1'),
+                        str(self.root / 'view.vnc')]
+                if not shutil.which(args[0]):
+                    raise RuntimeError('missing vncviewer (net-misc/tigervnc)')
+                self.viewer = self.spawn(args, dict(os.environ), 'viewer')
+            return dict(ok=True, manual=self.manual, socket=str(self.root / 'view.vnc'))
+        if command == 'shot':
+            cursor = args[:1] == ['--cursor']
+            if cursor: args = args[1:]
+            if len(args) != 1:
+                raise ValueError('shot requires one PNG path')
+            target = str(Path(args[0]).expanduser().absolute())
+            subprocess.run(['grim'] + (['-c'] if cursor else []) + ['-o', 'HEADLESS-1', target], env=self.env,
+                           check=True, capture_output=True, text=True, timeout=10)
+            return dict(ok=True, path=target)
+        if command == 'windows':
+            return reach_request(self.env, 'list')
+        if command in ('focus', 'desktop', 'geometry', 'close'):
+            return reach_request(self.env, ' '.join([command] + args))
+        if command == 'obsidian-cli':
+            if not args:
+                raise ValueError('obsidian-cli requires a command')
+            return dict(ok=True, output=self.obsidian_cli(args))
+        if command == 'a11y':
+            helper = Path(SCRIPT).parents[1] / 'share/agent-desk/a11y.py'
+            output = subprocess.run(['/usr/bin/python3', str(helper)] + args,
+                                    env=self.env, check=True, capture_output=True, text=True, timeout=12)
+            return dict(ok=True, accessibility=json.loads(output.stdout))
+        if command in ('run', 'obsidian'):
+            if command == 'obsidian':
+                plugin = Path.home() / 'Projects/doc-works'
+                if args:
+                    if len(args) != 2 or args[0] != '--plugin-dir':
+                        raise ValueError('obsidian accepts --plugin-dir PATH')
+                    plugin = Path(args[1]).expanduser().absolute()
+                state = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'agent-desk'
+                private_dir(state)
+                scratch = state / 'vault'  # only to bootstrap the profile
+                (scratch / '.obsidian').mkdir(parents=True, exist_ok=True)
+                profile = state / 'obsidian'
+                profile.mkdir(exist_ok=True)
+                profile_config = profile / 'obsidian.json'
+                settings = json.loads(profile_config.read_text()) if profile_config.exists() else {}
+                vaults = settings.setdefault('vaults', {})
+                ids = {}
+                for vault in (scratch, NOTES):
+                    ids[vault] = hashlib.sha256(str(vault).encode()).hexdigest()[:16]
+                    vaults.setdefault(ids[vault], {'path': str(vault), 'ts': int(time.time()*1000)})
+                settings.update(cli=True, updateDisabled=True)
+                write_json(profile_config, settings)
+                config = NOTES / AGENT_CONFIG
+                running = bool(self.owned_obsidian())
+                if not running:
+                    # The real settings, theme, snippets, hotkeys and plugins as
+                    # they are now; workspace stays the agent's own. Symlinked
+                    # dev plugins are copied so their data.json writes stay here.
+                    shutil.copytree(NOTES / '.obsidian', config, symlinks=False, dirs_exist_ok=True,
+                                    ignore=shutil.ignore_patterns('workspace*.json', '*.sync-conflict-*'))
+                if plugin.is_dir():
+                    manifest = json.loads((plugin / 'manifest.json').read_text())
+                    plugin_id = manifest['id']
+                    if not plugin_id or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in plugin_id):
+                        raise ValueError('invalid plugin id')
+                    target = config / 'plugins' / plugin_id
+                    target.mkdir(parents=True, exist_ok=True)
+                    hashes = {}
+                    for name in ('main.js', 'manifest.json', 'styles.css'):
+                        data = (plugin / name).read_bytes()
+                        (target / name).write_bytes(data)
+                        hashes[name] = hashlib.sha256(data).hexdigest()
+                    enabled = config / 'community-plugins.json'
+                    entries = json.loads(enabled.read_text()) if enabled.exists() else []
+                    write_json(enabled, list(dict.fromkeys(entries + [plugin_id])))
+                    write_json(state / 'plugin-build.json', dict(source=str(plugin), id=plugin_id,
+                               version=manifest['version'], vault=str(NOTES), config=AGENT_CONFIG, sha256=hashes))
+                marker = state / 'obsidian-config-dir'
+                if not running and (not marker.exists() or marker.read_text() != ids[NOTES]):
+                    self.bootstrap_obsidian(profile, scratch, ids[NOTES])
+                    marker.write_text(ids[NOTES])
+                args = self.obsidian_args(profile, NOTES)
+            if args and args[0] == '--':
+                args = args[1:]
+            if not args:
+                raise ValueError('run requires a command')
+            proc = self.spawn(args, dict(self.env, **app_dirs()), 'app')
+            return dict(ok=True, pid=proc.pid)
+        self.input(command, args)
+        return dict(ok=True)
+
+    def input(self, command, args):
+        rfb = self.rfb
+        if command == 'type':
+            if len(args) != 1 or len(args[0]) > 4000:
+                raise ValueError('type requires one literal string, at most 4000 characters')
+            if rfb.keys or rfb.buttons:
+                raise RuntimeError('release held input before typing text')
+            # Seed an unheld Escape release so Chromium doesn't discard a
+            # leading space assigned to wtype's first generated keycode.
+            subprocess.run(['wtype', '-p', 'Escape', '-d', '2', '--', args[0]], env=self.env,
+                           check=True, capture_output=True, text=True, timeout=20)
+        elif command == 'key':
+            mode = 'chord'
+            if args and args[0] in ('--down', '--up'):
+                mode, args = args[0], args[1:]
+            if len(args) != 1:
+                raise ValueError('key requires one chord, e.g. Ctrl+Shift+p')
+            symbols = chord_symbols(args[0])
+            if mode != '--up':
+                for symbol in symbols:
+                    rfb.key(symbol, True)
+            if mode != '--down':
+                for symbol in reversed(symbols):
+                    rfb.key(symbol, False)
+        elif command == 'move':
+            if len(args) != 2:
+                raise ValueError('move requires X Y')
+            rfb.pointer(int(args[0]), int(args[1]))
+        elif command == 'click':
+            button = {'left': 1, 'middle': 2, 'right': 4}[args[0] if args else 'left']
+            rfb.pointer(buttons=button)
+            time.sleep(.035)
+            rfb.pointer(buttons=0)
+        elif command == 'scroll':
+            if not args or len(args) > 2:
+                raise ValueError('scroll requires up|down|left|right [count]')
+            button = {'up': 8, 'down': 16, 'left': 32, 'right': 64}[args[0]]
+            count = int(args[1]) if len(args) == 2 else 1
+            if not 1 <= count <= 100:
+                raise ValueError('scroll count must be 1..100')
+            for _ in range(count):
+                rfb.pointer(buttons=button)
+                rfb.pointer(buttons=0)
+                time.sleep(.01)
+        elif command == 'drag':
+            if len(args) != 4:
+                raise ValueError('drag requires X1 Y1 X2 Y2')
+            x1, y1, x2, y2 = map(int, args)
+            if not (0 <= x2 < rfb.width and 0 <= y2 < rfb.height):
+                raise ValueError('drag endpoint is outside the virtual output')
+            rfb.pointer(x1, y1, buttons=0)
+            rfb.pointer(buttons=1)
+            try:
+                for i in range(1, 21):
+                    rfb.pointer(round(x1 + (x2-x1)*i/20), round(y1 + (y2-y1)*i/20))
+                    time.sleep(.015)
+            finally:
+                rfb.pointer(buttons=0)
+        elif command == 'release':
+            rfb.release()
+        else:
+            raise ValueError(f'unknown command {command}')
+
+    def stop(self):
+        if self.rfb:
+            self.rfb.close()
+        for proc in reversed(self.children):
+            try:
+                self.terminate(proc)
+            except ProcessLookupError:
+                pass
+
+
+def serve(root, reach, width, height, wayvnc, real_config):
+    os.umask(0o077)
+    desktop = Desktop(root, reach, width, height, wayvnc, real_config)
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    def stop_signal(*_):
+        desktop.running = False
+    signal.signal(signal.SIGTERM, stop_signal)
+    signal.signal(signal.SIGINT, stop_signal)
+    last_status = None
+    last_refresh = 0
+    failure = None
+    write_json(root / 'supervisor.json', dict(pid=os.getpid(), starttime=process_identity(os.getpid())))
+    try:
+        desktop.start()
+        server.bind(str(root / 'control.sock'))
+        server.listen(8)
+        server.settimeout(.25)
+        write_json(root / 'supervisor.json', dict(pid=os.getpid(), starttime=process_identity(os.getpid())))
+        while desktop.running:
+            if time.monotonic() - last_refresh >= 1:
+                snapshot = json.dumps(desktop.status())
+                if snapshot != last_status:
+                    write_json(root / 'status.json', json.loads(snapshot))
+                    last_status = snapshot
+                last_refresh = time.monotonic()
+            if desktop.rfb.keys or desktop.rfb.buttons:
+                if time.monotonic() - desktop.rfb.last_input > 5:
+                    desktop.rfb.release()
+            try:
+                conn, _ = server.accept()
+            except socket.timeout:
+                if desktop.river.poll() is not None:
+                    raise RuntimeError('private river exited')
+                continue
+            with conn:
+                conn.settimeout(2)
+                try:
+                    peer = struct.unpack('3i', conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))
+                    if peer[1] != os.getuid():
+                        raise RuntimeError('wrong user')
+                    message = receive_line(conn, 65536)
+                    result = desktop.handle(message['command'], message.get('args', []))
+                except Exception as error:
+                    try:
+                        desktop.rfb.release()
+                    except (OSError, RuntimeError):
+                        pass
+                    result = dict(ok=False, error=str(error))
+                last_refresh = 0
+                try:
+                    conn.sendall(json.dumps(result).encode() + b'\n')
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+    except Exception as error:
+        failure = str(error)
+        write_json(root / 'error.json', dict(error=str(error)))
+        raise
+    finally:
+        desktop.stop()
+        write_json(root / 'status.json', dict(ok=failure is None, running=False, paused=False, manual=False, windows=[], error=failure))
+        server.close()
+        (root / 'control.sock').unlink(missing_ok=True)
+        (root / 'supervisor.json').unlink(missing_ok=True)
+
+
+def start(args):
+    root = runtime()
+    private_dir(root)
+    lock = open(root / 'lifecycle.lock', 'a')
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    try:
+        info = request('status', root=root)
+        if info['running']:
+            return info
+        raise RuntimeError('existing desktop is unhealthy; stop it before restarting')
+    except (FileNotFoundError, ConnectionRefusedError):
+        pass
+    record = root / 'supervisor.json'
+    if record.exists():
+        old = json.loads(record.read_text())
+        try:
+            if process_identity(old['pid']) == old['starttime']:
+                raise RuntimeError('supervisor is still starting or stopping; inspect its log')
+        except FileNotFoundError:
+            pass
+    for filename in ('control.sock', 'environment.json', 'error.json', 'session/agent.sock'):
+        (root / filename).unlink(missing_ok=True)
+    reach = args.reach or '/usr/bin/reach'
+    wayvnc = args.wayvnc or str(Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'agent-desk/wayvnc-compat/wayvnc')
+    if not os.access(wayvnc, os.X_OK):
+        raise RuntimeError('build the private WayVNC compatibility binary first; see agent-desk README')
+    with open(root / 'supervisor.log', 'ab') as log:
+        proc = subprocess.Popen([sys.executable, SCRIPT, '_serve', str(root), reach,
+                                 str(args.width), str(args.height), wayvnc,
+                                 'real' if args.real_config else 'agent'], stdin=subprocess.DEVNULL,
+                                stdout=log, stderr=log, start_new_session=True)
+    deadline = time.monotonic() + 25
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            error = root / 'error.json'
+            detail = json.loads(error.read_text())['error'] if error.exists() else 'supervisor exited'
+            raise RuntimeError(detail + f'; logs: {root}')
+        try:
+            return request('status', root=root)
+        except (FileNotFoundError, ConnectionRefusedError):
+            time.sleep(.1)
+    raise RuntimeError(f'startup timed out; inspect {root}/supervisor.log')
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == '_init':
+        root = Path(sys.argv[2])
+        # Update only the private bus created by dbus-run-session so its
+        # activated portals know the compositor's generated socket name.
+        subprocess.run(['dbus-update-activation-environment'] + [k for k in SESSION_KEYS if k in os.environ],
+                       check=True, timeout=5)
+        write_json(root / 'environment.json', {k: os.environ[k] for k in SESSION_KEYS if k in os.environ})
+        os.execv(sys.argv[3], [sys.argv[3]])
+    if len(sys.argv) > 1 and sys.argv[1] == '_serve':
+        serve(Path(sys.argv[2]), sys.argv[3], int(sys.argv[4]), int(sys.argv[5]), sys.argv[6], sys.argv[7] == 'real')
+        return
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest='command', required=True)
+    p = sub.add_parser('start')
+    p.add_argument('--reach', help='explicit agent-capable Reach binary')
+    p.add_argument('--wayvnc', help='private WayVNC compatibility binary')
+    p.add_argument('--width', type=int, default=1920)
+    p.add_argument('--height', type=int, default=1200)
+    p.add_argument('--real-config', action='store_true',
+                   help="the real session's sloppy focus, window rules, gaps and borders")
+    for name in ('status', 'windows'):
+        p = sub.add_parser(name)
+        p.add_argument('--json', action='store_true')
+    for name in ('stop', 'pause', 'resume', 'release'):
+        sub.add_parser(name)
+    p = sub.add_parser('view')
+    p.add_argument('--control', action='store_true', help='pause the agent and enable manual input')
+    p.add_argument('--no-open', action='store_true', help='prepare viewer socket without opening a host window')
+    for name in ('run', 'shot', 'key', 'type', 'move', 'click', 'scroll', 'drag',
+                 'focus', 'desktop', 'geometry', 'close', 'obsidian', 'obsidian-cli', 'a11y'):
+        p = sub.add_parser(name)
+        if name == 'shot':
+            p.add_argument('--cursor', action='store_true')
+        if name == 'key':
+            mode = p.add_mutually_exclusive_group()
+            mode.add_argument('--down', action='store_true')
+            mode.add_argument('--up', action='store_true')
+        if name == 'obsidian':
+            p.add_argument('--plugin-dir')
+        p.add_argument('args', nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    if args.command == 'start':
+        if not (320 <= args.width <= 7680 and 240 <= args.height <= 4320):
+            parser.error('output size must be 320..7680 by 240..4320')
+        result = start(args)
+    else:
+        values = getattr(args, 'args', [])
+        if values[:1] == ['--']:
+            values = values[1:]
+        if args.command == 'shot' and args.cursor:
+            values.insert(0, '--cursor')
+        if args.command == 'key':
+            if args.down: values.insert(0, '--down')
+            if args.up: values.insert(0, '--up')
+        if args.command == 'obsidian' and args.plugin_dir:
+            values = ['--plugin-dir', args.plugin_dir] + values
+        if args.command == 'view' and args.control:
+            values = ['--control']
+        if args.command == 'view' and args.no_open:
+            values.append('--no-open')
+        try:
+            result = request(args.command, values)
+        except (FileNotFoundError, ConnectionRefusedError):
+            if args.command in ('status', 'stop'):
+                result = dict(ok=True, running=False, paused=False, manual=False, windows=[])
+            else:
+                raise RuntimeError('agent desktop is stopped; run agent-desk start')
+    if args.command == 'stop':
+        deadline = time.monotonic() + 15
+        while (runtime() / 'control.sock').exists() and time.monotonic() < deadline:
+            time.sleep(.05)
+        if (runtime() / 'control.sock').exists():
+            raise RuntimeError('session is still stopping; inspect its log')
+    if getattr(args, 'json', False):
+        print(json.dumps(result))
+    elif args.command in ('start', 'status'):
+        if result.get('running'):
+            print(f"running {result['width']}x{result['height']} · " +
+                  ('manual control' if result['manual'] else 'paused' if result['paused'] else 'agent input enabled'))
+        else:
+            print('stopped')
+    elif args.command == 'windows':
+        for w in result['windows']:
+            print(f"{w['id']:>3} {'*' if w['focused'] else ' '} {w['appId']} · {w['title']} (desktop {w['desktop']})")
+    elif args.command == 'obsidian-cli':
+        print(result['output'], end='')
+    elif args.command == 'a11y':
+        print(json.dumps(result['accessibility'], ensure_ascii=False))
+    elif args.command == 'view' and args.no_open:
+        print(result['socket'])
+    elif args.command in ('run', 'obsidian'):
+        print(result['pid'])
+    elif args.command == 'shot':
+        print(result['path'])
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (OSError, RuntimeError, ValueError, KeyError, subprocess.SubprocessError) as error:
+        print(f'agent-desk: {error}', file=sys.stderr)
+        sys.exit(1)

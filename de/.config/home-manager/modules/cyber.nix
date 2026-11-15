@@ -54,6 +54,7 @@
       rich
       colorama
       pymongo
+      opencv-python
     ];
   };
 
