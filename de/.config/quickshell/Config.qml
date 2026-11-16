@@ -101,6 +101,7 @@ Singleton {
         { key: "monitors",            group: "Session",     label: "Display configurator" },
         { key: "powermode",           group: "Session",     label: "Power modes (laptop)" },
         { key: "screenshot",          group: "Session",     label: "Screenshots" },
+        { key: "keybinds",            group: "Session",     label: "Keybind cheatsheet" },
 
         { key: "bar",                 group: "Panel",       label: "Status bar" },
         { key: "cpuGraph",            group: "Panel",       label: "Usage + network" },

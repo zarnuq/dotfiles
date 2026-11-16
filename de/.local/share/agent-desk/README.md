@@ -40,8 +40,9 @@ with the host config/cache dirs, and the override's `.env` hands the same to
 Reach's own children (binds); the reload bind is dropped, since a reload would
 then read the host Reach config.
 
-`agent-desk.desktop` (linked into `~/.local/share/applications`) opens the
-Quickshell panel; its actions run View, Take control, Resume and Stop.
+The launcher's "Agent desktop" menu row (`qs ipc call agentdesk open`) opens the
+Quickshell panel, which runs View, Take control, Resume and Stop. There is no
+`.desktop` entry: it duplicated that row in the launcher's merged list.
 
 `key` sends the shifted keysym for Shift chords (`Shift+q` → `Q`, `Shift+Tab` →
 `ISO_Left_Tab`, US layout): WayVNC's `send_key_with_level` otherwise rewrites the

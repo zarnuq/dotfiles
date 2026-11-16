@@ -59,6 +59,7 @@ ShellRoot {
     LazyLoader { active: Config.on("music");               Music {} }
     LazyLoader { active: Config.on("monitors");            Monitors {} }
     LazyLoader { active: Config.on("screenshot");          Screenshot {} }
+    LazyLoader { active: Config.on("keybinds");            Keybinds {} }
     LazyLoader { active: Config.on("bar");                 Bar {} }
     LazyLoader { active: Config.on("cpuGraph");            CpuGraph {} }
     LazyLoader { active: Config.on("mpd");                 Mpd {} }

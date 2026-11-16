@@ -38,6 +38,7 @@ Singleton {
         { name: "Palette",          desc: "Mocha / wallpaper",   glyph: "󰏘", args: ["theme",           "open"] },
         { name: "Music",            desc: "MPD client",          glyph: "󰝚", args: ["music",           "open"] },
         { name: "Settings",         desc: "feature switches",    glyph: "󰒓", args: ["settings",        "open"] },
+        { name: "Keybinds",         desc: "cheatsheet",          glyph: "󰌌", args: ["keybinds",        "open"] },
 
         { name: "Lock screen",      desc: "and session menu",    glyph: "󰌾", args: ["lock",      "lock"] },
         { name: "Random wallpaper", desc: "from ~/Pictures/bgs", glyph: "󰊠", args: ["wallpaper", "random"] },

@@ -80,8 +80,8 @@ zshrc resets `XDG_RUNTIME_DIR` to the host's, so they would open on the host
 desktop. Use `run`, or `kitty --config NONE … zsh -f`. Give other
 single-instance apps their own profile.
 
-**User controls.** The Agent desktop app entry (`agent-desk.desktop`, also in
-launcher `>` mode) opens the bar panel: Start, View, Take control,
+**User controls.** The launcher's "Agent desktop" menu row
+(`qs ipc call agentdesk open`) opens the bar panel: Start, View, Take control,
 Pause/Resume, Stop. `view` = read-only viewer, `view --control` = pause the
 agent and give the user input, `resume` = hand back, `stop` = close this
 desktop and its apps. Logs start fresh on each `start`.

@@ -5,11 +5,11 @@ import QtQuick
 // level up; a QML file does not see its parent directory implicitly.
 import ".."
 
-// Minimal drun-style app launcher (replaces `rofi -show drun`), plus two
-// sigil modes on the same query: "/" searches $HOME instead of the app list and
-// opens the hit in nvim (directories in yazi), and ">" lists the shell's own
-// menus and actions — the one place that answers "what can this thing open?"
-// without knowing a keybind.
+// Minimal drun-style app launcher (replaces `rofi -show drun`). The plain list
+// mixes apps with the shell's own menus and actions (Commands.qml), so one query
+// finds either. Two sigils narrow it: "/" searches $HOME instead and opens the
+// hit in nvim (directories in yazi), and ">" lists only the menus — the one
+// place that answers "what can this thing open?" without knowing a keybind.
 // Triggered by IPC so the reach keybind is just `qs ipc call launcher toggle`.
 // Picker owns the overlay, the IPC target and the focused-monitor logic; this
 // file is just the query, the list, and the keys. The corpus and the ranking
@@ -71,8 +71,13 @@ Picker {
         var q = root.query.toLowerCase();
         return DesktopEntries.applications.values
             .filter(a => !a.noDisplay && a.name.toLowerCase().includes(q))
+            .concat(Commands.search(q))
             .sort((x, y) => x.name.localeCompare(y.name));
     }
+
+    // A menu row is a plain object from Commands; an app is a DesktopEntry,
+    // which has no `args`. Per row, since the plain list mixes the two.
+    function isCmd(hit) { return !!hit && hit.args !== undefined; }
     onQueryChanged: root.selected = 0
 
     // What the arrows walk.
@@ -89,7 +94,7 @@ Picker {
         var hit = root.results[root.selected];
         if (!hit) return;
 
-        if (root.cmdMode) {
+        if (root.isCmd(hit)) {
             // Hide FIRST: the launcher is a full-screen overlay on every
             // output, and the surface being summoned has to come up over an
             // empty screen rather than under this one.
@@ -139,7 +144,7 @@ Picker {
                 fontSize: root.s(24)
                 placeholder: text === "/" ? "Find file…"
                              : text === ">" ? "Open menu…"
-                             : "Search…  ( / files, > menus)"
+                             : "Search…  ( / files, > menus only)"
                 placeholderShown: text === "" || text === "/" || text === ">"
                 onTextChanged: root.query = text
 
@@ -173,6 +178,7 @@ Picker {
                     id: entry
                     required property var modelData
                     required property int index
+                    readonly property bool cmd: root.isCmd(entry.modelData)
                     width: list.width; height: root.s(38)
                     color: entry.index === root.selected ? Theme.rowSelectBg : "transparent"
 
@@ -190,7 +196,7 @@ Picker {
                         anchors.leftMargin: root.s(12); anchors.rightMargin: root.s(12)
 
                         Image {
-                            visible: !root.fileMode && !root.cmdMode
+                            visible: !root.fileMode && !entry.cmd
                             anchors.verticalCenter: parent.verticalCenter
                             width: root.s(26); height: root.s(26)
                             sourceSize.width: root.s(26); sourceSize.height: root.s(26)
@@ -200,13 +206,13 @@ Picker {
                         }
 
                         Txt {
-                            visible: root.fileMode || root.cmdMode
+                            visible: root.fileMode || entry.cmd
                             anchors.verticalCenter: parent.verticalCenter
                             width: root.s(26)
                             horizontalAlignment: Text.AlignHCenter
-                            text: root.cmdMode ? entry.modelData.glyph
+                            text: entry.cmd ? entry.modelData.glyph
                                   : entry.modelData.isDir ? "" : ""
-                            color: root.cmdMode ? Theme.mauve
+                            color: entry.cmd ? Theme.mauve
                                    : entry.modelData.isDir ? Theme.blue : Theme.subtext0
                             font.pixelSize: root.s(16)
                         }
@@ -218,17 +224,17 @@ Picker {
                         // should give way.
                         Txt {
                             id: keyLabel
-                            visible: root.cmdMode && entry.modelData.key !== ""
+                            visible: entry.cmd && entry.modelData.key !== ""
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.cmdMode ? entry.modelData.key : ""
+                            text: entry.cmd ? entry.modelData.key : ""
                             color: Theme.overlay0
                             font.pixelSize: root.s(15)
                         }
 
                         Txt {
                             id: dirLabel
-                            visible: root.fileMode || root.cmdMode
+                            visible: root.fileMode || entry.cmd
                             anchors.right: keyLabel.visible ? keyLabel.left : parent.right
                             anchors.rightMargin: keyLabel.visible ? root.s(14) : 0
                             anchors.verticalCenter: parent.verticalCenter
@@ -236,9 +242,9 @@ Picker {
                             // Elided from the LEFT for a path (the deep end is
                             // what tells four .zshrc hits apart) but from the
                             // RIGHT for a gloss, which reads forwards.
-                            elide: root.cmdMode ? Text.ElideRight : Text.ElideLeft
+                            elide: entry.cmd ? Text.ElideRight : Text.ElideLeft
                             horizontalAlignment: Text.AlignRight
-                            text: root.cmdMode ? entry.modelData.desc
+                            text: entry.cmd ? entry.modelData.desc
                                   : root.fileMode ? entry.modelData.dir : ""
                             color: Theme.subtext0
                             font.pixelSize: root.s(15)
@@ -247,7 +253,7 @@ Picker {
                         Txt {
                             anchors.left: parent.left
                             anchors.leftMargin: root.s(34)
-                            anchors.right: (root.fileMode || root.cmdMode) ? dirLabel.left : parent.right
+                            anchors.right: (root.fileMode || entry.cmd) ? dirLabel.left : parent.right
                             anchors.rightMargin: root.s(8)
                             anchors.verticalCenter: parent.verticalCenter
                             elide: Text.ElideRight
