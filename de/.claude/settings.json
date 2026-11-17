@@ -7,7 +7,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "claude-opus-4-6",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh --water-session --water-lifetime --water-equivalents"
