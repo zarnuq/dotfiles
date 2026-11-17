@@ -41,7 +41,7 @@ Scope {
     // Power owns the battery read shared with the battery card.
     //
     // The glyph tracks the LEVEL; whether a charger is in is carried by the
-    // color in BarStatus (green charging, teal held on mains). The old branch
+    // color in BarStatus (green on mains). The old branch
     // here drew a FULL battery for every state that wasn't `Discharging`, so a
     // charge-threshold hold at 30% on AC read as a full battery.
     readonly property string batteryGlyph: Power.charging ? ""

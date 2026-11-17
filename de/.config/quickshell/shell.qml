@@ -68,6 +68,7 @@ ShellRoot {
     LazyLoader { active: Config.on("brightness");          Brightness {} }
     LazyLoader { active: Config.on("syncthing");           Syncthing {} }
     LazyLoader { active: Config.on("aiUsage");             AiUsage {} }
+    LazyLoader { active: Config.on("habits");              Habits {} }
     LazyLoader { active: Config.on("osd");                 Osd {} }
     LazyLoader { active: Config.on("spotlight");           Spotlight {} }
 }

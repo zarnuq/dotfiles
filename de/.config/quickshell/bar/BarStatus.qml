@@ -92,10 +92,11 @@ Row {
     Block {
         visible: Power.present
         text: root.statusData.batteryGlyph + " " + Power.level + "%"
-        // Bright grey like the clock. Low (Power.low, gated on onAc — a
-        // threshold hold on AC is not a dying battery) turns it into a red
-        // block with white text.
-        color: Power.low ? Theme.alertFg : Theme.subtext1
+        // Bright grey like the clock, green while on mains (onAc, not
+        // charging: a threshold hold on AC is still plugged in). Low
+        // (Power.low, gated on onAc — a threshold hold on AC is not a dying
+        // battery) turns it into a red block with white text.
+        color: Power.low ? Theme.alertFg : Power.onAc ? Theme.green : Theme.subtext1
         leftPadding: Power.low ? Config.s(6) : 0
         rightPadding: leftPadding
         Rectangle {

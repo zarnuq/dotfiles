@@ -108,8 +108,9 @@ Singleton {
         { key: "mpd",                 group: "Panel",       label: "Now playing" },
         { key: "calendar",            group: "Panel",       label: "Calendar agenda" },
         { key: "brightness",          group: "Panel",       label: "Brightness" },
-        { key: "aiUsage",             group: "Panel",       label: "Claude / Codex usage" },
+        { key: "aiUsage",             group: "Panel",       label: "Claude / Codex / agy / Kiro usage" },
         { key: "syncthing",           group: "Panel",       label: "Syncthing status" },
+        { key: "habits",              group: "Panel",       label: "Obsidian habits" },
         { key: "tray",                group: "Panel",       label: "System tray" }
     ]
 

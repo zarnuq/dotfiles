@@ -4,9 +4,9 @@ import Quickshell.Io
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
-// Claude + Codex rate-limit windows, bottom-right above the syncthing card.
+// AI usage, bottom-right above the syncthing card.
 //
-// Neither source costs a network call. Claude Code only exposes its limits on
+// Claude and Codex need no network call. Claude Code only exposes its limits on
 // the statusline's stdin, so `statusline-command.sh` mirrors them to
 // ~/.local/state/ai-usage/claude.json and this card watches that file — the
 // numbers move only while some Claude session is drawing a statusline. Codex
@@ -14,15 +14,21 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 // newest few each minute reads the last snapshot (same source as
 // ai-cli-subagents' delegate.py). A window whose reset time has passed is
 // shown as 0 even when the snapshot is older than that.
+// agy /quota adds its Gemini and Claude/GPT pools every five minutes without
+// model tokens. Kiro's monthly credits come from its client-side /usage slash
+// command (no model turn) every fifteen minutes; the script deletes the chat
+// session each headless run saves.
 Widget {
     id: root
     anchors { bottom: true; right: true }
     margins { bottom: Config.syncthingHeight }
-    implicitWidth: s(300)
+    implicitWidth: s(390)
     implicitHeight: body.height + s(root.pad * 2)
 
     property var claude: null        // { five_hour: { used_percentage, resets_at }, seven_day: … }
     property var codex: null         // { primary: { used_percent, window_minutes, resets_at }, secondary: … }
+    property var agy: null           // { windows: [{ name, window, used_percent, resets_at }] }
+    property var kiro: null          // same shape as agy
     property real now: Date.now() / 1000
 
     readonly property string stateDir:
@@ -43,9 +49,27 @@ Widget {
             'for f in $(ls -t "$HOME"/.codex/sessions/*/*/*/rollout-*.jsonl 2>/dev/null | head -5); do ' +
             'l=$(tac "$f" | grep -m1 \'"rate_limits":{\') && { printf "%s" "$l"; exit; }; done']
         onJsonData: v => {
-            root.now = Date.now() / 1000;
             if (v && v.payload && v.payload.rate_limits) root.codex = v.payload.rate_limits;
         }
+    }
+
+    Poll {
+        interval: 300000
+        command: ["python3", Quickshell.shellDir + "/scripts/ai-usage.py", "agy"]
+        onJsonData: v => root.agy = v || { error: "usage unavailable" }
+    }
+
+    Poll {
+        interval: 900000
+        command: ["python3", Quickshell.shellDir + "/scripts/ai-usage.py", "kiro"]
+        onJsonData: v => root.kiro = v || { error: "usage unavailable" }
+    }
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root.now = Date.now() / 1000
     }
 
     function windowName(minutes) {
@@ -66,6 +90,11 @@ Widget {
         ["primary", "secondary"].forEach(function(k) {
             var w = x && x[k];
             if (w) out.push(row("Codex", windowName(w.window_minutes), w.used_percent, w.resets_at));
+        });
+        [root.agy, root.kiro].forEach(function(a) {
+            if (a && a.windows) a.windows.forEach(function(w) {
+                out.push(row(w.name, w.window, w.used_percent, w.resets_at));
+            });
         });
         return out;
     }
@@ -97,7 +126,13 @@ Widget {
                 required property var modelData
                 width: body.width
                 spacing: root.s(8)
-                Txt { id: nm; text: line.modelData.name; font.pixelSize: root.s(13); width: root.s(72) }
+                Txt {
+                    id: nm
+                    text: line.modelData.name
+                    font.pixelSize: root.s(13)
+                    width: root.s(150)
+                    elide: Text.ElideRight
+                }
                 Gauge {
                     anchors.verticalCenter: parent.verticalCenter
                     width: line.width - nm.width - val.width - line.spacing * 2
@@ -114,5 +149,20 @@ Widget {
                 }
             }
         }
+
+        Txt {
+            visible: !root.agy || !!root.agy.error
+            font.pixelSize: root.s(13)
+            color: Theme.subtext0
+            text: "agy · " + (root.agy ? "usage unavailable" : "loading…")
+        }
+
+        Txt {
+            visible: !root.kiro || !!root.kiro.error
+            font.pixelSize: root.s(13)
+            color: Theme.subtext0
+            text: "Kiro · " + (root.kiro ? "usage unavailable" : "loading…")
+        }
+
     }
 }
