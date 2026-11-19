@@ -111,7 +111,11 @@ Picker {
         if (p === "" || root.dims[p] !== undefined) return;
         if (dimProc.running) { dimProbe.restart(); return; }
         dimProc.path = p;
-        dimProc.command = ["magick", "identify", "-ping", "-format", "%wx%h", p];
+        if (p.toLowerCase().endsWith(".mp4"))
+            dimProc.command = ["ffprobe", "-v", "quiet", "-select_streams", "v:0",
+                "-show_entries", "stream=width,height", "-of", "csv=p=0", p];
+        else
+            dimProc.command = ["magick", "identify", "-ping", "-format", "%wx%h", p];
         dimProc.running = true;
     }
 
@@ -121,7 +125,7 @@ Picker {
         property string path: ""
         stdout: StdioCollector {
             onStreamFinished: {
-                var t = text.trim();
+                var t = text.trim().replace(",", "x");
                 if (t === "") return;
                 var d = root.dims;
                 d[dimProc.path] = t;

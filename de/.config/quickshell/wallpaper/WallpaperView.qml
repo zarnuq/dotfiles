@@ -23,6 +23,7 @@ Variants {
         id: win
         required property var modelData
         screen: win.modelData
+        visible: !Wallpaper.isVideo
 
         WlrLayershell.layer: WlrLayer.Background
         WlrLayershell.namespace: "quickshell-wallpaper"
@@ -68,8 +69,7 @@ Variants {
                     onRunningChanged: if (!running && layer.opacity === 0) layer.source = "" } }
             }
 
-            // New wallpaper -> load into the hidden layer...
-            onCurChanged: if (cur !== "") (aFront ? b : a).source = "file://" + cur;
+            onCurChanged: if (cur !== "" && !Wallpaper.isVideo) (aFront ? b : a).source = "file://" + cur;
             // ...and flip only once that layer is decoded, so no black gap.
             Layer { id: a; shown: bg.aFront;  onStatusChanged: if (!bg.aFront && status === Image.Ready) bg.aFront = true }
             Layer { id: b; shown: !bg.aFront; onStatusChanged: if (bg.aFront && status === Image.Ready) bg.aFront = false }

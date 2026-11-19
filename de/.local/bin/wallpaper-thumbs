@@ -37,7 +37,7 @@ thumb_for() {
 
 scan() {
     find "$SRC" -name .git -prune -o -type f \
-         \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) -print
+         \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.mp4' \) -print
 }
 
 case "${1:-}" in
@@ -45,21 +45,29 @@ case "${1:-}" in
     src=$2
     thumb_for "$src"; dst=$THUMB
     [[ -f $dst && $dst -nt $src ]] && exit 0
-    # jpeg:size lets libjpeg decode at 1/N scale (DCT scaling) -- ~3x faster,
-    # and 3 of every 4 wallpapers here are JPEG. PNG has no scaled decode.
-    hint=()
     case $src in
-        *.jpg|*.JPG|*.jpeg|*.JPEG) hint=(-define jpeg:size=800x450) ;;
+        *.mp4|*.MP4)
+            if ffmpeg -y -ss 1 -i "$src" -frames:v 1 \
+                   -vf "scale=400:225:force_original_aspect_ratio=increase,crop=400:225" \
+                   -q:v 5 -f image2 -c:v mjpeg "$dst.$$.tmp" 2>/dev/null; then
+                mv -f "$dst.$$.tmp" "$dst"
+            else
+                rm -f "$dst.$$.tmp"
+            fi
+            ;;
+        *)
+            hint=()
+            case $src in
+                *.jpg|*.JPG|*.jpeg|*.JPEG) hint=(-define jpeg:size=800x450) ;;
+            esac
+            if magick "${hint[@]}" "$src" -thumbnail "$GEOM^" -gravity center \
+                      -extent "$GEOM" -quality 82 -strip "JPEG:$dst.$$.tmp" 2>/dev/null; then
+                mv -f "$dst.$$.tmp" "$dst"
+            else
+                rm -f "$dst.$$.tmp"
+            fi
+            ;;
     esac
-    # JPEG: prefix is required -- the .tmp extension is unknown to ImageMagick,
-    # so it would otherwise write the thumb in the SOURCE's format (a PNG named
-    # .jpg), costing both size and decode time.
-    if magick "${hint[@]}" "$src" -thumbnail "$GEOM^" -gravity center \
-              -extent "$GEOM" -quality 82 -strip "JPEG:$dst.$$.tmp" 2>/dev/null; then
-        mv -f "$dst.$$.tmp" "$dst"   # rename so a killed run never leaves a torn thumb
-    else
-        rm -f "$dst.$$.tmp"
-    fi
     ;;
 --list)
     while IFS= read -r f; do
