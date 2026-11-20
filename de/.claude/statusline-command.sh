@@ -1,249 +1,101 @@
 #!/bin/bash
-# Claude Code status line: two-line truecolor design
-# Line 1: model | effort | mode | context bar | cost | velocity | 5h rate limit | 7d rate limit
-# Line 2: cwd | git worktree | worktree original branch
-
+# Claude Code two-line truecolor statusline
+# Line 1: model(effort) | mode | ctx | 5h | 7d | cost | velocity
+# Line 2: cwd | branch/worktree
 input=$(cat)
+R='\033[0m'
+P='\033[38;2;110;110;110m | \033[0m'
 
-RESET='\033[0m'
-SEP='\033[38;2;110;110;110m'   # dim gray pipe separator
-PIPE="${SEP} | ${RESET}"
-
-# color interpolation helper: green(25,180,95) -> yellow(220,200,0) -> red(220,40,20)
-color_at() {
-    # $1 = position percentage 0-100
-    awk -v p="$1" 'BEGIN{
-        if (p <= 50) {
-            f = p/50.0
-            r = 25  + (220-25)  * f
-            g = 180 + (200-180) * f
-            b = 95  + (0-95)    * f
-        } else {
-            f = (p-50)/50.0
-            r = 220 + (220-220) * f
-            g = 200 + (40-200)  * f
-            b = 0   + (20-0)    * f
-        }
-        printf "%d %d %d", r, g, b
-    }'
-}
-
-# --- Model name (Claude orange, no icon) with effort level in parens ---
-model=$(echo "$input" | jq -r '.model.display_name // "unknown"')
-effort=$(echo "$input" | jq -r '.effort.level // empty')
-C_MODEL='\033[1;38;2;217;119;87m'
-C_EFFORT='\033[38;2;217;119;87m'
-if [ -n "$effort" ]; then
-    seg_model="${C_MODEL}${model}${RESET} ${C_EFFORT}(${effort})${RESET}"
-else
-    seg_model="${C_MODEL}${model}${RESET}"
-fi
-
-# --- Thinking on/off ---
-thinking=$(echo "$input" | jq -r 'if .thinking.enabled == true then "on" elif .thinking.enabled == false then "off" else empty end')
-seg_thinking=""
-if [ -n "$thinking" ]; then
-    if [ "$thinking" = "on" ]; then
-        seg_thinking="\033[38;2;180;130;255mthinking: on${RESET}"
+color_rgb() {
+    local p=${1%.*}; : "${p:=0}"
+    if (( p <= 50 )); then
+        _r=$(( 25+195*p/50 )); _g=$(( 180+20*p/50 )); _b=$(( 95-95*p/50 ))
     else
-        seg_thinking="\033[38;2;120;120;120mthinking: off${RESET}"
+        local q=$(( p-50 ))
+        _r=220; _g=$(( 200-160*q/50 )); _b=$(( 20*q/50 ))
     fi
-fi
-
-# --- Mode (output style) ---
-mode=$(echo "$input" | jq -r '.output_style.name // empty')
-seg_mode=""
-[ -n "$mode" ] && seg_mode="\033[38;2;215;225;130m${mode}${RESET}"
-
-# --- Context usage ---
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-[ -z "$used_pct" ] && used_pct=0
-
-blocks=20
-filled=$(awk -v p="$used_pct" -v n="$blocks" 'BEGIN{v=int((p/100.0)*n+0.5); if(v>n)v=n; if(v<0)v=0; print v}')
-bar=""
-i=1
-while [ "$i" -le "$blocks" ]; do
-    if [ "$i" -le "$filled" ]; then
-        pos=$(awk -v i="$i" -v n="$blocks" 'BEGIN{printf "%.2f", ((i-1)/(n-1))*100}')
-        rgb=$(color_at "$pos")
-        r=$(echo "$rgb" | cut -d' ' -f1)
-        g=$(echo "$rgb" | cut -d' ' -f2)
-        b=$(echo "$rgb" | cut -d' ' -f3)
-        bar="${bar}\033[38;2;${r};${g};${b}m\xe2\x96\x88"
-    else
-        bar="${bar}\033[38;2;60;60;60m\xe2\x96\x88"
-    fi
-    i=$((i+1))
-done
-bar="${bar}${RESET}"
-
-# --- Dynamic emoji based on usage level ---
-usage_emoji=$(awk -v p="$used_pct" 'BEGIN{
-    if (p < 20) print "\xf0\x9f\x9f\xa2";
-    else if (p < 70) print "\xe2\x9a\xa1";
-    else if (p < 90) print "\xf0\x9f\x94\xa5";
-    else print "\xf0\x9f\x9a\xa8";
-}')
-
-# --- Percentage colored to exactly match the bar's last filled block ---
-if [ "$filled" -gt 0 ]; then
-    last_pos=$(awk -v i="$filled" -v n="$blocks" 'BEGIN{printf "%.2f", ((i-1)/(n-1))*100}')
-else
-    last_pos=0
-fi
-pct_rgb=$(color_at "$last_pos")
-pr=$(echo "$pct_rgb" | cut -d' ' -f1)
-pg=$(echo "$pct_rgb" | cut -d' ' -f2)
-pb=$(echo "$pct_rgb" | cut -d' ' -f3)
-pct_str=$(awk -v p="$used_pct" 'BEGIN{printf "%.0f%%", p}')
-seg_ctx="${bar} ${usage_emoji} \033[1;38;2;${pr};${pg};${pb}m${pct_str}${RESET}"
-
-# --- Token count (used/max), disabled for now — flip back on by uncommenting.
-# Color is linked to the same pr;pg;pb as the percentage text.
-# used_tok=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
-# max_tok=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
-# if [ -n "$used_tok" ] && [ -n "$max_tok" ]; then
-#     fmt_tok() {
-#         awk -v n="$1" 'BEGIN{
-#             if (n >= 1000000) printf "%.0fM", n/1000000
-#             else if (n >= 1000) printf "%.0fk", n/1000
-#             else printf "%d", n
-#         }'
-#     }
-#     used_tok_str=$(fmt_tok "$used_tok")
-#     max_tok_str=$(fmt_tok "$max_tok")
-#     seg_ctx="${seg_ctx} \033[38;2;${pr};${pg};${pb}m(${used_tok_str}/${max_tok_str})${RESET}"
-# fi
-
-# --- Session cost (yellow) ---
-cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
-seg_cost=""
-if [ -n "$cost" ]; then
-    cost_str=$(awk -v c="$cost" 'BEGIN{printf "$%.2f", c}')
-    C_COST='\033[38;2;220;200;0m'
-    seg_cost="${C_COST}${cost_str}${RESET}"
-fi
-
-# --- Code velocity (+added green / -removed red) ---
-added=$(echo "$input" | jq -r '.cost.total_lines_added // empty')
-removed=$(echo "$input" | jq -r '.cost.total_lines_removed // empty')
-seg_velocity=""
-if [ -n "$added" ] || [ -n "$removed" ]; then
-    [ -z "$added" ] && added=0
-    [ -z "$removed" ] && removed=0
-    C_ADD='\033[38;2;25;180;95m'
-    C_DEL='\033[38;2;220;40;20m'
-    seg_velocity="${C_ADD}+${added}${RESET} ${C_DEL}-${removed}${RESET}"
-fi
-
-# --- Rate limits: 5-hour and 7-day, each with a circle glyph, used %, and local reset time ---
-five_h_pct=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-five_h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-seven_d_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-seven_d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
-
-# Mirror the limits for quickshell's AI usage card: this stdin is the only place
-# Claude Code exposes them locally. Write-then-mv so the card never reads half a file.
-rl_json=$(echo "$input" | jq -c '.rate_limits // empty')
-if [ -n "$rl_json" ]; then
-    rl_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ai-usage"
-    mkdir -p "$rl_dir" && printf '%s\n' "$rl_json" > "$rl_dir/claude.json.$$" \
-        && mv -f "$rl_dir/claude.json.$$" "$rl_dir/claude.json"
-fi
-
-circle_glyph() {
-    # $1 = used percentage 0-100
-    awk -v p="$1" 'BEGIN{
-        if (p < 20) print "\xe2\x97\x8b";       # ○
-        else if (p < 40) print "\xe2\x97\x94";  # ◔
-        else if (p < 60) print "\xe2\x97\x91";  # ◑
-        else if (p < 80) print "\xe2\x97\x95";  # ◕
-        else print "\xe2\x97\x8f";               # ●
-    }'
 }
 
-# epoch -> local "%-I:%M %p", trying GNU date first then BSD date (macOS)
-epoch_to_time() {
-    date -d "@${1}" +"%-I:%M %p" 2>/dev/null || date -r "${1}" +"%-I:%M %p" 2>/dev/null
+circle() {
+    local p=${1%.*}; : "${p:=0}"
+    if (( p < 20 )); then _c='\xe2\x97\x8b'
+    elif (( p < 40 )); then _c='\xe2\x97\x94'
+    elif (( p < 60 )); then _c='\xe2\x97\x91'
+    elif (( p < 80 )); then _c='\xe2\x97\x95'
+    else _c='\xe2\x97\x8f'; fi
 }
 
-# epoch -> "<days>d<hours>h" countdown until that time from now
-epoch_to_countdown() {
-    now=$(date +%s)
-    awk -v target="$1" -v now="$now" 'BEGIN{
-        diff = target - now
-        if (diff < 0) diff = 0
-        days = int(diff / 86400)
-        hours = int((diff % 86400) / 3600)
-        printf "%dd%dh", days, hours
-    }'
+usage_emoji() {
+    local p=${1%.*}; : "${p:=0}"
+    if (( p < 20 )); then _e='\xf0\x9f\x9f\xa2'
+    elif (( p < 70 )); then _e='\xe2\x9a\xa1'
+    elif (( p < 90 )); then _e='\xf0\x9f\x94\xa5'
+    else _e='\xf0\x9f\x9a\xa8'; fi
 }
 
-C_RL='\033[38;2;120;200;255m'
-seg_ratelimit=""
-if [ -n "$five_h_pct" ]; then
-    five_h_str=$(awk -v p="$five_h_pct" 'BEGIN{printf "%.0f%%", p}')
-    five_h_glyph=$(circle_glyph "$five_h_pct")
-    reset_str=""
-    if [ -n "$five_h_reset" ]; then
-        five_h_time=$(epoch_to_time "$five_h_reset")
-        [ -n "$five_h_time" ] && reset_str=" (resets ${five_h_time})"
-    fi
-    seg_ratelimit="${C_RL}5h: ${five_h_glyph} ${five_h_str}${reset_str}${RESET}"
-fi
-if [ -n "$seven_d_pct" ]; then
-    seven_d_str=$(awk -v p="$seven_d_pct" 'BEGIN{printf "%.0f%%", p}')
-    seven_d_glyph=$(circle_glyph "$seven_d_pct")
-    reset_str=""
-    if [ -n "$seven_d_reset" ]; then
-        seven_d_countdown=$(epoch_to_countdown "$seven_d_reset")
-        [ -n "$seven_d_countdown" ] && reset_str=" (${seven_d_countdown})"
-    fi
-    [ -n "$seg_ratelimit" ] && seg_ratelimit="${seg_ratelimit}${PIPE}"
-    seg_ratelimit="${seg_ratelimit}${C_RL}7d: ${seven_d_glyph} ${seven_d_str}${reset_str}${RESET}"
-fi
-
-# --- Assemble line 1 ---
-line1="${seg_model}"
-[ -n "$seg_thinking" ] && line1="${line1}${PIPE}${seg_thinking}"
-[ -n "$seg_mode" ] && line1="${line1}${PIPE}${seg_mode}"
-line1="${line1}${PIPE}${seg_ctx}"
-[ -n "$seg_cost" ] && line1="${line1}${PIPE}${seg_cost}"
-[ -n "$seg_velocity" ] && line1="${line1}${PIPE}${seg_velocity}"
-[ -n "$seg_ratelimit" ] && line1="${line1}${PIPE}${seg_ratelimit}"
-
-# --- Line 2: cwd | git worktree | worktree original branch ---
-cwd=$(echo "$input" | jq -r '.workspace.current_dir // empty')
+{
+    IFS= read -r model; IFS= read -r effort; IFS= read -r mode
+    IFS= read -r used_pct; IFS= read -r cost
+    IFS= read -r added; IFS= read -r removed
+    IFS= read -r five_pct; IFS= read -r five_reset
+    IFS= read -r seven_pct; IFS= read -r seven_reset
+    IFS= read -r cwd; IFS= read -r git_wt; IFS= read -r orig_br
+} < <(echo "$input" | jq -r '
+    (.model.display_name // "unknown"),
+    (.effort.level // ""),
+    (.output_style.name // ""),
+    (.context_window.used_percentage // 0),
+    (.cost.total_cost_usd // ""),
+    (.cost.total_lines_added // ""),
+    (.cost.total_lines_removed // ""),
+    (.rate_limits.five_hour.used_percentage // ""),
+    (.rate_limits.five_hour.resets_at // ""),
+    (.rate_limits.seven_day.used_percentage // ""),
+    (.rate_limits.seven_day.resets_at // ""),
+    (.workspace.current_dir // ""),
+    (.workspace.git_worktree // ""),
+    (.worktree.original_branch // "")
+')
 [ -z "$cwd" ] && cwd="$PWD"
-C_DIR='\033[38;2;150;200;255m'
-seg_dir="${C_DIR}\xf0\x9f\x93\x81 ${cwd}${RESET}"
 
-git_worktree=$(echo "$input" | jq -r '.workspace.git_worktree // empty')
-seg_git_worktree=""
-[ -n "$git_worktree" ] && seg_git_worktree="\033[38;2;0;220;220m\xf0\x9f\x8c\xbf ${git_worktree}${RESET}"
+# Line 1
+L="\033[1;38;2;217;119;87m${model}${R}"
+[ -n "$effort" ] && L="${L} \033[38;2;217;119;87m(${effort})${R}"
 
-orig_branch=$(echo "$input" | jq -r '.worktree.original_branch // empty')
-seg_orig_branch=""
-[ -n "$orig_branch" ] && seg_orig_branch="\033[38;2;220;180;0m\xe2\x86\x90 ${orig_branch}${RESET}"
+usage_emoji "$used_pct"; circle "$used_pct"; color_rgb "$used_pct"
+L="${L}${P}${_e} \033[1;38;2;${_r};${_g};${_b}m${_c} ${used_pct%.*}%${R}"
 
-# --- Plain current git branch (only when not in a Claude Code worktree-isolated session) ---
-seg_branch=""
-if [ -z "$git_worktree" ]; then
-    branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then
-        C_BRANCH='\033[38;2;120;200;120m'
-        seg_branch="${C_BRANCH}\xf0\x9f\x8c\xbf ${branch}${RESET}"
+if [ -n "$five_pct" ]; then
+    circle "$five_pct"; t=""
+    [ -n "$five_reset" ] && t=$(date -d "@${five_reset}" +"%-I:%M %p" 2>/dev/null || date -r "${five_reset}" +"%-I:%M %p" 2>/dev/null) && t=" (${t})"
+    L="${L}${P}\033[38;2;120;200;255m5h: ${_c} ${five_pct%.*}%${t}${R}"
+fi
+if [ -n "$seven_pct" ]; then
+    circle "$seven_pct"; t=""
+    if [ -n "$seven_reset" ]; then
+        d=$(( seven_reset - $(date +%s) )); (( d < 0 )) && d=0
+        t=" ($(( d/86400 ))d$(( d%86400/3600 ))h)"
     fi
+    L="${L}${P}\033[38;2;120;200;255m7d: ${_c} ${seven_pct%.*}%${t}${R}"
 fi
 
-line2="${seg_dir}"
-[ -n "$seg_branch" ] && line2="${line2}${PIPE}${seg_branch}"
-[ -n "$seg_git_worktree" ] && line2="${line2}${PIPE}${seg_git_worktree}"
-[ -n "$seg_orig_branch" ] && line2="${line2}${PIPE}${seg_orig_branch}"
+if [ -n "$cost" ]; then
+    printf -v cost_str '$%.2f' "$cost"
+    L="${L}${P}\033[38;2;220;200;0m${cost_str}${R}"
+fi
+if [ -n "$added" ] || [ -n "$removed" ]; then
+    L="${L}${P}\033[38;2;25;180;95m+${added:-0}${R} \033[38;2;220;40;20m-${removed:-0}${R}"
+fi
 
-# --- Optional water usage (water.sh is installed only with a --water-* flag) ---
-water_lib="$(dirname "${BASH_SOURCE[0]}")/water.sh"
-[ -f "$water_lib" ] && . "$water_lib" "$@"
+# Line 2
+L2="\033[38;2;150;200;255m\xf0\x9f\x93\x81 ${cwd}${R}"
+if [ -z "$git_wt" ]; then
+    branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+    [ -n "$branch" ] && [ "$branch" != HEAD ] && L2="${L2}${P}\033[38;2;120;200;120m\xf0\x9f\x8c\xbf ${branch}${R}"
+else
+    L2="${L2}${P}\033[38;2;0;220;220m\xf0\x9f\x8c\xbf ${git_wt}${R}"
+    [ -n "$orig_br" ] && L2="${L2}${P}\033[38;2;220;180;0m\xe2\x86\x90 ${orig_br}${R}"
+fi
+[ -n "$mode" ] && L2="${L2}${P}\033[38;2;215;225;130m${mode}${R}"
 
-printf '%b\n%b' "${line1}" "${line2}"
+printf '%b\n%b' "$L" "$L2"
