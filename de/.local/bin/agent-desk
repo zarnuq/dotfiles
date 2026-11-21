@@ -6,6 +6,7 @@ import hashlib
 import ctypes
 import ctypes.util
 import fcntl
+import itertools
 import json
 import os
 from pathlib import Path
@@ -552,7 +553,12 @@ class Desktop:
         if command == 'shot':
             cursor = '--cursor' in args
             args = [a for a in args if a != '--cursor']
-            region = ['-o', 'HEADLESS-1']
+            region, scale = ['-o', 'HEADLESS-1'], []
+            if args[:1] == ['--scale']:
+                scale, args = ['-s', str(float(args[1]))], args[2:]
+            if args[:1] == ['--region']:
+                x, y, w, h = map(int, args[1:5])
+                region, args = ['-g', f'{x},{y} {w}x{h}'], args[5:]
             if args[:1] == ['--window']:
                 wid, args = int(args[1]), args[2:]
                 w = next((w for w in reach_request(self.env, 'list')['windows'] if w['id'] == wid), None)
@@ -563,7 +569,7 @@ class Desktop:
                 raise ValueError('shot requires one PNG path')
             target = str(Path(args[0]).expanduser().absolute())
             kind = ['-t', 'ppm'] if target.endswith('.ppm') else []  # uncompressed: fast for polling
-            subprocess.run(['grim'] + (['-c'] if cursor else []) + kind + region + [target], env=self.env,
+            subprocess.run(['grim'] + (['-c'] if cursor else []) + kind + scale + region + [target], env=self.env,
                            check=True, capture_output=True, text=True, timeout=10)
             return dict(ok=True, path=target)
         if command == 'record':
@@ -689,7 +695,10 @@ class Desktop:
                 args = args[1:]
             if not args:
                 raise ValueError('run requires a command')
-            proc = self.spawn(args, self.app_env(), 'app')
+            proc = self.spawn(args, self.app_env(), 'app-new')
+            # One log per launch, named by the PID `run` prints. Commands are
+            # serialized, so no other launch can be writing app-new.log.
+            (self.root / 'app-new.log').rename(self.root / f'app-{proc.pid}.log')
             self.apps.append(proc)
             return dict(ok=True, pid=proc.pid)
         if command == 'kill':
@@ -961,12 +970,14 @@ def compare(args):
 
 def find_text(args):
     # A blinking caret beside a word can garble it; four shots 0.35 s apart
-    # span a whole blink cycle (GTK/Chromium: ~1.2 s).
-    for attempt in range(4):
+    # span a whole blink cycle (GTK/Chromium: ~1.2 s). --timeout keeps trying
+    # longer, to wait for content that wait-idle can't see coming (network loads).
+    deadline = time.monotonic() + args.timeout
+    for attempt in itertools.count():
         try:
             return find_text_once(args)
         except LookupError:
-            if attempt == 3:
+            if attempt >= 3 and time.monotonic() > deadline:
                 raise RuntimeError(f'text {args.text!r} not found on screen')
             time.sleep(.35)
 
@@ -1086,11 +1097,13 @@ def main():
     p.add_argument('text')
     p.add_argument('--window', type=int, metavar='ID')
     p.add_argument('--all', action='store_true')
+    p.add_argument('--timeout', type=float, default=0, help='keep looking this many seconds')
     p = sub.add_parser('obsidian-reveal', help='print X Y of a vault file in the private file explorer')
     p.add_argument('path', help='vault-relative, e.g. doc-works-test/x.docx')
     p = sub.add_parser('wait-window', help='wait for a window whose appId or title contains TEXT')
     p.add_argument('text')
     p.add_argument('--timeout', type=float, default=20)
+    p.add_argument('--exact', action='store_true', help='appId must equal TEXT (skips crash reporters etc.)')
     p = sub.add_parser('view')
     p.add_argument('--control', action='store_true', help='pause the agent and enable manual input')
     p.add_argument('--no-open', action='store_true', help='prepare viewer socket without opening a host window')
@@ -1100,7 +1113,10 @@ def main():
         p = sub.add_parser(name)
         if name == 'shot':
             p.add_argument('--cursor', action='store_true')
-            p.add_argument('--window', type=int, metavar='ID', help='crop to this window')
+            where = p.add_mutually_exclusive_group()
+            where.add_argument('--window', type=int, metavar='ID', help='crop to this window')
+            where.add_argument('--region', type=int, nargs=4, metavar=('X', 'Y', 'W', 'H'))
+            p.add_argument('--scale', type=float, help='e.g. 0.5: a smaller image to read')
         if name == 'key':
             mode = p.add_mutually_exclusive_group()
             mode.add_argument('--down', action='store_true')
@@ -1119,6 +1135,10 @@ def main():
             values = values[1:]
         if args.command == 'shot' and args.window is not None:
             values = ['--window', str(args.window)] + values
+        if args.command == 'shot' and args.region:
+            values = ['--region'] + [str(v) for v in args.region] + values
+        if args.command == 'shot' and args.scale:
+            values = ['--scale', str(args.scale)] + values
         if args.command == 'shot' and args.cursor:
             values.insert(0, '--cursor')
         if args.command == 'key':
@@ -1143,7 +1163,8 @@ def main():
                 deadline = time.monotonic() + args.timeout
                 while True:
                     match = next((w for w in request('windows')['windows']
-                                  if args.text in w['appId'] or args.text in w['title']), None)
+                                  if (w['appId'] == args.text if args.exact else
+                                      args.text in w['appId'] or args.text in w['title'])), None)
                     if match:
                         print(match['id'])
                         return

@@ -17,7 +17,11 @@ edit only scratch copies. Details and recipes: [references/examples.md](referenc
   read the logs in the runtime dir from `status --json`.
 - A paused or manual session is the user's. Never `resume` it yourself; wait.
 - Claim the desktop for any multi-step sequence, and release it afterwards. A
-  refusal names the holder: wait, don't steal it.
+  refusal names the holder: wait, don't steal it. `kill` every app you launched
+  before `unclaim`; nothing else cleans up after you.
+- Work ends on this desktop. Anything that would touch the host (installing
+  into the real Zen, opening a file in a host app): hand the user the file or
+  command and let them do it.
 - If a sandbox blocks `agent-desk` (`Operation not permitted` on its socket),
   ask for permission to run it. Don't work around the sandbox.
 - Don't open a viewer (`view`) during unattended work; it opens a window on the
@@ -30,10 +34,11 @@ edit only scratch copies. Details and recipes: [references/examples.md](referenc
 ```sh
 agent-desk start                              # idempotent
 eval "$(agent-desk claim my-task 120)"        # exports AGENT_DESK_CLAIM; lapses after 120 s idle
-agent-desk run -- APP …                       # prints the PID (kill PID ends it)
-agent-desk wait-window APP                    # prints the window id
-agent-desk wait-idle                          # instead of sleeps
-agent-desk shot /tmp/s.png                    # read it before choosing coordinates
+agent-desk run -- APP …                       # prints the PID (kill PID ends it); log: runtime app-PID.log
+agent-desk wait-window APP --exact            # appId == APP; prints the window id (ids are never reused)
+agent-desk wait-idle                          # instead of sleeps; useless for network loads:
+agent-desk find-text 'Expected text' --timeout 20   # waits until OCR sees it
+agent-desk shot --scale 0.5 /tmp/s.png        # read it before choosing coordinates (image px × 2)
 agent-desk move X Y; agent-desk click left
 agent-desk type -- 'literal text, café λ'
 agent-desk key Ctrl+Shift+z                   # XKB names; write Shift chords naturally
@@ -51,12 +56,15 @@ agent-desk claim my-task 120 > "$XDG_RUNTIME_DIR/agent-desk/my-task.claim"
 ```
 
 Also: `focus ID`, `close ID`, `geometry ID X Y W H`, `scroll down 3`,
-`drag X1 Y1 X2 Y2`, `key --down/--up`, `release`, `shot --window ID`,
+`drag X1 Y1 X2 Y2`, `key --down/--up`, `release`, `shot --window ID` /
+`--region X Y W H` (coordinates then offset by the crop), `wait-idle --window ID`
+(ignores animations elsewhere),
 `clip set -- TEXT` / `clip get` (private clipboard, `--type text/html`),
 `record start PATH` / `record stop`, `opened` (links apps tried to open; never
 opened), `find-text TEXT` (OCR → `X Y`), `compare A B --diff D` (pixel diff),
 `a11y tree`. Coordinates are screen pixels; the window fills the screen at 0,0.
-No 2× correction.
+No 2× correction. An input that might silently do nothing: `shot` before and
+after, then `compare` them. Browsers: recipe in examples.md.
 
 ## Obsidian / doc-works
 

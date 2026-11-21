@@ -282,6 +282,32 @@ individual commands, not a multi-command `focus → type → save` transaction.
 Concurrent agents can otherwise change each other's focused window inside the
 private desktop.
 
+## Test in a browser (Firefox, Zen)
+
+Use a throwaway profile. Its `user.js` skips the welcome screen (Firefox's and
+Zen's) and the session-restore tab that a `kill` otherwise leaves:
+
+```sh
+prof=$(mktemp -d)
+cat > "$prof/user.js" <<'JS'
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+user_pref("zen.welcome-screen.seen", true);
+JS
+pid=$(agent-desk run -- env MOZ_CRASHREPORTER_DISABLE=1 firefox --no-remote --profile "$prof" URL)
+agent-desk wait-window firefox --exact          # zen-browser: appId zen
+agent-desk find-text 'text on the loaded page' --timeout 20
+```
+
+`MOZ_CRASHREPORTER_DISABLE` stops a crash-reporter window from matching
+`wait-window`. Serve local fixtures with `python3 -m http.server -b 127.0.0.1
+PORT -d DIR` (run it in the background). The browser has no eval channel here:
+assert through the page, `clip get`, or saved files.
+
 ## Check which Reach build is actually running
 
 ```sh
@@ -327,7 +353,7 @@ exercise the particular app feature requested by the user.
 | A link didn't open | Expected: `agent-desk opened` lists it |
 | A shortcut does nothing in Obsidian | The user's hotkeys / core plugins apply (quick switcher is off) |
 | `libxkbcommon.so.0: cannot open` | Nix python3; use `/usr/bin/python3` |
-| App is absent | `status --json` process exit codes, then runtime `app.log`; check profile reuse |
+| App is absent | `status --json` process exit codes, then runtime `app-PID.log` (`app.log` for Obsidian); check profile reuse |
 | Wrong private window gets input | Rediscover IDs, focus the target, verify active file/state |
 | No Obsidian AT-SPI tree | Use `obsidian-cli`; this is expected for the tested Electron build |
 | Reach socket does not appear | Runtime `river.log`; confirm the agent-capable checkout build |
