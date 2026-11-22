@@ -1,0 +1,3 @@
+# Wallpaper
+
+`Wallpaper.qml` / `WallpaperView.qml` — singleton; `IpcHandler` target `"wallpaper"` → `random` or `set <path>`; `Super+b` = `qs ipc call wallpaper random`; picks from `~/Pictures/bgs`. **RAM-critical:** the `Image` layers use `cache: true` + a single shared `sourceSize` (`Wallpaper.decodeSize`, the global max output WxH) so **all outputs share ONE decoded buffer** via `QQuickPixmapCache` — do **not** set `cache: false` or per-output `sourceSize` (that's what made every monitor hold its own copy, ~114 MB). The two crossfade layers free their source once faded out, so steady state holds a single buffer. GPU textures are still per-window but live in VRAM (nvidia), not RSS.

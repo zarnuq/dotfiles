@@ -1,0 +1,3 @@
+# WallpaperPicker
+
+`WallpaperPicker.qml` — `Picker`-based category sidebar + thumbnail grid (`Super+Shift+b` / `qs ipc call wallpaperpicker toggle`). Tiles come from `~/.cache/wallpaper-thumbs`, **never** the originals — decoding a 22MB 7264x4096 PNG per tile is what makes a previewer peg every core (it's why yazi's spun the fans). `~/.local/bin/wallpaper-thumbs` renders them and `--list` emits `category<TAB>source<TAB>thumb`, so the naming rule lives in that script and nowhere else; the picker re-runs it on every open (~35ms warm) so wallpapers added since last time appear. The `;` between render and list is deliberate — a failed render still lists what's there. Source dimensions are memoized per path so revisiting a tile never re-probes.

@@ -1,188 +1,50 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repo.
-
-> Per-app keybinding/setting tables that simply mirror a config file have been trimmed to keep this file small. When you need exact keys/values, read the config at the path noted in each section. What's kept here is context **not** derivable from the files themselves (platform quirks, migration debt, cross-component wiring).
+Personal dotfiles for a **Gentoo** desktop and laptop. This file holds only what applies anywhere in the repo. Each area's details are in a nested `CLAUDE.md` that loads when you work there (index below), so read the files themselves for exact keys and values.
 
 ## Overview
 
-Personal dotfiles for a **Gentoo Linux** system. Wayland stack centered on **reach** (a custom **Zig** river window manager; dwl-like — desktops, master/stack tiling, window rules; it draws no bar — state goes out over a socket for quickshell to draw). GNU Stow manages all symlinks from `de/` → `$HOME`. Terminal is **kitty**. Theme is **Catppuccin Mocha (Mauve accent)** everywhere. UI aesthetic: **flat/sharp** — `border-radius: 0` explicitly everywhere.
+- Wayland stack on **reach**, a custom Zig river WM (dwl-like desktops, master/stack tiling, window rules). reach draws no bar: it publishes state on a socket and **quickshell** draws the whole desktop UI. Terminal **kitty**. Theme **Catppuccin Mocha, Mauve accent**, everywhere. UI is flat: `border-radius: 0` explicitly everywhere.
+- **GNU Stow** links `de/` into `$HOME`. Setup: clone, `stow de`, `home-manager switch --flake ~/.config/home-manager#miles`. `stow -D de` removes the links. Some `$HOME` dirs are unfolded (one link per item: `~/.agents`, `~/.claude/skills`, `~/.local/bin`), so a new file there needs its link added by hand or a re-stow.
+- **Portage** first, **nix/home-manager** (a flake) second. Elevation is `doas`, with no `sudo` and no symlink. doas matches the command **as typed against the rule as written**: `permit nopass :wheel cmd poweroff` needs the bare `poweroff`, not `/usr/bin/poweroff`. Check any invocation with `doas -C /etc/doas.conf <cmd>`, which executes nothing.
+- **No polkit agent is possible:** polkit is built `-elogind -systemd`, so there is no active session and `allow_active=yes` defaults fail. Grant what's used with `/etc/polkit-1/rules.d/*.rules` returning `polkit.Result.YES` (currently `50-udisks-plugdev.rules` for the quickshell drives menu). quickshell is built `-policykit` for the same reason.
+- Previously Void Linux; no stale Void/dwl leftovers remain (cleared 2026-09-25). Add new finds here. rofi is gone: quickshell's launcher owns `Super+Space`.
 
-System package manager is **Portage** (`emerge`). Elevation is **`doas`** (`app-admin/doas`) — there is **no `sudo`** installed, and no sudo->doas symlink. doas matches a command **as typed against the rule as written** — `/etc/doas.conf` here carries `permit nopass :wheel cmd poweroff` (bare names, and miles is in `wheel`), so a caller must invoke the bare `poweroff`; passing `/usr/bin/poweroff` misses that rule and falls through to `permit persist :wheel`, which wants a password. (The `openvpn`/`kill` rules were written as absolute paths and needed the opposite — **the shell no longer uses either**: VPNs went NM-native, so nothing it runs elevates.) Check any invocation with `doas -C /etc/doas.conf <cmd>` — it prints `permit` / `permit nopass` / `deny` and executes nothing. **No polkit agent is possible here:** polkit is built `-elogind -systemd`, so there is no session tracking — an agent can't register (it asks polkit for its own session), and no process is ever an *active* session, so `allow_active=yes` defaults (udisks mounting, etc.) fall back to `auth_admin` and simply fail. The policy is **rule-based**: grant what's actually used with a `/etc/polkit-1/rules.d/*.rules` returning `polkit.Result.YES` (currently `50-udisks-plugdev.rules` for the quickshell drives menu; libvirt ships its own group rule). quickshell is built `-policykit` for the same reason. `xbps`/`pacman`/`paru`/AUR do **not** apply. Nix + home-manager runs **alongside** Portage for a curated package set (security tools, GUI apps, Python libs). Clean nix with `nix-collect-garbage -d`.
-
-> **Migration note:** previously Void Linux. Some configs still carry stale Void-era bits — see [Stale leftovers](#stale-voiddwl-leftovers).
-
-## Repository Structure
+## Layout
 
 ```
-de/                  # Stowed to $HOME
-├── .agents/         # AI config, one copy for every CLI: AGENTS.md (global instructions) + skills/ (see below)
-├── .claude/ .codex/ .vibe/  # links into .agents/, plus Claude's settings.json + statusline — never stow these dirs whole (auth, history)
-├── .config/         # App configs (incl. reach/, dconf/, quickshell/{bar,cards,launcher,monitors,music,wallpaper}/)
-├── .local/bin/      # Custom scripts
-├── .local/sv/       # Per-user runit service definitions
-├── .local/share/    # Shared data (fonts, icons, GTK themes)
-├── .zen/            # Zen browser chrome/userChrome.css
-└── Documents/       # just logo.png — stowed to ~/Documents, referenced by nothing here
-kernels/             # saved kernel .configs (desktop, old Intel laptop) — seeds for `rebuild-kernel.sh -c`; not stowed
-tests/               # quickshell lint + QML unit tests (see Tests)
-# nested CLAUDE.md files (reach/, quickshell/, quickshell/music/) load on demand
-.claude/skills/      # project skills — `quickshell` covers editing and verifying the shell
-screenshots/         # README screenshots
+de/                  stowed to $HOME
+  .agents/           AGENTS.md (global instructions for every CLI), skills/, ctf/ and redteam/ libraries
+  .claude/ .codex/ .vibe/ .gemini/   links into .agents/ plus per-CLI settings; never stow these dirs whole
+  .config/           app configs
+  .local/bin/        scripts        .local/sv/  runit user services
+kernels/             saved kernel .configs, seeds for rebuild-kernel.sh -c (not stowed)
+tests/               quickshell lint and QML unit tests
+.claude/skills/      project skills: `quickshell`
 ```
 
-> The old `de/.local/src/` (dwl/dwlb/someblocks source) is **gone** — reach replaced the dwl stack and builds outside this repo.
+## Where the details are (nested `CLAUDE.md`, loaded on demand)
 
-## Installation & Setup
+| Area | File |
+|---|---|
+| reach WM: reload, monitor layouts, gamma, state socket, rules, binds | `de/.config/reach/CLAUDE.md` |
+| quickshell: features, conventions, component notes | `de/.config/quickshell/CLAUDE.md` (+ `music/`) |
+| theme-set palette switching and its consumers | `de/.config/theme/CLAUDE.md` |
+| nix / home-manager, the overlay pins, nix GL vs nvidia | `de/.config/home-manager/CLAUDE.md` |
+| PipeWire EQ sinks, `flip.sh` | `de/.config/pipewire/CLAUDE.md` |
+| MPD and mpd-mpris, media keys | `de/.config/mpd/CLAUDE.md` |
+| beets vs `~/mux` (who owns the music library) | `de/.config/beets/CLAUDE.md` |
+| zsh: zhimmer, the Ctrl+R unbinds, the nix login-shell fix | `de/.config/zsh/CLAUDE.md` |
+| scripts (`flip.sh`, `svfzf`, `rebuild-kernel.sh` …) and runit services | `de/.local/CLAUDE.md` |
+| AI agent config: skills, libraries, zq, agents, settings.json | `de/.agents/CLAUDE.md` |
+| tests | `tests/CLAUDE.md` |
 
-Old `install*.sh` bootstrap scripts were **removed**. Setup: `git clone` → `cd dotfiles` → `stow de` → `home-manager switch --flake ~/.config/home-manager#miles` (home-manager is a **flake** now — a bare `home-manager switch` has no config to find; the `nixup` alias is the update form). `stow -D de` removes symlinks. reach is configured purely by `de/.config/reach/config.zon` (no build step here). User runit services are picked up by the `runsvdir ~/.local/sv` reach autostart launches.
+## Always relevant
 
-## Nix / home-manager
-
-Runs alongside Portage for packages not easily/freshly available via emerge. It is a **flake** (`home-manager/flake.nix`, `homeConfigurations."miles"`, nixpkgs `nixos-unstable`): apply with `home-manager switch --flake ~/.config/home-manager#miles`, update with the `nixup` alias (`nix flake update` + switch). Configs:
-- `home-manager/flake.nix` — inputs + `config.allowUnfree` + the **overlay**, which is where per-package breakage gets pinned down: `pipx` tests off, `evil-winrm` built against Ruby 3.3 (Ruby 3.4 dropped `csv` from default gems and its gemset lacks it), and a `pythonPackagesExtensions` override re-fetching `playwright` (nixpkgs pins a GitHub-generated tarball hash that GitHub regenerated — the fixed-output fetch fails and takes theharvester → `home-manager-path` → the whole generation with it, which is why a switch right after a flake update dies with *hash mismatch in fixed-output derivation*). Each override carries its reason in a comment; read them before dropping one.
-- `home-manager/home.nix` — main (GUI apps, Python); imports `default.nix`. **Intentionally minimal** — no longer manages GTK theming/cursors/fonts/Qt (those are stowed directly + pushed via `dconf load`). Sets only one session var: `XDG_DATA_DIRS=/usr/local/share:/usr/share:$HOME/.nix-profile/share`. Declares `nix` itself in `home.packages` — home-manager rebuilds `~/.nix-profile` from that list on every switch, so an undeclared `nix` gets wiped off a single-user install. Also symlinks `proton-ge-bin`'s steamcompattool into Steam's `compatibilitytools.d` via `home.file` (its default output is a bare file, so it can't go in `home.packages`).
-- `home-manager/default.nix` — thin entrypoint importing `modules/cyber.nix` + `modules/webdev.nix`.
-- `home-manager/modules/webdev.nix` — course web toolchain: `nodejs_24` (pinned to the major), `mongodb-ce` (**not** `mongodb` — that builds the server from source via scons; the `-ce` attr unpacks upstream's prebuilt tarball), mongosh/tools, the html/css/json/eslint/ts LSPs the nvim setup expects, prettier, httpie.
-- `home-manager/modules/virt.nix` — virt-manager/virt-viewer/spice-gtk. **NOT imported** by `default.nix`; add the import to use it.
-- `home-manager/modules/cyber.nix` — security/pentest toolkit (`home.packages`): nmap, burpsuite, sqlmap, ffuf, feroxbuster, metasploit, exploitdb, hashcat, hydra, aircrack-ng, wireshark, bettercap, binaryninja-free, netexec, impacket, responder, etc. (full categorized list lives in the file). `netexec` is wrapped in an `overrideAttrs` that patches the `signing` kwarg out of `nxc/protocols/ldap.py` — nixpkgs pairs it with an impacket whose `LDAPConnection` has no such parameter, so every `nxc ldap` dies in `check_ldap_signing` with a TypeError. Also defines the `my.cyberPythonLibs` option consumed by `home.nix`.
-- `home-manager/security-box/` — large per-category `*.nix` catalog, **NOT imported** by anything — staging/reference only.
-- `nixpkgs/config.nix` — `{ allowUnfree = true; }` (burpsuite, wpscan, binaryninja-free). The flake sets `config.allowUnfree` itself, so this file only matters to `nix-env`/`nix shell` outside the flake.
-- `home.nix` Python set is `virtualenv`/`pip` plus `config.my.cyberPythonLibs` — an option `cyber.nix` defines, so the pentest libraries (impacket, ldap3, pywinrm, …) land in the **same** interpreter as everything else instead of a second `python3.withPackages`. (`icalendar`/`recurring-ical-events`/`x-wr-timezone` are gone: the quickshell calendar's `calendar.sh` parses ICS with the stdlib now.)
-
-> `hashcat` is installed via nix but the comment recommends the **system** `hashcat` for OpenCL/GPU driver compat.
-
-> **nix GL vs system nvidia:** anything needing OpenGL/EGL/NVENC must come from **Portage**, not nix. The nvidia driver is Portage-managed (`/usr/lib64/libEGL_nvidia.so.*`), but nix binaries run under nix's `ld.so`, which never searches `/usr/lib64` — so the vendor ICD at `/usr/share/glvnd/egl_vendor.d/10_nvidia.json` resolves to nothing and EGL init dies (`eglGetDisplay failed` → *"Your GPU may not be supported"*). Pointing `LD_LIBRARY_PATH` at `/usr/lib64` doesn't fix it: it shadows nix libs with system ones and breaks the app earlier. Bridging the two properly is what `nixGL` exists for, and it works by shipping a *nix-built* driver matching the running kernel module — not by reusing the system one. **OBS lives in Portage for this reason** (`media-video/obs-studio`, USE `nvenc wayland screencast pulseaudio`); keep it out of `home.nix` or `~/.nix-profile/bin` will shadow `/usr/bin` on PATH.
-
-## Catppuccin Mocha Palette
-
-Base `#1e1e2e` (bg) · Surface0 `#313244` · Surface1 `#45475a` (borders) · Text `#cdd6f4` · Subtext0 `#a6adc8` · **Mauve `#cba6f7` (accent: focus/active)** · Overlay0 `#6c7086` (recessive text, a rank under Subtext0) · Overlay1 `#7f849c` (the bar's unselected desktop labels) · Blue `#89b4fa` · Green `#a6e3a1` · Peach `#fab387` (warn) · Red `#f38ba8` · Teal `#94e2d5` · Yellow `#f9e2af` · Lavender `#b4befe`.
-
-## reach Window Manager
-
-Custom Zig river WM, configured by `de/.config/reach/config.zon` (ZON). Full notes — reload semantics, pointer/output selection, gamma, monitor layouts, the state socket, env, window rules, keybinds — are in **`de/.config/reach/CLAUDE.md`**, loaded when you work there. What matters from anywhere:
-
-- **An unknown key rejects the whole config.** A reload with a parse error keeps the running config, but at **startup** reach falls back to compiled-in defaults — no binds, no layout. A binary that adds or drops a key must land together with the config.zon that uses it.
-- Reload: `Super+Shift+r` or `kill -HUP $(pidof reach)`. `.env` and `.autostart` are startup-only.
-- **Monitor layouts** are files in `de/.config/reach/monitors/`; `monitors.zon` is a gitignored symlink to the active one (per-machine). Switch/edit them in quickshell's Displays window (`Super+R` `m`). A rotated head's `.w`/`.h` are its mode, not its footprint.
-- **reach owns gamma** (brightness keys, night light via `.gamma.temperature` + reload). wl-gammarelay-rs / wlsunset / gammastep must not run, or its controls silently fail.
-- reach draws **no bar**: it publishes JSON snapshots on `$XDG_RUNTIME_DIR/reach.sock` (write-only) and quickshell draws the bar.
-- The `.env` block puts `~/.nix-profile` first on `PATH`/`XDG_DATA_DIRS` — greetd doesn't hand the nix profile down, and a bind spawning a nix binary would otherwise do nothing.
-- Keybinds live in config.zon: a `.binds` block replaces the whole default keymap except the per-desktop digit binds. Window rules: `desktop` is 1-based, `monitor` is an index into the active layout, and quickshell's windows share the app_id `org.quickshell`, so rules must also match the title.
-
-## Per-app configs (read the file for exact keys/values)
-
-- **Shell (ZSH)** — `de/.config/zsh/.zshrc` + `.zshenv`. zplug loads three plugins: `zsh-vi-mode`, **`zhimmer`** and `zsh-syntax-highlighting`. zhimmer is a **local** plugin (`zplug "$HOME/Projects/zhimmer", from:local`, `defer:2`) — not in this repo, and a missing `~/Projects/zhimmer` just means no completion drop-down and no prompt. It replaced spaceship, zsh-autosuggestions and fzf-tab all at once: it draws its own drop-down (so `complist`/`menu-style` no longer applies) and provides the prompt (`zstyle ':zhimmer:*' prompt yes`); sources are `history alias command file git-branch zoxide`. `EDITOR=nvim`, `MANPAGER="nvim +Man!"`, all tool homes redirect to `XDG_DATA_HOME`. Aliases: `gs`/`gac`/`gp`/`gl` (git), `y` (yazi+cd), `esync`/`eworld` (Portage), `nixup` (flake update + home-manager switch) / `nixgc`, `c`/`cs` (claude), `x` (codex), `ff` (fastfetch).
-  - **Ctrl+R is deliberately unbound in four keymaps**, and the comment explaining why was dropped from the file: fzf binds it in all of them, so removing it from the current keymap alone left it reachable — Esc to cancel a search drops into vi normal mode, where `vicmd` still had fzf's widget. zhimmer takes over `emacs` and `viins` itself; `vicmd '^R'` is put back to `redo`, which is what fzf took it from.
-  - `.zshenv` clears `__ETC_PROFILE_NIX_SOURCED` before Gentoo's `/etc/zsh/zprofile` runs: baselayout's `/etc/profile.env` re-exports a `PATH` with no nix in it, and `nix-daemon.sh` self-skips on that guard var — so without the unset, nix vanishes from every **login** shell (ttys, tmux).
-- **kitty** — `de/.config/kitty/kitty.conf`. JetBrainsMono Nerd Font 12, 1M scrollback, decorations hidden, Catppuccin Mocha. Window class used by reach binds: `float` (fzf pickers).
-- **tmux** — `de/.config/tmux/tmux.conf`. Prefix `Ctrl+F`, base index 1, mouse on, zsh. Plugins via tpm: catppuccin, sensible, resurrect, continuum.
-- **Neovim** — `de/.config/nvim/`. lazy.nvim. Leader `Space`, tab=4 expandtab, system clipboard, nvim-tree (right, no netrw), telescope, treesitter, lspconfig+mason (lua_ls, pyright), nvim-cmp, catppuccin. Spell en_us for md/text.
-- **rofi** — **gone**. `de/.config/rofi/` and the `spotlight-dark.rasi` theme were both deleted (commit `4def71a2`); `Launcher.qml` owns `Super+Space`. `gui-apps/rofi-wayland` is still merged but nothing in this repo invokes it.
-- **yazi** — `de/.config/yazi/`. Hidden shown, vim nav. Openers: nvim/xdg-open/swayimg/zathura/mpv. Plugins: git, piper, mount, chmod. The `setbg` opener (`O` on an image) runs `qs ipc call wallpaper set "$1"`.
-- **btop** — `de/.config/btop/btop.conf`. mocha theme, GPU nvidia/amd/intel.
-- **Zen browser** — `de/.zen/` (`user.js`, the logo SVG, Zen mods' `zen-themes.css`). Its chrome CSS is rendered into the active profile by `theme-set` (see **Palette switching**). (`de/.config/mimeapps.list` is **gone** — default-application handling is the system's now.)
-- **beets** — `de/.config/beets/config.yaml`. Owns canonical MusicBrainz metadata **and** the on-disk layout of `~/Music` (`directory: ~/Music`, `import.move: yes`, incremental). Split of duties with the separate `~/mux` tool is written into the file's header and matters: **mux dedupes** (it hashes decoded audio — beets' `duplicates` plugin keys on tags/MBIDs, which is exactly what's inconsistent here) and owns `.lrc` sidecars; **beets** owns layout and the library db. Run `mux dedupe` **first**, and never `mux organize` — two owners of layout is how a library gets shredded. The unreleased/leaks `paths` rule must stay first or an import silently re-files what `mux unreleased` shelved.
-- **xdg portals** — `de/.config/xdg-desktop-portal/portals.conf` sets `default=wlr;gtk` (wlr first, so screencast/screenshot go to the wlroots backend and file dialogs fall through to gtk); `de/.config/xdg-desktop-portal-wlr/config` picks the output/region with `slurp -f %o -or`.
-
-## Quickshell (desktop shell)
-
-`de/.config/quickshell/` is the whole desktop UI — bar, cards, launcher, pickers, lock screen, notifications, OSD, wallpaper, music player, display configurator. Per-component notes are in **`de/.config/quickshell/CLAUDE.md`** (music player: `music/CLAUDE.md`), loaded when you work there; the **`quickshell` skill** is the how-to (constraints, conventions, templates, verifying). Always relevant:
-
-- `shell.qml` is one `LazyLoader { active: Config.on("<key>") }` per feature. Which features are **off** is per-machine state in `~/.local/state/quickshell/features.json` (outside the repo), toggled from the settings menu (`Super+Shift+Escape`).
-- Runs as the runit user service `quickshell` with `QT_QUICK_BACKEND=software`, so GPU-only QML (`ShaderEffect`, `MultiEffect`, `layer.effect`) draws nothing. Restart with `SVDIR=~/.local/sv sv restart quickshell` — required after editing a `.js` library, and whenever hot reload goes stale.
-- IPC: `qs ipc call <target> toggle|hide|open` — never `show`, which the CLI swallows as `qs ipc show`.
-- Deps: nvidia-smi, curl, python3 (stdlib only). No `jq`.
-
-## Palette switching (`theme-set`)
-
-Omarchy's pattern, with matugen as the palette source: one palette in Catppuccin key names, rendered into generated files under `~/.local/state/theme/` that app configs include. Nothing generated lands in git (except via the gitignored btop file below).
-
-- Menu: `Super+R` `c` (`qs ipc call theme toggle`, quickshell `ThemeMenu.qml`). It runs `theme-set`, marks the current mode from the `mode` file, and stays open showing theme-set's last stderr line on failure.
-- `theme-set <name>` pins a fixed palette, `de/.config/theme/<name>.json` (`mocha` is the default when no mode is recorded; `gruvbox` is the other one). A new preset needs every key in `mocha.json`, or theme-set refuses it. Add a row in `ThemeMenu.qml` too. `theme-set auto` follows the wallpaper. `Wallpaper.qml` calls `theme-set --wallpaper <img>` on every change, so each login re-renders. While pinned, that call only records the image.
-- Following the wallpaper replaces **only the neutrals and the accent** (`mauve`/`lavender`/`onAccent`) from `matugen image --json hex --dry-run` (dark). The named hues stay Mocha's on purpose: they carry status/ANSI meaning. The role mapping is `FROM_MATUGEN` in `de/.local/bin/theme-set`.
-- Consumers: quickshell `Theme.qml` (watches `palette.json`, live), kitty (`include ~/.local/state/theme/kitty.conf` after `current-theme.conf`, which is only the fallback; reloaded with SIGUSR1), nvim (`color_overrides` from `palette.json` at startup), btop (`themes/current.theme`, next start). lazi needs no template: its colours are ANSI names (`"blue"`, `"black"` = color0 = surface1, `"reset"` = foreground), so it follows kitty. The exceptions are the two diff-row background tints, which stay hex. Mauve became `"magenta"`, which kitty draws as **pink**: ANSI has no mauve or peach slot, and peach became `"yellow"`. btop only finds themes in its own dir, which is a stow symlink into the repo, so that one file is written into the repo and gitignored.
-- **reach** borders: `~/.config/reach/colors.zon` (gitignored like btop's file), then a SIGHUP. It needs a reach build with `colors.zon` support (reach `8ad3fdf`); an older binary ignores the file.
-- **Zen**: `userChrome.css`/`userContent.css` are templates now (`templates/zen-user*.css`; they moved out of `de/.zen/chrome/`), rendered **into each profile's own `chrome/`**: **every** profile, i.e. each `[Profile*]` in `profiles.ini` plus each install's default (`installs.ini`/`[Install<hash>]`). Zen never read `~/.zen/chrome`, so the stowed copies never applied. Roots `~/.zen`, `~/.config/zen` and the flatpak dir are all searched, so any machine works. theme-set also adds the `legacyUserProfileCustomizations.stylesheets` pref to that profile's `user.js` if it's absent. Zen reads chrome CSS at startup only.
-- **zhimmer**: `~/.local/state/theme/zhimmer.zsh` overrides its colour tables. zhimmer sources it during load via `zstyle ':zhimmer:*' theme-file`, a hook added to zhimmer for this; it's uncommitted in `~/Projects/zhimmer`. New shells only. `RPROMPT` takes `$ZHIMMER_HEADER_COLOR` (overlay0), so it follows too.
-- **reach border fallback**: `config.zon`'s `border_*` values only apply until `colors.zon` exists. `inner_gap` must be ≥ `border_thickness`, because the divider is drawn just outside the focused window and otherwise covers the neighbour's first pixels.
-- **Obsidian**: `<vault>/.obsidian/snippets/palette.css` for every vault in `~/.config/obsidian/obsidian.json`. It's a CSS snippet over the Catppuccin theme (it re-points `--ctp-*`), not a separate theme, and Obsidian reloads it live. It must be enabled once per vault (Appearance → CSS snippets → `palette`); `~/notes` has it.
-- Templates are `de/.config/theme/templates/*`, with `{{key}}` placeholders. An unknown key fails the run instead of rendering blank. In Mocha mode they render colours identical to the old static files.
-- **signaly** (`~/Projects/signaly`, Qt front end for signal-cli): `de/.config/signaly/style.qss` is a QSS file with `{{key}}` placeholders that signaly fills from `palette.json` itself (fallback `mocha.json`), so it is **not** a theme-set template; it watches both files and restyles live.
-- **Not wired yet:** GTK (installed Catppuccin theme), Kvantum, Signal Desktop (Electron, no theming hook), and tmux (its catppuccin plugin isn't installed: there is no tpm under `~/.local/share/tmux/plugins`).
-
-## GTK / Qt Theming
-
-Flat (`border-radius: 0` global, enforced in `gtk-3.0/gtk.css`). GTK3/GTK4 are **stowed directly** as plain files (no longer home-manager–generated) — edit repo files + re-stow. Theme `catppuccin-mocha-mauve-standard+default`, icons **Papirus-Dark**, font JetBrainsMono Nerd Font, cursor Bibata-Modern-Classic.
-
-- `de/.config/dconf/interface.dconf` — `dconf load`ed into `/org/gnome/desktop/interface/` by reach autostart (GTK apps reading GNOME settings).
-- **No xsettingsd.** Its config was removed: the binary was never installed and nothing launched it, so the XSETTINGS it described were never applied. Dark mode reaches apps through `color-scheme='prefer-dark'` in `interface.dconf` instead.
-- Qt6 `de/.config/qt6ct/qt6ct.conf` (style Kvantum, catppuccin-mocha-mauve) + Kvantum `de/.config/Kvantum/kvantum.kvconfig`.
-
-## Audio: PipeWire + WirePlumber
-
-**Config:** `de/.config/pipewire/` + `de/.config/wireplumber/`. PipeWire/WirePlumber/pipewire-pulse run as runit user services.
-
-- `pipewire.conf.d/custom.conf` — `default.clock.rate = 192000`, `allowed-rates = [192000]`, `link.max-buffers = 16`.
-- `pipewire.conf.d/sink-eq.conf` — 16-band parametric EQ via builtin `filter-chain` (replaces EasyEffects). Two EQ sinks pinned via `target.object` to specific hardware: `effect_input.eq_fiio` → FiiO K11 USB DAC, `effect_input.eq_optical` → USB2.0 optical. All bands `bq_peaking`, Q=2.3521, APO(DR); coefficients mirror old `easyeffects/output/EQ.json`. **Keep both instances' coefficients in sync if regenerating.** Verify: `wpctl status | grep -E "effect_input\.eq_(fiio|optical)"`.
-- `wireplumber.conf.d/softvol.conf` — `api.alsa.soft-mixer = true` for all USB cards (`alsa_card.usb-.*`); required for USB software volume.
-
-**EQ switching:** apps connect to the default sink; `Alt+[` (`qs ipc call volume flip`) cycles the default between the two `effect_input.eq_*` sinks via `flip.sh set <sink>`, which also migrates playing streams. Raw `alsa_output.*` sinks excluded (pick those in the audio menu or via wpctl to bypass EQ).
-
-## Custom Scripts (`de/.local/bin/`)
-
-- **flip.sh** — `set <sink>` only: makes it the default, sets the USB2.0 card to `iec958-stereo` first so the optical chain's `target.object` resolves, and migrates playing streams (only those with an `application.name` — never the filter chains' own inputs). Called by the quickshell audio menu and by `Volume.flip()` (`Alt+[` → `qs ipc call volume flip`), which owns the EQ-sink cycle now.
-- **wallpaper-thumbs** — pre-renders 400x225 JPEG thumbnails of `~/Pictures/bgs` into `$XDG_CACHE_HOME/wallpaper-thumbs` for the quickshell picker; idempotent (only missing/stale files are rendered), fans out via `xargs` re-entering itself as a worker. `--list` emits `category<TAB>source<TAB>thumb` — the picker's only source of thumb paths.
-- **svfzf / ssvfzf** — two runit service managers (floating kitty + fzf; glyphs ●/○/·). **Split in two** because per-call `doas` prompts broke inside the fzf action loop (stdin is the pick pipeline). `svfzf` = **user** services in `~/.local/sv` (no elevation; enable/disable = `rm`/`touch` a `down` file; `Super+Z`). `ssvfzf` = **system** services in `/etc/sv` (re-execs under `doas` **once** up front so root persists; enable/disable = add/remove `/service` symlink; no default keybind).
-- **rebuild-kernel.sh** — Gentoo kernel rebuild ("lazygentoo", Secure Boot + UKI). Optionally updates `gentoo-sources` (`-e`), seeds + `olddefconfig`s `.config`, builds modules, rebuilds out-of-tree modules (`emerge @module-rebuild` — nvidia-drivers etc., else nvidia breaks every boot), `kernel-install add` (initramfs+UKI via `/etc/kernel/install.d` hooks), signs with ukify, prunes old UKIs, rewrites efibootmgr entry. Self-elevates via `doas`. `-y` skips prompt.
-
-## Services (runit)
-
-Two scopes, managed by `svfzf` (user, `Super+Z`) / `ssvfzf` (system, `doas`) or `sv` directly.
-
-**User** (`~/.local/sv`, supervised by per-user `runsvdir` from reach autostart; disable = drop a `down` file): `dbus` (persistent user D-Bus **session** bus — whole stack inherits it), `pipewire` (**group service**: pipewire + wireplumber + pipewire-pulse), `mpd` (**group service**: mpd + mpd-mpris), `quickshell` (widgets + wallpaper + lock + notifications + **clipboard/cliphist watchers**), `syncthing`. Manage via `svfzf` or `SVDIR=~/.local/sv sv <cmd> <name>`. **Group services** run several related daemons from one `run` script (`wait -n` → kill the group → runsv respawns all together), so a crash of any one restarts the set as a unit. (Clipboard capture used to be a standalone `cliphist` group service — now owned by quickshell's `Clipboard.qml`.)
-
-**System** (`/etc/sv` → `/service`, **outside this repo**, not stowed): enable/disable via the `/service` symlink. Inspect on-box; typically greetd/tuigreet, ufw, bluetooth, dbus, udisks2.
-
-## Music: MPD
-
-`de/.config/mpd/mpd.conf` — port 6600, `~/Music`, native `pipewire` output with `mixer_type "hardware"` (MPD's volume is the Pipewire stream volume — `software` scaled samples ahead of MPD's output buffer, so every volume key was heard only after that buffer drained), curl input on; runs as runit user service. MPRIS bridge is **`mpd-mpris`** (Go; media-sound/mpd-mpris), launched by the `mpd` **group service** (`mpd` + `mpd-mpris` together) — this is what exposes MPD on the MPRIS bus for the media keys and quickshell's `Mpd.qml`. Media keys (`XF86Audio{Play,Prev,Next}`) call `qs ipc call media {playpause,previous,next}` — an `IpcHandler` in `Mpd.qml` that drives the **MPD** MPRIS player specifically (matched by `dbusName` containing "mpd", never the active player). This replaced `playerctl -p mpd …`, so **media-sound/playerctl is no longer needed**. (The old `mpDris2` Python bridge and its `mpDris.conf` are **gone** — mpDris2 was never installed on this box; the leftover `mpDris2` service dir + config were removed.) **rmpc is gone** — package unmerged and `de/.config/rmpc/` deleted. quickshell's native client is the only one; its notes are in `de/.config/quickshell/music/CLAUDE.md`. Its keymap was lifted from the old rmpc config, which is why rmpc is still cited below as the reference for key choices.
-
-## Package Management
-
-**Primary: Portage** — `doas emerge -av <pkg>`, `--unmerge`, `--search`/`eix`, `doas emerge --sync && doas emerge -avuDN @world` (update). **Secondary: Nix/home-manager** — `home-manager switch`, `nix-env -iA nixpkgs.<pkg>`, `nix-collect-garbage -d`. **Kernel:** `rebuild-kernel.sh`.
-
-## Stale Void/DWL leftovers
-
-None left: the last ones (fastfetch's `xbps-query` modules, yazi's `swww` opener, dwl-era
-comments, the never-installed xsettingsd) were fixed or removed on 2026-09-25. Add new finds here.
-> **Not stale, despite a previous note here:** `zsh/.zshenv`'s `$HOME/.config/emacs/bin`
-> on `PATH` is live — `app-editors/emacs` is installed and `~/.config/emacs` is a Doom
-> checkout whose `bin/` holds `doom`, `doom-sync`, `doom-doctor`. Only the runit service
-> and the shell aliases were removed (commit `aa4b679f`). Leave the PATH entry alone.
-
-## AI agent config (`de/.agents/`)
-
-One real copy, linked into every CLI. `~/.agents/skills` is a folded stow link to the repo dir, so Codex, Antigravity, Copilot and other tools that read it directly see every skill. Claude Code and Vibe get the same dir through one folder link each: `de/.claude/skills` and `de/.vibe/skills` → `../.agents/skills` (the per-skill links are gone, commit `a94e74e6`), so a new skill needs no link added by hand. `~/.claude/skills` is itself a symlink into the repo now, which means claude.ai writes its `synced/` dir **into** `de/.agents/skills/synced/`; that path is gitignored and must stay so. `AGENTS.md` is the global instructions file: `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` both link to it. It holds the machine facts, the hard rules (no `doas`, no `git` command without an explicit OK) and the pentest scope rule, so they apply in every project and every CLI; project memory under `~/.claude/projects/` is per-machine, not tracked, and must not be (it holds network details, and this repo is public). `npx skills add -g` writes new skills straight into the repo. Review a third-party skill before committing it.
-
-- `ai-cli-subagents`: delegates to the Codex, `agy` and Vibe CLIs and tracks quota. State lives in `~/.local/state/ai-cli-subagents/`. Check with `python3 de/.agents/skills/ai-cli-subagents/scripts/delegate.py selftest` (offline). `always-import.txt` lists the skills pasted into every subagent prompt. `never-import.txt` holds globs for skills that are never forwarded.
-- `ydotool`: Wayland input and widget locating. `scripts/inspect_desktop.py` is read-only diagnostics and must stay that way. `scripts/ui.py` needs `/usr/bin/python3` (system `gi`). `examples/*.sh` are the real-input tests, run against open LibreOffice windows. `runit/install.sh` installs the system `ydotoold` service as root.
-- `rg-search`, `find-skills`: small prompt-only skills. `find-skills` comes from vercel-labs/skills; update it with `npx skills update`.
-- `ctf` and `redteam`: routers into a 127-skill security library kept in `de/.agents/ctf/`, **outside** `skills/` on purpose, so no CLI discovers the library skills and their descriptions don't load into every session (registered, they overflowed Claude's skill budget and pushed other skills' descriptions out of the listing). Both routers are model-invocable: one listing line each. `ctf/SKILL.md` lists 11 topics, and each topic file next to it (`skills/ctf/<topic>.md`) lists that topic's skills with their descriptions; the agent then reads `~/.agents/ctf/<name>/SKILL.md` directly. A new library skill needs a line in its topic file. `redteam/SKILL.md` covers client engagements (methodology, mindset, report) and reuses the ctf topic files for techniques. Both routers say AGENTS.md's scope rules win: `redteam-mindset` says not to stop or ask mid-engagement, and to treat unclear assets as in scope. The library was copied in by hand, not via `npx skills`, so `npx skills update` won't refresh it; re-copy from upstream instead. The blanket `allowed-tools:` line is stripped from every `SKILL.md`:
-  - `ctf-*` (11) + `solve-challenge` (the router): ljagiello/ctf-skills @ `a6106aa`, copied 2026-11-05 with upstream MIT `LICENSE`. `ctf-similar-search` needs `TAVILY_API_KEY`.
-  - 103 more (`hack` is the router; web, AD, privesc, pwn, crypto, mobile, cloud …): yaklang/hack-skills @ `6fbf0bc`, same date, MIT `LICENSE`.
-  - `hashcat`, `john-the-ripper`: TerminalSkills/skills (Apache-2.0). `active-directory-attacks`, `burp-suite-testing`, `ethical-hacking-methodology`, `metasploit-framework`, `scanning-tools`, `shodan-reconnaissance`, `sqlmap-database-pentesting`, `wireshark-analysis`: author `zebbern`, no licence file. `redteam-mindset`, `redteam-report-template`: no provenance recorded. These 12 moved in from `skills/` on 2026-11-22.
-- Also in `skills/`, with no provenance recorded here: `kubernetes-skill` (manifest authoring, not pentest), `resume-ats-optimizer`, `tech-resume-optimizer`.
-- `reverse-engineer-anything`: the REA MCP's own skill, absorbed from a non-stowed `~/.agents/skills` copy. On a machine that still has that live copy, delete it before `stow de`, or stow reports a conflict.
-
-`de/.claude/` also tracks `settings.json` (plugins, marketplaces, model, statusline) and the statusline: `statusline-command.sh` sources `water.sh`, which reads `water-facts.txt` and `water-prices.txt` from its own dir. `water-learned-prices.txt` stays local. Keep `autoMode` out of the tracked `settings.json`: it names private repos. Claude Code rewrites `settings.json` on `/config` and `/plugin`, so after a change confirm `~/.claude/settings.json` is still a symlink. `~/.codex/rules/default.rules` is deliberately not tracked: it is one-off approvals that Codex appends to.
-
-Formerly the separate `github.com/zarnuq/skills` repo, whose history stays there.
-
-## Tests
-
-`tests/run.sh` runs `tests/lint.sh` and then the QML unit tests (`tests/quickshell/tst_*.qml`: `FileSearch`, `MusicController`, `Ansi`) under `qmltestrunner`, which Gentoo installs **off PATH** at `/usr/lib64/qt6/bin/`. A TestCase name or flag (`tests/run.sh MusicController`, `-functions`) skips the lint. Units must import only QtQuick — Quickshell's plugin is linked into `qs` and can't be loaded — and the runner stages copies so a sibling `qmldir` doesn't drag Quickshell in; each script's header explains the details. `lint.sh` fails on qmllint's `syntax`/`unqualified`/`property-override`/`unused-imports`, a missing `ComponentBehavior: Bound`, or an `IpcHandler` exposing `show()` or taking an untyped argument; its other ~470 warnings are noise it filters out.
-
-## Git Workflow
-
-`gs` (status -s) · `gac "msg"` (add . + commit) · `gp` (push). `.gitignore`: tmux plugins, UUID files, `lazy-lock.json`, MPD runtime files, `*.m3u`, nvim spell files.
+- **reach rejects a config with an unknown key.** A reload with a parse error keeps the running config, but at startup reach falls back to compiled-in defaults: no binds, no layout. A binary that adds or drops a key must land with the `config.zon` that uses it. Reload with `Super+Shift+r` or `kill -HUP $(pidof reach)`.
+- **reach owns gamma.** wl-gammarelay-rs, wlsunset and gammastep must not run.
+- **quickshell** runs as the runit user service `quickshell` with software rendering. Restart: `SVDIR=~/.local/sv sv restart quickshell`. IPC is `qs ipc call <target> open|hide|toggle`, never `show`.
+- **Palette:** Base `#1e1e2e` · Surface0 `#313244` · Surface1 `#45475a` (borders) · Text `#cdd6f4` · Subtext0 `#a6adc8` · **Mauve `#cba6f7` (accent)** · Overlay0 `#6c7086` · Overlay1 `#7f849c` · Blue `#89b4fa` · Green `#a6e3a1` · Peach `#fab387` (warn) · Red `#f38ba8` · Teal `#94e2d5` · Yellow `#f9e2af` · Lavender `#b4befe`. Live colours come from `theme-set`.
+- **GTK/Qt:** GTK3/4 are stowed plain files (`gtk-3.0/gtk.css` enforces radius 0). Theme `catppuccin-mocha-mauve-standard+default`, Papirus-Dark icons, JetBrainsMono Nerd Font, Bibata-Modern-Classic cursor. `de/.config/dconf/interface.dconf` is `dconf load`ed by reach autostart and carries `color-scheme='prefer-dark'`; there is no xsettingsd. Qt6 goes through qt6ct with Kvantum.
+- **Small configs:** kitty (class `float` is used by reach binds), tmux (prefix `Ctrl+F`), nvim (lazy.nvim, leader Space), yazi (`O` on an image sets the wallpaper via `qs ipc call wallpaper set`), btop, Zen (chrome CSS rendered by theme-set). xdg portals use `default=wlr;gtk`.
+- **Git aliases:** `gs` · `gac "msg"` (add . + commit) · `gp`. Git commands still need my OK each session.

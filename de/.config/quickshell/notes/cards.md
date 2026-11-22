@@ -1,0 +1,3 @@
+# Card layout
+
+**Card layout** (unscaled units; `s()` shrinks it to 0.85 on the laptop). Left column, 420 wide: brightness `0–130` (brightness + night-light sliders), calendar `130 → screen−330` (it absorbs the slack), then bottom-up mpd `180–330`, usage+net `0–180`. Right: syncthing in the corner (sized to its rows). AI usage above syncthing (offset by `Config.syncthingHeight`, which Syncthing publishes). Habits in the top-right corner (under the bar, sized to its rows). The numbers are a chain — moving one card means moving everything below it, which is why removing the ports card (it used to hold `300–450`) meant sliding mpd and weather down and shortening the calendar; dropping weather (`450–600`) and folding net into the usage card did the same.

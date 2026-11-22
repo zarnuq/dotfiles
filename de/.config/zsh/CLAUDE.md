@@ -1,0 +1,9 @@
+# Shell (ZSH)
+
+Loaded when working in this directory. Moved out of the root `CLAUDE.md`, which keeps only an index.
+
+- **Shell (ZSH)** — `de/.config/zsh/.zshrc` + `.zshenv`. zplug loads three plugins: `zsh-vi-mode`, **`zhimmer`** and `zsh-syntax-highlighting`. zhimmer is a **local** plugin (`zplug "$HOME/Projects/zhimmer", from:local`, `defer:2`) — not in this repo, and a missing `~/Projects/zhimmer` just means no completion drop-down and no prompt. It replaced spaceship, zsh-autosuggestions and fzf-tab all at once: it draws its own drop-down (so `complist`/`menu-style` no longer applies) and provides the prompt (`zstyle ':zhimmer:*' prompt yes`); sources are `history alias command file git-branch zoxide`. `EDITOR=nvim`, `MANPAGER="nvim +Man!"`, all tool homes redirect to `XDG_DATA_HOME`. Aliases: `gs`/`gac`/`gp`/`gl` (git), `y` (yazi+cd), `esync`/`eworld` (Portage), `nixup` (flake update + home-manager switch) / `nixgc`, `c`/`cs` (claude), `x` (codex), `ff` (fastfetch).
+  - **Ctrl+R is deliberately unbound in four keymaps**, and the comment explaining why was dropped from the file: fzf binds it in all of them, so removing it from the current keymap alone left it reachable — Esc to cancel a search drops into vi normal mode, where `vicmd` still had fzf's widget. zhimmer takes over `emacs` and `viins` itself; `vicmd '^R'` is put back to `redo`, which is what fzf took it from.
+  - `.zshenv` clears `__ETC_PROFILE_NIX_SOURCED` before Gentoo's `/etc/zsh/zprofile` runs: baselayout's `/etc/profile.env` re-exports a `PATH` with no nix in it, and `nix-daemon.sh` self-skips on that guard var — so without the unset, nix vanishes from every **login** shell (ttys, tmux).
+
+**Not stale:** `.zshenv`'s `$HOME/.config/emacs/bin` on `PATH` is live. `app-editors/emacs` is installed and `~/.config/emacs` is a Doom checkout (`doom`, `doom-sync`, `doom-doctor`). Leave that PATH entry alone.

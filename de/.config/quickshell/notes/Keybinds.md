@@ -1,0 +1,3 @@
+# Keybinds
+
+`Keybinds.qml` / `Keybinds.js` — keybind cheatsheet (`Super+/` / `qs ipc call keybinds toggle`), a type-to-filter `Picker` like `Processes`. It re-reads `reach/config.zon` on every open, so it can't drift from the binds. `Keybinds.js` does a flat line scan of the `.binds` block, the same approach as `launcher/Commands.qml` but over every bind, not only `qs ipc call` ones: a `//` comment directly in the block becomes a section header (consecutive lines join), a `.chord` opens its own section, and the compiled-in `Super`/`+Ctrl`/`+Shift` + `1`–`9` desktop binds are appended because config.zon never lists them. It imports only QtQuick, so `tests/quickshell/tst_keybinds.qml` covers it. A query that matches a header keeps that whole section.

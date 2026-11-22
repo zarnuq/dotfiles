@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Claude Code hooks for zq, wired in ~/.claude/settings.json.
+
+prompt    UserPromptSubmit: a one-line reminder of the zq voice and ladder.
+subagent  SubagentStart: inject AGENTS.md's zq sections into the subagent
+          types that don't load CLAUDE.md.
+"""
+import json
+import os
+import re
+import sys
+
+AGENTS = os.path.expanduser("~/.agents/AGENTS.md")
+# zq: Explore and Plan skip CLAUDE.md, general-purpose and custom agents load it
+# (tested 2026-11-22). Re-test after Claude Code updates.
+NO_CLAUDE_MD = {"Explore", "Plan"}
+REMIND = ("zq: answer first, terse; code, paths and errors verbatim. "
+          "Before code, climb the ladder: needed? reuse? stdlib? native? one line? "
+          "Run the proof before saying done.")
+
+
+def sections(text, names):
+    found = []
+    for name in names:
+        m = re.search(rf"^## {re.escape(name)}\n.*?(?=^## |\Z)", text, re.M | re.S)
+        if m:
+            found.append(m.group(0).strip())
+    return "\n\n".join(found)
+
+
+def emit(event, context):
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": event,
+                                             "additionalContext": context}}))
+
+
+def main(mode):
+    if mode == "prompt":
+        emit("UserPromptSubmit", REMIND)
+    elif mode == "subagent":
+        try:
+            agent = json.load(sys.stdin).get("agent_type", "")
+        except ValueError:
+            agent = ""
+        if agent not in NO_CLAUDE_MD:
+            return
+        try:
+            with open(AGENTS) as f:
+                context = sections(f.read(), ["Replies (zq voice)", "Coding (zq core)"])
+        except OSError:
+            return
+        if context:
+            emit("SubagentStart", context)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "")

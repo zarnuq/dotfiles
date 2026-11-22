@@ -1,6 +1,6 @@
 # Music player (`de/.config/quickshell/music/`)
 
-Loaded when working in this directory. MPD itself (config, MPRIS bridge, media keys) is in the root `CLAUDE.md` under **Music: MPD**.
+Loaded when working in this directory. MPD itself (config, MPRIS bridge, media keys) is in `de/.config/mpd/CLAUDE.md`.
 
 A native MPD client in a **window**, not a picker overlay — `Super+W` / `qs ipc call music toggle`. Feature key `music` in the settings menu.
 

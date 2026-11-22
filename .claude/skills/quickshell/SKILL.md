@@ -7,7 +7,7 @@ description: How to change or extend the quickshell desktop shell in this dotfil
 
 The shell lives in `de/.config/quickshell/` (stowed to `~/.config/quickshell`, so
 edits are live). `de/.config/quickshell/CLAUDE.md` and `music/CLAUDE.md` load when
-you work there and hold the *why* behind each component; read the section for the
+you work there; the *why* behind each component is in `notes/<Name>.md` — read the note for the
 component you're touching before changing it — most odd-looking code there is a fix
 for something. This skill is the *how*.
 
@@ -75,7 +75,7 @@ Every file follows these; qmllint enforces most of them.
 
 | You're adding… | Base | Location |
 |---|---|---|
-| an ambient desktop card | `Widget` (+ `CardHeader`, `Graph`, and the root `Gauge`) | `cards/` — then fit it into the **Card layout** chain in `de/.config/quickshell/CLAUDE.md`, which moves the cards around it |
+| an ambient desktop card | `Widget` (+ `CardHeader`, `Graph`, and the root `Gauge`) | `cards/` — then fit it into the card layout chain in `de/.config/quickshell/notes/cards.md`, which moves the cards around it |
 | a full-screen menu / picker | `Picker` + `PickerList` + `PickerRow` (or `PickerSearch` + `PickerResults` for type-to-filter) | root |
 | a surface you sit in and resize | `Scope` + `IpcHandler` + `FloatingWindow` (see `monitors/Monitors.qml`) | own folder if it has helpers |
 | shared state read by several files | a `Singleton` | **root** — Quickshell auto-registers singletons only there |
