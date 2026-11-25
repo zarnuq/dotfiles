@@ -7,7 +7,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus",
   "skillOverrides": {
     "anthropic-skills:resume-ats-optimizer": "off"
   },
@@ -99,5 +99,39 @@
   "theme": "dark",
   "switchModelsOnFlag": true,
   "inputNeededNotifEnabled": false,
-  "agentPushNotifEnabled": false
+  "agentPushNotifEnabled": false,
+  "autoMode": {
+    "soft_deny": [
+      "$defaults",
+      "Bash(rm -rf:*) on /home/miles/dotfiles — irreversible local destruction of personal config history not already covered by defaults",
+      "Bash(stow -D:*) outside de/ (unstow operations touching paths beyond this repo's managed directories)"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: Public — github.com/zarnuq/dotfiles (confirmed via gh). Any push here is publishing.",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: main (default). No rulesets or classic branch protection listed by gh for zarnuq/dotfiles",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: The trusted repo (zarnuq/dotfiles) and its origin remote (github.com/zarnuq/dotfiles) only — public visibility, so only this repo's own work belongs here",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar. Note: .gitignore excludes `token.json` — treat as a credential file, never commit it",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: personal dotfiles / desktop environment development (Gentoo, Wayland, quickshell, reach WM) — hobby/personal use",
+      "**Trusted repo**: /home/miles/dotfiles (origin: github.com/zarnuq/dotfiles), public visibility — only this repo's own work is OK to push here; confidential/personal material is never cleared into it by visibility alone",
+      "**Org-specific CLIs**: None configured — repo-specific tools in routine use: `stow`, `doas` (elevation, no sudo), `emerge`/`nix`/`home-manager`, `qs` (quickshell IPC), zig toolchain",
+      "Routine under /home/miles/dotfiles/ prefix: editing de/.config/**, tests/, .claude/skills/quickshell/**, stow/unstow operations, quickshell restart/reload commands"
+    ]
+  }
 }

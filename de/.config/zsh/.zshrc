@@ -49,6 +49,7 @@ fi
 source $ZPLUG_HOME/init.zsh
 zstyle ':zhimmer:*' sources history alias command file git-branch zoxide
 zstyle ':zhimmer:*' prompt yes
+zstyle ':zhimmer:*' vi yes
 # theme-set's render of the palette; a missing file keeps zhimmer's defaults.
 zstyle ':zhimmer:*' theme-file "${XDG_STATE_HOME:-$HOME/.local/state}/theme/zhimmer.zsh"
 zplug "$HOME/Projects/zhimmer", from:local, use:"zhimmer.plugin.zsh", defer:2

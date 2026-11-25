@@ -1,0 +1,35 @@
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+[projects."/home/miles"]
+trust_level = "trusted"
+
+[projects."/home/miles/bluesweep"]
+trust_level = "trusted"
+
+[projects."/home/miles/Downloads"]
+trust_level = "trusted"
+
+[projects."/home/miles/dotfiles"]
+trust_level = "trusted"
+
+[projects."/home/miles/Projects/IST256-Project"]
+trust_level = "trusted"
+
+[projects."/home/miles/Projects/ferrite"]
+trust_level = "trusted"
+
+[projects."/home/miles/CCSO/Workshops"]
+trust_level = "trusted"
+
+[projects."/home/miles/Projects/homelab"]
+trust_level = "trusted"
+
+[tui]
+screen_reader_detection_done = true
+
+[tui.model_availability_nux]
+gpt-6-astra = 3
+"gpt-6.1-sol" = 4

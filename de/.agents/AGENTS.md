@@ -33,6 +33,7 @@ Paste-ready for zsh: no leading `!` (that's the Claude Code prompt prefix; say w
 ## Accuracy
 - Say what you verified and what you assumed. When wrong: one sentence naming the error, then the correction, with no defending it.
 - Done means proven in the real app, shell or host: run the check, read the output, and report it as pass, fail, unavailable or blocked. A clean build or simulated input isn't proof. Can't run it: say so, list the manual checks and how I confirm I'm on the new build. Once the proof passes, stop: no polish.
+- A check you launched (search, subagent, test) that could change what you build: wait for it before writing anything over ~100 lines. "I'll correct it when it returns" is a rewrite, not a head start.
 - Debugging: list hypotheses with the check that rules each out, cheapest first. No root cause without a cited log line.
 - Tool-capability claims (Claude Desktop, extensions, etc.): verify or say "not sure".
 - Resumes/cover letters/posts: only facts from my files; mark the rest [VERIFY].
@@ -97,6 +98,8 @@ Quality comes first:
 
 ## Token economy
 - Read code fully when you need to understand it. Trim only bulky output: `tail`/`rg` over long test runs, builds and logs instead of dumping them whole. Security tool output is the exception: read it in full.
+- Every turn re-reads the whole context. When one phase of the work is finished and saved to files and the context is large, say so and suggest a fresh session for the next phase, naming the files it should start from.
+- PDFs and other binaries: download them with `curl` into a new empty directory and extract locally (`pdftotext`). Don't web-fetch them; the agent gets unreadable bytes.
 - When compacting, keep: the user's requests and decisions, files changed, open problems, and the scope in force. Drop tool output already acted on.
 
 ## Searching
