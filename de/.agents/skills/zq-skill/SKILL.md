@@ -21,6 +21,8 @@ A skill is a reusable technique, not the story of how one problem got solved. Wr
 3. **Rerun** the same scenario with the skill and confirm the behaviour changed.
 4. **Close loopholes.** Find the new excuse, plug it, rerun.
 
+`scripts/run.sh <dir> "<prompt>"` runs one headless session in a scratch fixture dir and saves `<dir>.jsonl` next to it; `FLAGS=--safe-mode` gives the no-customization baseline. `scripts/trace.py <dir>.jsonl` prints the main-thread tool calls in order plus turns and cost, so "did it invoke X before the first Edit" is one read. Compare cost too: a rule that fixes behaviour but triples the calls is a new failure. `scripts/suite.sh <new-dir>` reruns the whole zq regression (every scenario, zq and baseline, about $4); a new AGENTS.md rule gets a scenario in `fixtures.py` and its check in `check.py`.
+
 An edit to an existing skill gets the same test.
 
 ## Description

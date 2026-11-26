@@ -1,6 +1,6 @@
 ---
 name: ai-cli-subagents
-description: Use when work can be handed to Miles's other AI subscriptions running as headless CLI subagents — Codex (ChatGPT Plus), Antigravity `agy` (Google AI Pro, Gemini and Claude models) and Mistral Vibe (Le Chat Free) — to save Claude's usage and context. Trigger whenever the user says "ask codex", "ask gemini/agy", "use mistral/vibe", "fan this out", "run these in parallel", "use my other subscriptions", "get a second opinion", or asks how much quota or usage is left on those CLIs; also use it for bulk or mechanical work (big file or log reading, codebase sweeps, boilerplate, tests, independent subtasks) where delegating beats doing it in Claude's context, even if no CLI is named.
+description: Use when handing work to Codex, agy (Gemini) or Vibe (Mistral) as headless CLI subagents to save Claude usage - "ask codex/agy/vibe", "fan this out", "second opinion", quota left on those CLIs - or for bulk mechanical work (big file or log reads, codebase sweeps, boilerplate, tests) even if no CLI is named.
 ---
 
 # AI CLI subagents

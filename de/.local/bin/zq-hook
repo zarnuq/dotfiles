@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Claude Code hooks for zq, wired in ~/.claude/settings.json.
 
-prompt    UserPromptSubmit: a one-line reminder of the zq voice and ladder.
+prompt    UserPromptSubmit: a fresh-session nudge once the context passes
+          BIG_CONTEXT tokens; silent below that.
 subagent  SubagentStart: inject AGENTS.md's zq sections into the subagent
           types that don't load CLAUDE.md.
 """
@@ -14,9 +15,36 @@ AGENTS = os.path.expanduser("~/.agents/AGENTS.md")
 # zq: Explore and Plan skip CLAUDE.md, general-purpose and custom agents load it
 # (tested 2026-11-22). Re-test after Claude Code updates.
 NO_CLAUDE_MD = {"Explore", "Plan"}
-REMIND = ("zq: answer first, terse; code, paths and errors verbatim. "
-          "Before code, climb the ladder: needed? reuse? stdlib? native? one line? "
-          "Run the proof before saying done.")
+# zq: fixed threshold; the model can't see its own context size, so the hook
+# reads it from the transcript's last usage block. Tune here if it nags early.
+BIG_CONTEXT = 150_000
+TAIL_BYTES = 2_000_000
+
+
+def context_tokens(path):
+    """Context size of the last main-thread API call, from the transcript tail."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - TAIL_BYTES))
+            lines = f.read().splitlines()
+    except OSError:
+        return 0
+    for line in reversed(lines):
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(d, dict):
+            continue
+        # usage from before a /compact describes a context that no longer exists
+        if d.get("type") == "system" and d.get("subtype") == "compact_boundary":
+            return 0
+        u = (d.get("message") or {}).get("usage")
+        if d.get("type") == "assistant" and not d.get("isSidechain") and u:
+            return sum(u.get(k, 0) for k in ("input_tokens", "cache_read_input_tokens",
+                                              "cache_creation_input_tokens"))
+    return 0
 
 
 def sections(text, names):
@@ -34,8 +62,20 @@ def emit(event, context):
 
 
 def main(mode):
+    # A/B runs in zq-skill/scripts/suite.sh set this to measure Claude without zq.
+    if os.environ.get("ZQ_HOOK_OFF") and mode != "selftest":
+        return
     if mode == "prompt":
-        emit("UserPromptSubmit", REMIND)
+        try:
+            path = json.load(sys.stdin).get("transcript_path", "")
+        except ValueError:
+            path = ""
+        tokens = context_tokens(path) if path else 0
+        if tokens > BIG_CONTEXT:
+            emit("UserPromptSubmit",
+                 f"Context is ~{tokens // 1000}k tokens and every turn re-reads it: "
+                 "at the next phase break, say so and suggest /compact, or a fresh "
+                 "session naming the files it should start from.")
     elif mode == "subagent":
         try:
             agent = json.load(sys.stdin).get("agent_type", "")
@@ -50,6 +90,36 @@ def main(mode):
             return
         if context:
             emit("SubagentStart", context)
+    elif mode == "selftest":
+        selftest()
+
+
+def selftest():
+    import tempfile
+
+    def rec(kind, tokens=None, side=False):
+        msg = {"usage": {"input_tokens": 5, "cache_read_input_tokens": tokens,
+                         "cache_creation_input_tokens": 0}} if tokens else {}
+        return json.dumps({"type": kind, "isSidechain": side, "message": msg})
+
+    with tempfile.TemporaryDirectory() as d:
+        def check(lines, want, raw=b""):
+            p = os.path.join(d, "t.jsonl")
+            with open(p, "wb") as f:
+                f.write(raw + "\n".join(lines).encode())
+            got = context_tokens(p)
+            assert got == want, (lines, got, want)
+
+        check([rec("assistant", 200_000), rec("user")], 200_005)
+        check([rec("assistant", 10), rec("assistant", 300_000, side=True)], 15)
+        check([rec("user"), "{broken", "42", "[1]"], 0)
+        check([rec("assistant", 7), "x" * (TAIL_BYTES + 10)], 0)
+        check([rec("assistant", 7)], 12, raw=b'{"cut": "\xe2\x82\n')
+        boundary = json.dumps({"type": "system", "subtype": "compact_boundary"})
+        check([rec("assistant", 200_000), boundary, rec("user")], 0)
+        check([rec("assistant", 200_000), boundary, rec("assistant", 9)], 14)
+        assert context_tokens(os.path.join(d, "missing.jsonl")) == 0
+    print("zq-hook selftest: ok")
 
 
 if __name__ == "__main__":

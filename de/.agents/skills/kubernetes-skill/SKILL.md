@@ -1,6 +1,6 @@
 ---
 name: kubernetes-skill
-description: "Prevent Kubernetes hallucinations by diagnosing and fixing failure modes: insecure workload defaults, resource starvation, network exposure, privilege sprawl, fragile rollouts, and API drift. Use when generating, reviewing, refactoring, or migrating manifests, Helm charts, Kustomize overlays, cluster policies, and platform-specific Kubernetes work for EKS, GKE, AKS, OpenShift, GitOps controllers, or observability stacks."
+description: "Use when writing, reviewing or migrating Kubernetes manifests, Helm charts, Kustomize overlays or cluster policies (EKS, GKE, AKS, OpenShift, GitOps), to avoid insecure defaults, missing limits and API drift."
 ---
 
 # KubeShark: Failure-Mode Workflow for Kubernetes

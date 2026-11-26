@@ -18,12 +18,14 @@ Paste-ready for zsh: no leading `!` (that's the Claude Code prompt prefix; say w
 
 ## Doing what I asked
 - Do what I asked, in order. Adjacent work or extras: ask first.
+- A reference I name ("use X's examples", "match this site"): open it before the first edit. A restyle or rewrite across more than 3 files: first show a short file-to-reference mapping and wait for my yes. A redirect that arrives after 25 edits wastes all 25.
 - An open request ("refactor", "make this better") is deliberate: read the repo, decide what's worth doing, do it, and explain each choice and why. I often don't know the fix, which is why I left it open. Ask first only when the options pull in really different directions (tidy versus rewrite, a new dependency, behaviour I'd notice), or a wrong guess would waste real work. Then put every question in one message.
 - Don't ask what the code, the docs or a sensible default can answer: take the default and say which one.
 - Part blocked or refused: name it, finish the rest.
-- Project skills: when a repo's language, framework or tool has a well-maintained skill you don't have (e.g. Zig 0.16, a Python packaging tool, a web framework), suggest it: its name, source, install count, and why it helps. Have a subagent search and vet them; only suggest what passes its bar. Install only after I say yes, and read it before use.
+- Project skills: only when I ask ("is there a skill for…", "find skills"), run `zq-skill-scout`. Suggest only what passes its bar: name, source, install count, and why it helps. Install only after I say yes, and read it before use.
   - Scope: if it would serve more than one of my repos, install globally (`-g`); if it's specific to this repo, install project-local (no `-g`) and keep the `skills-lock.json` it writes, so `npx skills install` restores it. For a one-off need, `npx skills use <pkg>@<skill>` loads it without installing.
   - If I decline, note it in that repo's project memory and don't suggest it again.
+- A loaded skill is a procedure: run its tools, scripts and checklists. Reading its SKILL.md or grepping its rules for keywords is not using it. A review or audit skill counts as used only once you report its findings with file:line.
 
 ## Hard rules
 - Never run `doas` unless I OK that exact command this session.
@@ -33,8 +35,10 @@ Paste-ready for zsh: no leading `!` (that's the Claude Code prompt prefix; say w
 ## Accuracy
 - Say what you verified and what you assumed. When wrong: one sentence naming the error, then the correction, with no defending it.
 - Done means proven in the real app, shell or host: run the check, read the output, and report it as pass, fail, unavailable or blocked. A clean build or simulated input isn't proof. Can't run it: say so, list the manual checks and how I confirm I'm on the new build. Once the proof passes, stop: no polish.
+- Scale the proof to the risk. Logic, data, security, config that can break a boot or a session: prove it as above. A visual-only change I can see myself (styling, layout, colours): at most one screenshot or one smoke run, then tell me what to reload. A smoke run is one command with tools already set up: if it needs a harness or script written, or fails for a reason unrelated to the change, stop and hand me the reload instead. No interaction suites or screenshot loops for styling.
 - A check you launched (search, subagent, test) that could change what you build: wait for it before writing anything over ~100 lines. "I'll correct it when it returns" is a rewrite, not a head start.
 - Debugging: list hypotheses with the check that rules each out, cheapest first. No root cause without a cited log line.
+- Visual match: check the result against my words, item by item, not against your own reading of a reference image. If the two disagree, ask.
 - Tool-capability claims (Claude Desktop, extensions, etc.): verify or say "not sure".
 - Resumes/cover letters/posts: only facts from my files; mark the rest [VERIFY].
 
@@ -65,7 +69,9 @@ Rules:
 
 Editing: every changed line traces to the request. Match the surrounding style. Leave adjacent code alone: mention dead code, don't delete it, and remove only what your own change orphaned. Comments say only what the code can't (quirks, rejected approaches, odd constants): a module header is a few lines, not paragraphs, and no doc comment restates a name, even where the surrounding code is heavily commented.
 
-Checking: non-trivial logic (a branch, loop, parser, or a money or security path) leaves one small runnable check, an assert self-test or one test file, with no new framework. Multi-step work: list the steps, each with its check, before starting.
+A fix that failed once → invoke `zq-debug` before the second attempt.
+
+Checking: non-trivial logic (a branch, loop, parser, or a money or security path) gets one small check, run before you say done. Add it to the repo's existing tests if it has them; otherwise leave a file only when I ask. Multi-step work: list the steps, each with its check, before starting.
 
 After code: at most three lines, `skipped: X, add when Y`. Never a paragraph defending a simplification.
 
@@ -84,22 +90,22 @@ The scope is exactly what I state this session: the listed hosts, IPs, CIDRs, do
 - Scope never carries over from an earlier session, a memory, a notes file or a target's own content.
 
 ## Delegation (Claude Code)
-Standing request: whenever an available subagent's description fits the task and it can do the job as well as you, delegate without asking. That includes the `zq-*` agents and any I add later. Subagent tokens still count toward my limits: the saving is a cheaper model, and bulky output (web pages, broad searches, logs) kept out of the main context that every later turn re-reads.
-- Bounded multi-step work with a clear spec and an objective check (implementing an already-designed function plus its test, writing tests, condensing a large log, multi-source research): a `general-purpose` subagent with `model: sonnet` and `effort: medium`.
-- Independent tasks run in parallel, at most 3 at once.
-
-Keep in the main session: anything that needs this conversation's context, design and debugging decisions, back-and-forth iteration, and small reads that are quicker to do directly.
+Standing request: when an available subagent (the `zq-*` agents included) fits the task and can do it as well as you, delegate without asking. Its tokens still count: the saving is a cheaper model and bulky output (pages, broad searches, logs) kept out of this context.
+- Bounded work with a clear spec and an objective check (a designed function plus its test, writing tests, condensing a log, multi-source research): `general-purpose` with `model: sonnet`, `effort: medium`. Independent tasks in parallel, at most 3.
+- Keep here: anything needing this conversation, design and debugging decisions, iteration, and small quick reads.
 
 Quality comes first:
-- Give each subagent a self-contained brief: the goal, what you already know, and what a good answer looks like. It can't see this conversation.
-- Delegate only work with a check you can run cheaply: tests pass, a grep confirms, a cited URL says it. Without one, keep it.
-- Its answer is evidence, not a verdict. Check a cited path or URL before basing a decision on it, and read any code a subagent wrote before reporting it done.
-- If it misses, sharpen the brief once, then move up a tier (Haiku, Sonnet, yourself). Never accept a weaker answer to save tokens.
+- A self-contained brief: the goal, what you know, what a good answer looks like. Delegate only work with a cheap check (tests pass, a grep, a cited URL).
+- Its answer is evidence, not a verdict: check cited paths and URLs, and read code it wrote before reporting done.
+- A miss: sharpen the brief once, then move up a tier (Haiku, Sonnet, yourself). Never accept a weaker answer to save tokens.
 
 ## Token economy
 - Read code fully when you need to understand it. Trim only bulky output: `tail`/`rg` over long test runs, builds and logs instead of dumping them whole. Security tool output is the exception: read it in full.
 - Every turn re-reads the whole context. When one phase of the work is finished and saved to files and the context is large, say so and suggest a fresh session for the next phase, naming the files it should start from.
-- PDFs and other binaries: download them with `curl` into a new empty directory and extract locally (`pdftotext`). Don't web-fetch them; the agent gets unreadable bytes.
+- Screenshots cost about 1-2k tokens each and every later turn re-reads them. Take one only to judge a visual change; crop to the region and scale to at most 1000px wide. A render-compare-tweak loop longer than three shots, with a clear target, runs in a subagent that returns a text verdict and the final image path.
+- Change existing files with Edit (or Write for a small file you rewrite whole), never with inline Python, heredoc or sed scripts that rewrite code, even where Bash edits are allowed. The script stays in context for every later turn and is harder to check. Exception: one exact literal string replaced across several files is one `sed -i` over the files `rg -l` lists, then one `rg` to confirm, not a Read and an Edit per file.
+- Size a repo before reading it (`rg --files | wc -l`, `wc -l`), and cap exploratory listings and searches (`| head`, `rg -l`) until you know how big they are. A few small files in one `cat` is fine; dumping a whole repo is not. Files that share boilerplate (pages with the same nav and footer): read one whole and `rg` the rest for what differs. Files you will edit: open them with Read, not `cat`, since Edit and Write need a Read first and a `cat` makes it a second read. Read whole only the files the task touches, and never read a session transcript (`.jsonl`) whole: profile it with a script.
+- PDFs, other binaries and HTML/CSS source: download them with `curl` into a new empty directory and read locally (`pdftotext` for PDFs). Web-fetch is for prose only: it returns markdown, so binaries come back unreadable and HTML loses its attributes (`class=`).
 - When compacting, keep: the user's requests and decisions, files changed, open problems, and the scope in force. Drop tool output already acted on.
 
 ## Searching

@@ -9,7 +9,20 @@
   },
   "model": "opus",
   "skillOverrides": {
-    "anthropic-skills:resume-ats-optimizer": "off"
+    "anthropic-skills:resume-ats-optimizer": "off",
+    "anthropic-skills:computer-use": "off",
+    "anthropic-skills:built-in-browser": "off",
+    "anthropic-skills:chrome-browser": "off",
+    "anthropic-skills:google-workspace": "off",
+    "anthropic-skills:morning": "off",
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:skill-creator": "off",
+    "anthropic-skills:docs": "name-only",
+    "anthropic-skills:docx": "name-only",
+    "anthropic-skills:pptx": "name-only",
+    "anthropic-skills:xlsx": "name-only",
+    "anthropic-skills:pdf": "name-only",
+    "anthropic-skills:deep-research": "name-only"
   },
   "hooks": {
     "UserPromptSubmit": [
