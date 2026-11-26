@@ -41,4 +41,4 @@ de/.config/reach/nightlight.zon
 # claude.ai writes synced skills here; now reachable via de/.claude/skills
 # and de/.vibe/skills folder symlinks into de/.agents/skills/.
 de/.agents/skills/synced/
-.claude/
+.claude/settings.local.json
