@@ -3,8 +3,9 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// Screenshots. No surface — just the `capture` IPC target the Super+S chord
-// calls:
+// Screenshots, plus the capture menu (`qs ipc call screenshots toggle`,
+// Super+S a) that also starts and stops Recorder's screen recordings. The
+// `capture` IPC target is what the rest of the Super+S chord calls:
 //
 //   qs ipc call capture region         slurp a region
 //   qs ipc call capture display <n>    whole display n, 1-based left to right
@@ -46,8 +47,9 @@ Scope {
         }
 
         // Any output grim knows — it rejects a name it does not, and says which.
+        // The sleep lets the capture menu's overlay unmap first when it called.
         function output(name: string): void {
-            root.run("grim -o " + root.sq(name) + " -" + root.copied);
+            root.run("sleep 0.2; grim -o " + root.sq(name) + " -" + root.copied);
         }
 
         // Into the annotator window (Annotate.qml), which writes ~/Pictures
@@ -69,5 +71,65 @@ Scope {
     LazyLoader {
         active: root.editing !== ""
         Annotate { path: root.editing; onDone: root.editing = "" }
+    }
+
+    Picker {
+        id: menu
+        ipcTarget: "screenshots"
+
+        rows: {
+            var shots = [{ kind: "header", label: "Screenshot" },
+                         { kind: "shot", label: "Region", icon: "󰩭" }];
+            var recs = [{ kind: "header", label: "Record" },
+                        { kind: "sound", label: "Desktop sound" },
+                        { kind: "mic", label: "Microphone" },
+                        { kind: "rec", label: "Region", icon: "󰩭" }];
+            for (var i = 0; i < Config.displays.length; i++) {
+                var d = { label: "Display " + (i + 1), icon: "󰍹", output: Config.displays[i].name };
+                shots.push(Object.assign({ kind: "shot" }, d));
+                recs.push(Object.assign({ kind: "rec" }, d));
+            }
+            shots.push({ kind: "annotate", label: "Annotate clipboard", icon: "󰏬" });
+            // One recording at a time: while one runs, Stop takes the place
+            // of the Record section, first so the menu opens on it.
+            if (Recorder.recording)
+                return [{ kind: "header", label: "Recording" },
+                        { kind: "stop", label: "Stop Recording", icon: "󰓛" }].concat(shots);
+            return shots.concat(recs);
+        }
+
+        boxWidth: s(420)
+
+        function activate(i): void {
+            if (!selectable(i)) return;
+            var r = rows[i];
+            if (r.kind === "sound" || r.kind === "mic") { Recorder[r.kind] = !Recorder[r.kind]; return; }
+            menu.hide();
+            if (r.kind === "stop") Recorder.stop();
+            else if (r.kind === "annotate") ipc.annotate();
+            else if (r.kind === "shot") r.output ? ipc.output(r.output) : ipc.region();
+            else r.output ? Recorder.output(r.output) : Recorder.region();
+        }
+
+        box: Component {
+            PickerList {
+                picker: menu
+                rowDelegate: PickerRow {
+                    id: rowItem
+                    picker: menu
+                    width: parent.width
+                    onActivated: menu.activate(rowItem.index)
+                    readonly property bool box_: rowItem.modelData.kind === "sound" || rowItem.modelData.kind === "mic"
+                    readonly property bool ticked: rowItem.box_ && Recorder[rowItem.modelData.kind]
+                    icon: rowItem.isHeader ? "" : rowItem.box_ ? (rowItem.ticked ? "󰄲" : "󰄱") : rowItem.modelData.icon
+                    iconColor: rowItem.modelData.kind === "stop" ? Theme.red
+                             : rowItem.ticked ? Theme.mauve
+                             : rowItem.sel ? Theme.mauve : Theme.subtext0
+                    label: rowItem.isHeader ? "" : rowItem.modelData.label
+                    trailing: rowItem.modelData.output || ""
+                    trailingWidth: menu.s(90)
+                }
+            }
+        }
     }
 }

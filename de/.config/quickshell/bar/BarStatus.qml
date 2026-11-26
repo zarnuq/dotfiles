@@ -55,6 +55,13 @@ Row {
     Delim { visible: Config.on("agentDesktop") }
 
     Block {
+        visible: Recorder.recording
+        text: "󰑊 REC"
+        color: Theme.red
+    }
+    Delim { visible: Recorder.recording }
+
+    Block {
         text: root.statusData.ip
     }
     Delim {}

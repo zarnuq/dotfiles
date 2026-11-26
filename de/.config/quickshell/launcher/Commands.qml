@@ -42,6 +42,7 @@ Singleton {
 
         { name: "Lock screen",      desc: "and session menu",    glyph: "󰌾", args: ["lock",      "lock"] },
         { name: "Random wallpaper", desc: "from ~/Pictures/bgs", glyph: "󰊠", args: ["wallpaper", "random"] },
+        { name: "Screenshot / record", desc: "capture menu",  glyph: "󰄀", args: ["screenshots",     "open"] },
         { name: "Annotate clipboard", desc: "image → annotator", glyph: "󰏬", args: ["capture",   "annotate"] },
         { name: "Flash cursor",     desc: "spotlight",           glyph: "󰍉", args: ["spotlight", "flash"] },
         { name: "Play / pause",     desc: "MPD",                 glyph: "󰐊", args: ["media",     "playpause"] }

@@ -116,6 +116,7 @@
         .{ .key = "Super+s", .chord = .{
             // Digits are displays counted left to right, so they mean the
             // same thing on every machine.
+            .{ .key = "a", .action = .{ .spawn = "qs ipc call screenshots toggle" } },
             .{ .key = "s", .action = .{ .spawn = "qs ipc call capture region" } },
             .{ .key = "d", .action = .{ .spawn = "qs ipc call capture annotate" } },
             .{ .key = "1", .action = .{ .spawn = "qs ipc call capture display 1" } },
