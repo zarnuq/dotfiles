@@ -13,6 +13,10 @@ Use this skill when the user:
 - Needs help with developer/PM/technical job applications
 - Mentions: "tech resume", "software engineer resume", "developer resume", "technical resume", "SWE resume", "PM resume"
 
+## Facts
+
+Use only facts from the user's own files, in the resume and in any cover letter or post. Mark anything else, including a metric you'd like to add, `[VERIFY]`.
+
 ## Core Capabilities
 
 - Optimize resumes for technical roles (SWE, PM, Data, DevOps)

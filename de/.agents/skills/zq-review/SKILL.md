@@ -47,7 +47,7 @@ Exact line numbers and symbol names in backticks. No praise, no hedging, no rest
 
 Reviews only: it applies nothing unless asked.
 
-For a large change you made yourself in this session, offer a fresh reviewer: a `general-purpose` subagent given only the diff and the requirements, never the session history, so it judges the work rather than your reasoning.
+For multi-file work you made yourself in this session, use a fresh reviewer: the `zq-reviewer` subagent (or `general-purpose` where it doesn't exist) given only the diff (or the changed paths and line ranges) and the requirements, never the session history, so it judges the work rather than your reasoning.
 
 ## When review comes back to you
 

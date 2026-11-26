@@ -15,6 +15,10 @@ Use this skill when the user wants to:
 
 Also use when the user provides a resume file and mentions they're applying to jobs.
 
+## Facts
+
+Use only facts from the user's own files, in the resume and in any cover letter or post. Mark anything else, including a metric you'd like to add, `[VERIFY]`.
+
 ## Core Capabilities
 
 - Parse resume and test ATS compatibility

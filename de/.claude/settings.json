@@ -22,7 +22,8 @@
     "anthropic-skills:pptx": "name-only",
     "anthropic-skills:xlsx": "name-only",
     "anthropic-skills:pdf": "name-only",
-    "anthropic-skills:deep-research": "name-only"
+    "anthropic-skills:deep-research": "name-only",
+    "dataviz": "name-only"
   },
   "hooks": {
     "UserPromptSubmit": [
