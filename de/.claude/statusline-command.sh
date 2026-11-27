@@ -58,6 +58,14 @@ usage_emoji() {
 ')
 [ -z "$cwd" ] && cwd="$PWD"
 
+# Mirror the limits for quickshell's AiUsage card; stdin is their only local source.
+# Written in place, not renamed over, so the card's file watch keeps its inode.
+if [ -n "$five_pct" ] || [ -n "$seven_pct" ]; then
+    usage_dir="${XDG_STATE_HOME:-$HOME/.local/state}/ai-usage"
+    mkdir -p "$usage_dir"
+    echo "$input" | jq -c '.rate_limits | {five_hour, seven_day}' > "$usage_dir/claude.json"
+fi
+
 # Line 1
 L="\033[1;38;2;217;119;87m${model}${R}"
 [ -n "$effort" ] && L="${L} \033[38;2;217;119;87m(${effort})${R}"
