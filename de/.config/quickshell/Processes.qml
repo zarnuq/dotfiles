@@ -16,10 +16,7 @@ Picker {
     heightFraction: 0.6
     rowHeight: s(30)
 
-    readonly property int queryHeight: s(46)
-
     property var procs: []        // [{pid, user, cpu, mem, args}]
-    property string query: ""
     property var marked: ({})     // pid -> true
     property string status: ""
 
@@ -28,7 +25,6 @@ Picker {
         return q === "" ? root.procs
              : root.procs.filter(p => (p.pid + " " + p.user + " " + p.args).toLowerCase().includes(q));
     }
-    onQueryChanged: root.selected = 0
     count: root.results.length
 
     onOpened: { root.marked = ({}); root.status = ""; lister.running = true; }
@@ -49,13 +45,14 @@ Picker {
             out.push({ pid: m[1], user: m[3], cpu: m[4], mem: m[5], args: m[6] });
         });
         root.procs = out;
-        if (root.selected >= root.results.length) root.selected = Math.max(0, root.results.length - 1);
     }
 
+    // A copy: reassigning the same object emits no change, so the mark
+    // highlight wouldn't redraw.
     function toggleMark(): void {
         var p = root.results[root.selected];
         if (!p) return;
-        var m = root.marked;
+        var m = Object.assign({}, root.marked);
         if (m[p.pid]) delete m[p.pid]; else m[p.pid] = true;
         root.marked = m;
         root.move(1);
@@ -84,40 +81,26 @@ Picker {
     Timer { id: relist; interval: 300; onTriggered: lister.running = true }
 
     box: Component {
-        Column {
-            spacing: 0
+        PickerQueryBox {
+            picker: root
+            placeholder: "Kill…"
+            status: root.status
+            hint: "⏎ TERM   ^k KILL   tab mark"
 
-            function reset(): void { search.reset(); root.query = ""; }
-
-            PickerSearch {
-                id: search
-                picker: root
-                width: parent.width
-                height: root.queryHeight
-                margin: root.s(12)
-                fontSize: root.s(19)
-                placeholder: "Kill…"
-                onTextChanged: root.query = text
-
-                onSubmitted: root.kill("TERM")
-                onExtraKey: function (e) {
-                    if (e.key === Qt.Key_Tab) root.toggleMark();
-                    else if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) root.kill("KILL");
-                    else return;
-                    e.accepted = true;
-                }
+            onSubmitted: root.kill("TERM")
+            onExtraKey: function (e) {
+                if (e.key === Qt.Key_Tab) root.toggleMark();
+                else if (e.key === Qt.Key_K && (e.modifiers & Qt.ControlModifier)) root.kill("KILL");
+                else return;
+                e.accepted = true;
             }
-
-            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
 
             PickerResults {
                 id: list
                 picker: root
-                width: parent.width
-                height: parent.height - root.queryHeight - footer.height - 1
+                anchors.fill: parent
                 model: root.results
                 emptyText: root.procs.length === 0 ? "listing…" : "no matches"
-                emptySize: root.s(14)
 
                 delegate: PickerRow {
                     id: rowItem
@@ -137,13 +120,6 @@ Picker {
                     trailing: rowItem.modelData.user + "  " + rowItem.modelData.cpu + "%  " + rowItem.modelData.mem + "%"
                     trailingWidth: root.s(170)
                 }
-            }
-
-            PickerFooter {
-                id: footer
-                picker: root
-                status: root.status
-                hint: "⏎ TERM   ^k KILL   tab mark"
             }
         }
     }

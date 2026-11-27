@@ -21,11 +21,18 @@ Canvas {
 
     onMaxvChanged: requestPaint()   // an autoscaled ceiling redraws the history
 
-    onValueChanged: {
-        samples.push(value);
-        while (samples.length > maxSamples)
-            samples.shift();
-        requestPaint();
+    // Timed, not onValueChanged: a constant value (disk, an idle link) must
+    // still advance the window or its line stalls while the others scroll.
+    Timer {
+        interval: 2000
+        running: root.visible
+        repeat: true
+        onTriggered: {
+            root.samples.push(root.value);
+            while (root.samples.length > root.maxSamples)
+                root.samples.shift();
+            root.requestPaint();
+        }
     }
 
     onPaint: {

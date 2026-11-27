@@ -21,8 +21,6 @@ Picker {
     widthFraction: 0.35
     heightFraction: 0.5
 
-    property string query: ""
-
     // The first character picks the mode; the rest is that mode's query.
     // No app's name starts with a slash or an angle bracket, so the sigils cost
     // nothing — an empty sigil is a valid query meaning "show me everything".
@@ -78,7 +76,6 @@ Picker {
     // A menu row is a plain object from Commands; an app is a DesktopEntry,
     // which has no `args`. Per row, since the plain list mixes the two.
     function isCmd(hit) { return !!hit && hit.args !== undefined; }
-    onQueryChanged: root.selected = 0
 
     // What the arrows walk.
     count: root.results.length
@@ -131,7 +128,7 @@ Picker {
             spacing: 0
 
             // Called by Picker every time the box appears on an output.
-            function reset(): void { search.reset(); root.query = ""; }
+            function reset(): void { search.reset(); }
 
             // The placeholder survives the lone sigil that switches mode, so the
             // box says what it's searching before you've typed a query.
@@ -140,13 +137,11 @@ Picker {
                 picker: root
                 width: parent.width
                 height: root.s(52)
-                margin: root.s(12)
                 fontSize: root.s(24)
                 placeholder: text === "/" ? "Find file…"
                              : text === ">" ? "Open menu…"
                              : "Search…  ( / files, > menus only)"
                 placeholderShown: text === "" || text === "/" || text === ">"
-                onTextChanged: root.query = text
 
                 onSubmitted: function (e) {
                     root.launch((e.modifiers & Qt.ControlModifier) ? "xdg"

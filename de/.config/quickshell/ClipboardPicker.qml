@@ -27,16 +27,12 @@ Picker {
     // the box stays heightFraction tall — and PickerRow picks it up by default.
     rowHeight: s(32)
 
-    readonly property int queryHeight: s(46)
-
     property var entries: []      // [{id, raw, preview, isImage, meta, time}]
-    property string query: ""
 
     readonly property var results: {
         var q = root.query.toLowerCase();
         return q === "" ? root.entries : root.entries.filter(e => e.preview.toLowerCase().includes(q));
     }
-    onQueryChanged: root.selected = 0
 
     // What j/k walk.
     count: root.results.length
@@ -87,12 +83,11 @@ Picker {
             });
         }
         root.entries = out;
-        if (root.selected >= root.results.length) root.selected = Math.max(0, root.results.length - 1);
     }
 
     // ── preview ──────────────────────────────────────────────────────────
     readonly property string cacheDir:
-        (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/quickshell/clip"
+        Config.cacheHome + "/quickshell/clip"
 
     // id -> {text} | {img}. Cleared on every open, so an id that changed hands
     // (a `cliphist wipe` restarts ids at 1) can't show the previous entry's
@@ -218,39 +213,24 @@ Picker {
     }
 
     box: Component {
-        Column {
-            spacing: 0
+        PickerQueryBox {
+            picker: root
+            placeholder: "Clipboard…"
+            hint: "⏎ copy   ^e edit   ^t ocr   ^f full   ^d delete"
 
-            // Called by Picker each time the box appears on an output.
-            function reset(): void { search.reset(); root.query = ""; }
-
-            PickerSearch {
-                id: search
-                picker: root
-                width: parent.width
-                height: root.queryHeight
-                margin: root.s(12)
-                fontSize: root.s(19)
-                placeholder: "Clipboard…"
-                onTextChanged: root.query = text
-
-                onSubmitted: root.copy()
-                onExtraKey: function (e) {
-                    if (!(e.modifiers & Qt.ControlModifier)) return;
-                    if (e.key === Qt.Key_D) root.remove();
-                    else if (e.key === Qt.Key_E) root.edit();
-                    else if (e.key === Qt.Key_T) root.ocr();
-                    else if (e.key === Qt.Key_F) root.zoomed = !root.zoomed;
-                    else return;
-                    e.accepted = true;
-                }
+            onSubmitted: root.copy()
+            onExtraKey: function (e) {
+                if (!(e.modifiers & Qt.ControlModifier)) return;
+                if (e.key === Qt.Key_D) root.remove();
+                else if (e.key === Qt.Key_E) root.edit();
+                else if (e.key === Qt.Key_T) root.ocr();
+                else if (e.key === Qt.Key_F) root.zoomed = !root.zoomed;
+                else return;
+                e.accepted = true;
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
-
             Row {
-                width: parent.width
-                height: parent.height - root.queryHeight - footer.height - 1
+                anchors.fill: parent
                 spacing: 0
 
                 // History list.
@@ -262,7 +242,6 @@ Picker {
                     height: parent.height
                     model: root.results
                     emptyText: root.entries.length === 0 ? "clipboard history empty" : "no matches"
-                    emptySize: root.s(14)
 
                     delegate: PickerRow {
                         id: rowItem
@@ -333,12 +312,6 @@ Picker {
                         elide: Text.ElideRight
                     }
                 }
-            }
-
-            PickerFooter {
-                id: footer
-                picker: root
-                hint: "⏎ copy   ^e edit   ^t ocr   ^f full   ^d delete"
             }
         }
     }

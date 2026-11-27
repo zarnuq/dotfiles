@@ -1,5 +1,4 @@
 pragma ComponentBehavior: Bound
-import Quickshell
 import Quickshell.Io
 import QtQuick
 import "Keybinds.js" as Keybinds
@@ -17,15 +16,11 @@ Picker {
     headerHeight: s(30)
     rowHeight: s(28)
 
-    readonly property int queryHeight: s(46)
-
     readonly property string configPath:
-        (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/reach/config.zon"
+        Config.configHome + "/reach/config.zon"
 
     property var all: []
-    property string query: ""
     readonly property var results: Keybinds.filter(root.all, root.query)
-    onQueryChanged: root.selected = 0
     count: root.results.length
 
     FileView { id: cfg; path: root.configPath; blockLoading: true; printErrors: false }
@@ -33,33 +28,18 @@ Picker {
     onOpened: { cfg.reload(); root.all = Keybinds.parse(cfg.text()); }
 
     box: Component {
-        Column {
-            spacing: 0
-
-            function reset(): void { search.reset(); root.query = ""; }
-
-            PickerSearch {
-                id: search
-                picker: root
-                width: parent.width
-                height: root.queryHeight
-                margin: root.s(12)
-                fontSize: root.s(19)
-                placeholder: "Keybinds…"
-                onTextChanged: root.query = text
-                onSubmitted: root.hide()
-            }
-
-            Rectangle { width: parent.width; height: 1; color: Theme.surface1 }
+        PickerQueryBox {
+            picker: root
+            placeholder: "Keybinds…"
+            hint: "from reach/config.zon   esc close"
+            onSubmitted: root.hide()
 
             PickerResults {
                 id: list
                 picker: root
-                width: parent.width
-                height: parent.height - root.queryHeight - footer.height - 1
+                anchors.fill: parent
                 model: root.results
                 emptyText: root.all.length === 0 ? "no .binds in " + root.configPath : "no matches"
-                emptySize: root.s(14)
 
                 delegate: PickerRow {
                     id: rowItem
@@ -73,12 +53,6 @@ Picker {
                     label: rowItem.isHeader ? "" : rowItem.modelData.action
                     labelSize: root.s(13)
                 }
-            }
-
-            PickerFooter {
-                id: footer
-                picker: root
-                hint: "from reach/config.zon   esc close"
             }
         }
     }

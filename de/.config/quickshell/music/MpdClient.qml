@@ -4,30 +4,10 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// The MPD client: the protocol itself, spoken over a socket from QML.
-//
-// Why not `mpc`: every query would be a fork, and the interesting ones are not
-// one-shot — a music browser wants to know the instant the song, the queue or a
-// toggle changes. That is what MPD's `idle` gives us for free, and what the old
-// Mpd.qml card could not have (MPRIS publishes the current track and nothing
-// else: no queue, no library, no playlists).
-//
-// **Transport.** MPD 0.24 opens $XDG_RUNTIME_DIR/mpd/socket on its own, with no
-// `bind_to_address` line in mpd.conf. That matters because Quickshell's `Socket`
-// is a QLocalSocket — unix only, no TCP — so the port 6600 that rmpc uses is not
-// reachable from here at all. The socket being a 0.24 default is the whole
-// reason this needs no mpd.conf change; on an older MPD it would.
-//
-// **Two connections, deliberately.** `idle` blocks its connection until
-// something changes, so a client that idles on the only connection it has can
-// never ask a question. Every real MPD client keeps a second one. Here `idleSock`
-// parks in `idle` and does nothing but report which subsystems changed, and
-// `cmdSock` carries every command. The alternative (one socket, `noidle` before
-// each command) races: the noidle and the change can cross.
-//
-// **The response format.** MPD answers `key: value` lines terminated by `OK` or
-// `ACK [..] {..} message`. Commands are strictly FIFO, so one in flight at a
-// time with a callback queue behind it is enough — no request ids, no matching.
+// The MPD client: the protocol over a unix socket, with `idle` for change
+// events. Transport, the two connections and queue sync: see music/CLAUDE.md.
+// Responses are `key: value` lines ending in `OK` or `ACK ..`; commands are
+// strictly FIFO, so one in flight plus a callback queue needs no request ids.
 Singleton {
     id: root
 
@@ -368,17 +348,9 @@ Singleton {
     function stop(): void            { root.send("stop"); }
     function next(): void            { root.send("next"); }
     function previous(): void        { root.send("previous"); }
-    // NEVER land on the end of a track. `seekcur <duration>` completes it and
-    // MPD moves to the next song, so holding the seek key re-seeked to each new
-    // track's end and walked the queue about a song a second — and at that rate
-    // MPD 0.24.12's output thread hit an assertion in PlayChunk and died.
-    //
-    // The guard is several seconds rather than a token amount for two reasons:
-    // landing one second from the end still ends the track a second later, so
-    // the runaway continued; and seeking to the last moments of a FLAC is what
-    // produced the "Decoder failed to seek" runs. Parking here leaves a real
-    // gap of playback, which is both the natural end of a fast-forward and long
-    // enough to notice and let go.
+    // Never land on the end of a track: `seekcur <duration>` advances the queue.
+    // Several seconds, not one: a seek 1 s from the end still ends the track, and
+    // seeking into a FLAC's last moments is what failed to seek (music/CLAUDE.md).
     readonly property real _seekTailGuard: 5.0
     function clampSeek(sec) {
         var end = Math.max(0, root.duration - root._seekTailGuard);
@@ -398,17 +370,9 @@ Singleton {
         seekFlush.restart();
     }
 
-    // Holding the seek key is reach's 50/s key repeat, so a naive one-command-
-    // per-press sends fifty `seekcur`s a second. Each is a `player` change, each
-    // brings a `status` back, and the bar ends up flickering between the position
-    // the key asked for and whichever reply landed last — which is exactly what
-    // holding Left looked like. Two fixes, both needed:
-    //   - coalesce the repeats into one command per _seekFlushMs, so MPD sees a
-    //     single seek of the accumulated size rather than fifty small ones;
-    //   - move the local clock immediately, so the bar tracks the key rather
-    //     than the round trip, and guard it from the replies still in flight.
-    // A flag, not an accumulator: the flush sends an absolute position taken
-    // from the local clock, so there is nothing to sum.
+    // Repeats coalesce into one absolute `seekcur` per _seekFlushMs, and the local
+    // clock moves at once, guarded against replies still in flight (music/CLAUDE.md).
+    // A flag, not an accumulator: the flush sends the local clock's position.
     property bool _seekPending: false
     property real _lastSeekSent: -1
     property double _seekGuardUntil: 0
@@ -448,9 +412,7 @@ Singleton {
             });
         }
     }
-    // Coalesced like the seek: key repeat is 50/s, and one `setvol` round trip
-    // per press queues them behind each other on a FIFO socket — which is the
-    // audible lag, not just a slow number.
+    // Coalesced like the seek: one `setvol` per press queues on the FIFO socket.
     property bool _volDirty: false
 
     function changeVolume(d): void {
@@ -596,14 +558,8 @@ Singleton {
         }
     }
 
-    // MPD closes a connection that has gone quiet for `connection_timeout`
-    // (60s by default, and mpd.conf does not set it). cmdSock sits silent
-    // between commands, so the server hung up on it roughly once a minute; the
-    // retry timer at the bottom reconnected, and the greeting on the fresh
-    // connection runs refreshAll() — a full refetch of the 6k queue whenever it
-    // is retained, plus a reset of queueWasBulk. One cheap command well inside
-    // that window keeps the connection alive instead. idleSock needs none: MPD
-    // does not time out a connection parked in `idle`.
+    // Keeps cmdSock inside MPD's 60 s connection_timeout: a reconnect refetches the
+    // whole queue (music/CLAUDE.md). idleSock needs none.
     Timer {
         interval: 30000
         repeat: true

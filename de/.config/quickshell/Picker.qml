@@ -82,6 +82,14 @@ Scope {
     // Return does nothing. Picker owns both, so it owns the invariant; the two
     // menus that remembered to do this for themselves had the same six lines.
     onRowsChanged: if (!selectable(selected)) selected = firstSelectable();
+    // The same for the pickers that drive their own list (a kill or a delete
+    // relists under the cursor): they land on the new last row instead.
+    onCountChanged: if (rows.length === 0 && selected >= count) selected = Math.max(0, count - 1);
+
+    // What a type-to-filter picker's PickerSearch writes; a new query starts
+    // at the top of its results.
+    property string query: ""
+    onQueryChanged: selected = 0
 
     // Headers aren't stops on the way down the list; step over them.
     //
@@ -150,13 +158,12 @@ Scope {
     Timer {
         id: fallback
         interval: 150
-        onTriggered: if (root.open && root.activeScreen === "") root.activeScreen = root.defaultScreen();
+        // Latching a name that matches no output would leave the picker mapped
+        // but invisible on every monitor, so this is Config's pin — the main
+        // screen when it's there, else the first one (no DP-2 on the laptop).
+        onTriggered: if (root.open && root.activeScreen === "")
+            root.activeScreen = Config.pinScreen ? Config.pinScreen.name : "";
     }
-
-    // Latching a name that matches no output would leave the picker mapped but
-    // invisible on every monitor, so this is Config's pin — the main screen
-    // when it's there, else the first one (on the laptop there is no DP-2).
-    function defaultScreen() { return Config.pinScreen ? Config.pinScreen.name : ""; }
 
     // No `show` here on purpose: `qs ipc call <target> show` collides with the
     // `qs ipc show` subcommand — the CLI prints the target listing, exits 0 and

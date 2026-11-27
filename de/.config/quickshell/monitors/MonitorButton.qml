@@ -14,7 +14,6 @@ Rectangle {
     // layout turns that off, since it marks a state rather than an action.
     property bool accentHover: true
     property real hPad: Config.s(24)     // left + right, around the label
-    readonly property alias hovered: hover.hovered
     signal clicked()
 
     width: text.implicitWidth + root.hPad

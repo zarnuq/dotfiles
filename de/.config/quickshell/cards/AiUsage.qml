@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import QtQml.Models
 import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // AI usage, bottom-right above the syncthing card.
@@ -32,7 +33,7 @@ Widget {
     property real now: Date.now() / 1000
 
     readonly property string stateDir:
-        (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ai-usage"
+        Config.stateHome + "/ai-usage"
 
     FileView {
         id: claudeFile
@@ -53,16 +54,16 @@ Widget {
         }
     }
 
-    Poll {
-        interval: 300000
-        command: ["python3", Quickshell.shellDir + "/scripts/ai-usage.py", "agy"]
-        onJsonData: v => root.agy = v || { error: "usage unavailable" }
-    }
-
-    Poll {
-        interval: 900000
-        command: ["python3", Quickshell.shellDir + "/scripts/ai-usage.py", "kiro"]
-        onJsonData: v => root.kiro = v || { error: "usage unavailable" }
+    // `error` marks a run that gave nothing.
+    Instantiator {
+        model: [{ key: "agy", every: 300000 }, { key: "kiro", every: 900000 }]
+        delegate: Poll {
+            id: probe
+            required property var modelData
+            interval: probe.modelData.every
+            command: ["python3", Quickshell.shellDir + "/scripts/ai-usage.py", probe.modelData.key]
+            onJsonData: v => root[probe.modelData.key] = v || { error: "usage unavailable" }
+        }
     }
 
     Timer {
@@ -150,19 +151,17 @@ Widget {
             }
         }
 
-        Txt {
-            visible: !root.agy || !!root.agy.error
-            font.pixelSize: root.s(13)
-            color: Theme.subtext0
-            text: "agy · " + (root.agy ? "usage unavailable" : "loading…")
+        Repeater {
+            model: [{ label: "agy", key: "agy" }, { label: "Kiro", key: "kiro" }]
+            delegate: Txt {
+                id: miss
+                required property var modelData
+                readonly property var usage: root[miss.modelData.key]
+                visible: !miss.usage || !!miss.usage.error
+                font.pixelSize: root.s(13)
+                color: Theme.subtext0
+                text: miss.modelData.label + " · " + (miss.usage ? "usage unavailable" : "loading…")
+            }
         }
-
-        Txt {
-            visible: !root.kiro || !!root.kiro.error
-            font.pixelSize: root.s(13)
-            color: Theme.subtext0
-            text: "Kiro · " + (root.kiro ? "usage unavailable" : "loading…")
-        }
-
     }
 }

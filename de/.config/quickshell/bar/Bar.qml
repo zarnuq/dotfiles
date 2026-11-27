@@ -46,11 +46,6 @@ Scope {
     // off a fixed pixel count — they have to shrink with it, not overflow it.
     readonly property int trayIconSize: root.barHeight - root.s(6)
 
-    // reach's bar colours (config.zon `.bar`), so the two look identical.
-    readonly property color normalFg: Theme.overlay1
-    readonly property color selectFg: Theme.barSelectFg
-    readonly property color selectBg: Theme.mauve
-
     // ─── status sources ──────────────────────────────────────────────────
     // Shared by every output's bar: sampled once here, not once per monitor.
 
@@ -106,12 +101,12 @@ Scope {
                         readonly property int desktop: cell.index + 1
                         readonly property bool active: bar.wm ? bar.wm.desktop === cell.desktop : false
                         readonly property bool occupied: bar.wm ? bar.wm.occupied.indexOf(cell.desktop) !== -1 : false
-                        readonly property color fg: active ? root.selectFg : root.normalFg
+                        readonly property color fg: active ? Theme.barSelectFg : Theme.overlay1
 
                         visible: active || occupied
                         width: label.implicitWidth + root.s(13)
                         height: parent.height
-                        color: active ? root.selectBg : Theme.base
+                        color: active ? Theme.mauve : Theme.base
 
                         Txt {
                             id: label
@@ -131,7 +126,6 @@ Scope {
                 statusData: sharedStatus
                 fontSize: root.fontSize
                 trayIconSize: root.trayIconSize
-                normalFg: root.normalFg
                 anchors {
                     right: parent.right
                     top: parent.top
@@ -144,9 +138,9 @@ Scope {
             //    Drawn last so its background can't paint over either.
             Rectangle {
                 anchors { left: desktops.right; right: status.left; top: parent.top; bottom: parent.bottom }
-                color: bar.isSelected ? root.selectBg : Theme.base
+                color: bar.isSelected ? Theme.mauve : Theme.base
 
-                readonly property color fg: bar.isSelected ? root.selectFg : root.normalFg
+                readonly property color fg: bar.isSelected ? Theme.barSelectFg : Theme.overlay1
 
                 Txt {
                     anchors {

@@ -1,5 +1,4 @@
 pragma ComponentBehavior: Bound
-import Quickshell
 import Quickshell.Io
 import QtQuick
 import ".."   // Theme, Config, Txt, Poll and the root singletons
@@ -30,7 +29,7 @@ Widget {
     property var devices: []         // [{ name, connected }]
 
     FileView {
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/syncthing/config.xml"
+        path: Config.stateHome + "/syncthing/config.xml"
         blockLoading: true
         printErrors: false
         onLoaded: {

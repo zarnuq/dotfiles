@@ -106,6 +106,13 @@ FocusScope {
         root.loadPreset(root.activeName);
     }
 
+    /// An entry for a live output at its current mode (first mode if none is flagged).
+    function liveEntry(o, x, included) {
+        var modes = o.modes || [];
+        var mode = modes.find(m => m.current) || modes[0] || { width: 0, height: 0 };
+        return root.entry({ name: o.name, w: mode.width, h: mode.height, x: x }, included);
+    }
+
     /// Build the working copy for `name` by merging the preset with the live
     /// outputs: preset entries first (order is monitor numbering, so it is
     /// meaningful), then any connected head the preset does not mention.
@@ -122,9 +129,7 @@ FocusScope {
         for (var k = 0; k < root.outputs.length; k++) {
             var o = root.outputs[k];
             if (out.some(m => m.name === o.name)) continue;
-            var modes = o.modes || [];
-            var mode = modes.find(m => m.current) || modes[0] || { width: 0, height: 0 };
-            var unlisted = root.entry({ name: o.name, w: mode.width, h: mode.height, x: park }, false);
+            var unlisted = root.liveEntry(o, park, false);
             park += root.effW(unlisted);
             out.push(unlisted);
         }
@@ -188,27 +193,6 @@ FocusScope {
         root.patch(index, { transform: order[(at + 1) % order.length] });
     }
 
-    function stepMode(index, direction): void {
-        var m = root.working[index];
-        var modes = root.modesFor(m.name);
-        if (modes.length === 0) return;
-        var at = -1;
-        for (var i = 0; i < modes.length; i++)
-            if (modes[i].w === m.w && modes[i].h === m.h
-                && (m.refresh === 0 || modes[i].refresh === m.refresh)) at = i;
-        var next = (at < 0) ? 0 : (at + direction + modes.length) % modes.length;
-        root.patch(index, { w: modes[next].w, h: modes[next].h, refresh: modes[next].refresh });
-    }
-
-    function stepScale(index, direction): void {
-        var steps = [1.0, 1.25, 1.5, 1.75, 2.0];
-        var m = root.working[index];
-        var at = steps.indexOf(m.scale);
-        if (at < 0) at = 0;
-        var next = Math.max(0, Math.min(steps.length - 1, at + direction));
-        root.patch(index, { scale: steps[next] });
-    }
-
     function toggleIncluded(index): void {
         var m = root.working[index];
         if (m.included && root.includedOnly().length <= 1) {
@@ -257,9 +241,7 @@ FocusScope {
         var x = 0, out = [];
         for (var k = 0; k < root.outputs.length; k++) {
             var o = root.outputs[k];
-            var modes = o.modes || [];
-            var mode = modes.find(m => m.current) || modes[0] || { width: 0, height: 0 };
-            var e = root.entry({ name: o.name, w: mode.width, h: mode.height, x: x }, true);
+            var e = root.liveEntry(o, x, true);
             x += root.effW(e);
             out.push(e);
         }
@@ -341,6 +323,7 @@ FocusScope {
         onJsonData: reply => {
             if (!reply) root.status = "no reply from monitors.py";
             else if (!reply.ok) root.status = reply.error || "failed";
+            else if (reply.deleted) root.status = "deleted " + reply.deleted;
             else root.status = reply.reloaded === false ? "saved (reach not running)" : "applied";
             // Re-read rather than patching the local copy: the script is the
             // authority on what landed in the file, including a rename or a

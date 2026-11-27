@@ -9,7 +9,6 @@ Row {
     required property BarStatusData statusData
     required property int fontSize
     required property int trayIconSize
-    required property color normalFg
 
     spacing: 0
     // Keep the first status block separated from the title's app_id, even
@@ -17,12 +16,25 @@ Row {
     leftPadding: Config.s(8)
 
     component Block: Txt {
+        // Trailing "|" in the same colour and font, for as long as this block shows.
+        property bool delim: true
         anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-        color: root.normalFg
+        color: Theme.overlay1
         font.pixelSize: root.fontSize
+        rightPadding: delim ? sep.implicitWidth : 0
+        Txt {
+            id: sep
+            visible: parent.delim
+            anchors.right: parent.right
+            text: "|"
+            color: Theme.overlay1
+            font.pixelSize: root.fontSize
+        }
     }
+
     component Delim: Block {
         text: "|"
+        delim: false
     }
 
     BarTray {
@@ -41,7 +53,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         sourceComponent: Txt {
             font.pixelSize: root.fontSize
-            color: !AgentDesktopState.status.running ? root.normalFg
+            color: !AgentDesktopState.status.running ? Theme.overlay1
                  : AgentDesktopState.status.paused ? Theme.peach : Theme.green
             text: !AgentDesktopState.status.running ? "AI off"
                 : AgentDesktopState.status.paused ? "AI paused"
@@ -59,45 +71,33 @@ Row {
         text: "󰑊 REC"
         color: Theme.red
     }
-    Delim { visible: Recorder.recording }
-
     Block {
         text: root.statusData.ip
     }
-    Delim {}
     Block {
         text: root.statusData.sinkName
         visible: text.length > 0
-    }
-    Delim {
-        visible: root.statusData.sinkName.length > 0
     }
     Block {
         text: "󰂱 " + root.statusData.bluetooth
         visible: root.statusData.bluetooth !== ""
     }
-    Delim {
-        visible: root.statusData.bluetooth !== ""
-    }
     Block {
         text: Volume.volume + "%"
     }
-    Delim {}
     // An unmuted mic warns that the room is being heard; muted is quiet.
     Block {
         text: Volume.micVolume + "%"
-        color: Volume.micMuted ? root.normalFg : Theme.red
+        color: Volume.micMuted ? Theme.overlay1 : Theme.red
     }
-    Delim {}
     Block {
         text: root.statusData.clock
         color: Theme.subtext1
-    }
-    Delim {
-        visible: Power.present
+        delim: Power.present
     }
     Block {
         visible: Power.present
+        delim: false
         text: root.statusData.batteryGlyph + " " + Power.level + "%"
         // Bright grey like the clock, green while on mains (onAc, not
         // charging: a threshold hold on AC is still plugged in). Low

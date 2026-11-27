@@ -8,8 +8,10 @@ Singleton {
     id: root
 
     property bool panelOpen: false
-    property var status: ({ running: false, paused: false, manual: false, windows: [] })
+    readonly property var stopped: ({ running: false, paused: false, manual: false, windows: [] })
+    property var status: root.stopped
     property string error: ""
+    readonly property string readError: "Cannot read desktop status"
     readonly property string runtimePath: Quickshell.env("AGENT_DESK_RUNTIME") || Config.runtimeDir + "/agent-desk"
     readonly property string executable: Quickshell.env("AGENT_DESK_COMMAND") || Quickshell.env("HOME") + "/.local/bin/agent-desk"
 
@@ -29,11 +31,13 @@ Singleton {
         onLoaded: {
             try {
                 root.status = JSON.parse(stateFile.text());
+                // Only the read error: an action's stderr stays until the next run().
+                if (root.error === root.readError) root.error = "";
             } catch (e) {
-                root.error = "Cannot read desktop status";
+                root.error = root.readError;
             }
         }
-        onLoadFailed: root.status = ({ running: false, paused: false, manual: false, windows: [] })
+        onLoadFailed: root.status = root.stopped
     }
 
     // Also discovers a runtime directory created after the shell started.

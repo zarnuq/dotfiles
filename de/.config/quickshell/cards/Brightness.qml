@@ -21,7 +21,7 @@ Widget {
     implicitWidth: s(420)
     implicitHeight: s(130)
 
-    readonly property string dir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/reach"
+    readonly property string dir: Config.configHome + "/reach"
 
     // Atomic write (tmp + mv, so a reload never reads half a file), then reload.
     function write(file, zon): void {

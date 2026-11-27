@@ -5,9 +5,9 @@ import Quickshell.Io
 import QtQuick
 
 // Shared power-mode state: the current mode, applying one, and the OSD hook.
-// Both the PowerMode menu and (future) a cycle keybind go through here so the
-// OSD has one place to watch. ~/.local/bin/powermode does the sysfs writes
-// (user-level via the 99-powermode.rules udev rule); this only drives it.
+// The PowerMode menu goes through here so the OSD has one place to watch.
+// ~/.local/bin/powermode does the sysfs writes (user-level via the
+// 99-powermode.rules udev rule); this only drives it.
 Singleton {
     id: root
 
@@ -15,9 +15,12 @@ Singleton {
     property string mode: ""
     signal flashed(string mode)   // Osd listens to this
 
-    readonly property var order: ["performance", "balanced", "saver"]
-    function iconFor(m) { return ({ performance: "󰓅", balanced: "󰾅", saver: "󰌪" })[m] || "󰾅"; }
-    function labelFor(m) { return ({ performance: "Performance", balanced: "Balanced", saver: "Power saver" })[m] || m; }
+    readonly property var modes: [
+        { id: "performance", icon: "󰓅", label: "Performance", desc: "max clocks, boost" },
+        { id: "balanced",    icon: "󰾅", label: "Balanced",    desc: "default" },
+        { id: "saver",       icon: "󰌪", label: "Power saver", desc: "2 GHz cap, no boost" }
+    ]
+    function info(m) { return root.modes.find(x => x.id === m) || { icon: "󰾅", label: m }; }
 
     Process {
         id: getter
@@ -27,7 +30,6 @@ Singleton {
     }
     Process {
         id: setter
-        stderr: StdioCollector {}
         onExited: root.refresh()
     }
 
@@ -41,20 +43,6 @@ Singleton {
         root.flashed(m);
         setter.command = [root.script, "apply", m];
         setter.running = true;
-    }
-
-    function cycle(): void {
-        var i = root.order.indexOf(root.mode);
-        root.apply(root.order[(i + 1) % root.order.length]);
-    }
-
-    // Keybind / debug entry point. Separate target from the "powermode" menu so
-    // the two IpcHandlers don't collide.
-    IpcHandler {
-        target: "power"
-        function set(mode: string): void { root.apply(mode); }
-        function cycle(): void { root.cycle(); }
-        function get(): string { return root.mode; }
     }
 
     Component.onCompleted: root.refresh()

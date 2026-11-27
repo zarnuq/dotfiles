@@ -56,7 +56,7 @@ Widget {
     readonly property real progress: {
         root._tick;   // dependency so the binding re-evaluates each tick
         return (player && player.length > 0)
-            ? Math.min(100, Math.max(0, player.position / player.length * 100)) : 0;
+            ? Math.min(1, Math.max(0, player.position / player.length)) : 0;
     }
 
     Row {
@@ -96,7 +96,7 @@ Widget {
             }
 
             // Progress.
-            Gauge { height: root.s(4); radius: root.s(3); fraction: root.progress / 100; fillColor: Theme.mauve }
+            Gauge { height: root.s(4); radius: root.s(3); fraction: root.progress; fillColor: Theme.mauve }
 
             // Volume: output + mic, click to mute-toggle.
             Row {

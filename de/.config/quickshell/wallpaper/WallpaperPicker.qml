@@ -33,7 +33,6 @@ Picker {
     // short, and refusing to move would leave its tiles unreachable.
     count: root.results.length
 
-    property var dims: ({})     // path -> "WxH", memoized so revisits never re-probe
     property string curDim: ""
 
     readonly property string tool: Quickshell.env("HOME") + "/.local/bin/wallpaper-thumbs"
@@ -93,30 +92,24 @@ Picker {
     onResultsChanged: root.updateDim()
 
     function updateDim(): void {
-        var p = root.curPath();
-        root.curDim = root.dims[p] || "";
-        if (p === "" || root.dims[p] !== undefined) dimProbe.stop();
-        else dimProbe.restart();
+        root.curDim = "";
+        dimProbe.restart();
     }
 
     // Debounced so holding j/k doesn't spawn a probe per row.
     Timer {
         id: dimProbe
         interval: 60
-        onTriggered: root.probeDim()
-    }
-
-    function probeDim(): void {
-        var p = root.curPath();
-        if (p === "" || root.dims[p] !== undefined) return;
-        if (dimProc.running) { dimProbe.restart(); return; }
-        dimProc.path = p;
-        if (p.toLowerCase().endsWith(".mp4"))
-            dimProc.command = ["ffprobe", "-v", "quiet", "-select_streams", "v:0",
-                "-show_entries", "stream=width,height", "-of", "csv=p=0", p];
-        else
-            dimProc.command = ["magick", "identify", "-ping", "-format", "%wx%h", p];
-        dimProc.running = true;
+        onTriggered: {
+            var p = root.curPath();
+            if (p === "") return;
+            dimProc.path = p;
+            dimProc.command = p.toLowerCase().endsWith(".mp4")
+                ? ["ffprobe", "-v", "quiet", "-select_streams", "v:0",
+                    "-show_entries", "stream=width,height", "-of", "csv=p=0", p]
+                : ["magick", "identify", "-ping", "-format", "%wx%h", p];
+            dimProc.running = true;
+        }
     }
 
     // -ping reads the header only: 2ms on a 22MB PNG, where a full read is 558ms.
@@ -124,14 +117,7 @@ Picker {
         id: dimProc
         property string path: ""
         stdout: StdioCollector {
-            onStreamFinished: {
-                var t = text.trim().replace(",", "x");
-                if (t === "") return;
-                var d = root.dims;
-                d[dimProc.path] = t;
-                root.dims = d;
-                if (dimProc.path === root.curPath()) root.curDim = t;
-            }
+            onStreamFinished: if (dimProc.path === root.curPath()) root.curDim = text.trim().replace(",", "x")
         }
     }
 
@@ -152,7 +138,7 @@ Picker {
                 else if (e.key === Qt.Key_Down  || (plain && e.key === Qt.Key_J)) { root.move(root.columns); }
                 else if (e.key === Qt.Key_Up    || (plain && e.key === Qt.Key_K)) { root.move(-root.columns); }
                 else if (e.key === Qt.Key_Home) { root.selected = 0; }
-                else if (e.key === Qt.Key_End)  { root.selected = root.results.length - 1; }
+                else if (e.key === Qt.Key_End)  { root.selected = Math.max(0, root.results.length - 1); }
                 else { return; }
                 e.accepted = true;
             }

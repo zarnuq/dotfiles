@@ -1,9 +1,9 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-// The query row of a picker that filters as you type (the launcher, the
-// clipboard picker and the process killer): the entry, its placeholder, and the keys every such
-// picker shares.
+// The query row of a picker that filters as you type (the launcher, and the
+// pickers built on PickerQueryBox): the entry, its placeholder, and the keys
+// every such picker shares. Its text is the picker's `query`.
 //
 // Every navigation key is handled here because the field keeps focus the whole
 // time — bare j/k belong to the query, so Picker.navKey can't be used; the list
@@ -16,8 +16,9 @@ Item {
 
     required property Picker picker
     property alias text: field.text
-    required property int margin
-    required property int fontSize
+    property int margin: root.picker.s(12)
+    property int fontSize: root.picker.s(19)
+    onTextChanged: root.picker.query = root.text
 
     property string placeholder: ""
     property bool placeholderShown: field.text === ""

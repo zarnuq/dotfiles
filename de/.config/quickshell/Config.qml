@@ -114,8 +114,10 @@ Singleton {
         { key: "tray",                group: "Panel",       label: "System tray" }
     ]
 
-    readonly property string stateDir:
-        (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell"
+    readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
+    readonly property string stateHome: Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")
+    readonly property string cacheHome: Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")
+    readonly property string stateDir: stateHome + "/quickshell"
     readonly property string statePath: stateDir + "/features.json"
     // Sockets and throwaway files (reach.sock, capture/annotate PNGs).
     readonly property string runtimeDir: Quickshell.env("XDG_RUNTIME_DIR") || "/tmp"

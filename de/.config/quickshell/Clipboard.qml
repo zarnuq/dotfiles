@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
+import QtQuick
 
 // Clipboard-history capture (replaces the runit `cliphist` group service).
 //
@@ -28,15 +29,21 @@ Scope {
     Variants {
         model: ["text", "image"]
 
-        Process {
+        Scope {
             id: watcher
             required property string modelData
-            running: true
-            command: ["wl-paste", "--type", watcher.modelData, "--watch", "sh", "-c",
-                'top() { cliphist list | head -n1 | cut -f1; }; old=$(top); cliphist store || exit; '
-                + 'new=$(top); [ -n "$new" ] && [ "$new" != "$old" ] && echo "$new $(date +%s)" >> "$1"',
-                "sh", root.timesPath]
-            onExited: running = true
+
+            Process {
+                id: proc
+                running: true
+                command: ["wl-paste", "--type", watcher.modelData, "--watch", "sh", "-c",
+                    'top() { cliphist list | head -n1 | cut -f1; }; old=$(top); cliphist store || exit; '
+                    + 'new=$(top); [ -n "$new" ] && [ "$new" != "$old" ] && echo "$new $(date +%s)" >> "$1"',
+                    "sh", root.timesPath]
+                // Delayed: a wl-paste that dies at once (no display) would respawn in a tight loop.
+                onExited: respawn.start()
+            }
+            Timer { id: respawn; interval: 1000; onTriggered: proc.running = true }
         }
     }
 }

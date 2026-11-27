@@ -21,23 +21,29 @@ Scope {
     /// POSIX single-quoting, since an output name reaches a shell.
     function sq(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'"; }
 
-    // bash, not sh, for pipefail: a pipeline otherwise reports its LAST
-    // command, so `grim … | wl-copy` returned wl-copy's status and the `&&`
-    // tested the paste rather than the capture — a failed grim still announced
-    // "Copied!". A cancelled slurp is caught before the pipeline even starts,
-    // so a cancel stays silent. execDetached because wl-copy forks a daemon to
-    // serve the selection, and that has to outlive the call.
-    function run(cmd): void {
-        Quickshell.execDetached(["bash", "-c", "set -o pipefail; " + cmd]);
+    // `grab` writes the PNG to stdout. It goes through a file, not a pipe, so
+    // a failed grim stops at the `&&` instead of announcing "Copied!". A
+    // capture over 5 MB (a busy ultrawide) is shrunk to at most 2560x1080's
+    // area, any shape, since cliphist 0.7.0 silently drops anything bigger and
+    // it would never reach the clipboard history. A cancelled slurp exits
+    // before grim, so a cancel stays silent. execDetached because wl-copy
+    // forks a daemon to serve the selection, and that has to outlive the call.
+    // zq: one shrink, no retry; a pathologically noisy capture can still top
+    // 5 MB at that size. Loop on smaller areas if that ever happens.
+    function copy(grab): void {
+        Quickshell.execDetached(["bash", "-c",
+            grab + " > \"$1\" && if [ $(stat -c %s \"$1\") -gt 5000000 ]; then"
+            + " magick png:\"$1\" -resize '2764800@>' png:\"$1.tmp\" && mv \"$1.tmp\" \"$1\"; fi"
+            + " && wl-copy --type image/png < \"$1\" && notify-send Screenshot 'Copied!'",
+            "_", Config.runtimeDir + "/shot"]);
     }
-    readonly property string copied: " | wl-copy --type image/png && notify-send Screenshot 'Copied!'"
 
     IpcHandler {
         id: ipc
         target: "capture"
 
         function region(): void {
-            root.run("g=$(slurp) || exit 1; grim -g \"$g\" -" + root.copied);
+            root.copy("g=$(slurp) || exit 1; grim -g \"$g\" -");
         }
 
         // Config.displays' numbering — the one the Displays window's Identify
@@ -49,7 +55,7 @@ Scope {
         // Any output grim knows — it rejects a name it does not, and says which.
         // The sleep lets the capture menu's overlay unmap first when it called.
         function output(name: string): void {
-            root.run("sleep 0.2; grim -o " + root.sq(name) + " -" + root.copied);
+            root.copy("sleep 0.2; grim -o " + root.sq(name) + " -");
         }
 
         // Into the annotator window (Annotate.qml), which writes ~/Pictures

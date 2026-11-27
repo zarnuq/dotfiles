@@ -26,7 +26,7 @@ Picker {
     property string mode: "mocha"
     FileView {
         id: modeFile
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/theme/mode"
+        path: Config.stateHome + "/theme/mode"
         printErrors: false
         watchChanges: true
         onFileChanged: reload()

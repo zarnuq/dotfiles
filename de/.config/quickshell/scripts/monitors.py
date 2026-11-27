@@ -91,11 +91,6 @@ def preset_names():
 # ZON reading
 # ---------------------------------------------------------------------------
 
-class Enum(str):
-    """An enum literal (`.rotate_270`). A str subclass so JSON carries it as the
-    bare name, with the leading dot restored only when writing back."""
-
-
 def _tokens(src):
     i, n = 0, len(src)
     while i < n:
@@ -173,7 +168,7 @@ def parse_zon(src):
             return out
         # A bare `.name` with no `=` after it is an enum literal, not a key.
         pos += 1
-        return Enum(value) if kind == "field" else value
+        return value
 
     return parse_value() if toks else {}
 
@@ -364,8 +359,8 @@ def cmd_delete(name):
     except OSError as exc:
         return fail("cannot delete '%s': %s" % (name, exc))
     if switched is not None:
-        return ok(reloaded=reload_reach(), active=switched)
-    return ok(reloaded=False)
+        return ok(reloaded=reload_reach(), active=switched, deleted=name)
+    return ok(deleted=name)
 
 
 def switch_to(name):

@@ -198,22 +198,10 @@ def parse_events(ics):
     return [r for _, r in result]
 
 
-def get_status():
-    """Get calendar status."""
-    if not CONFIG_FILE.exists():
-        return "not configured"
-    elif not CACHE_FILE.exists():
-        return "no data"
-    return "ok"
-
-
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
 
-    if cmd == "status":
-        print(get_status())
-
-    elif cmd in ("events", "refresh"):
+    if cmd in ("events", "refresh"):
         # refresh = events with the cache thrown away first, so it prints the
         # same JSON (Calendar.qml's refresh button reads it directly).
         if cmd == "refresh" and CACHE_FILE.exists():
@@ -222,7 +210,7 @@ def main():
         print(json.dumps(parse_events(ics_data)) if ics_data else "[]")
 
     else:
-        print("Usage: calendar.sh {events|status|refresh}")
+        print("Usage: calendar.sh {events|refresh}")
         sys.exit(1)
 
 

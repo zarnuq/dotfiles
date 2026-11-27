@@ -19,17 +19,10 @@ PanelWindow {
 
     default property alias content: body.data
     property int pad: 10                     // inner padding, unscaled (s() applied)
-    property color borderColor: Theme.surface0
-    property int stackLayer: WlrLayer.Bottom // eww "bottom"
-    // Output connector to pin to; empty = the main screen.
-    property string pinName: ""
 
-    // Pin to pinName if that output is present, else the main screen, falling back
-    // to the first output — which on the laptop is the only one there is.
-    Component.onCompleted: {
-        var target = (root.pinName && Config.screen(root.pinName)) || Config.pinScreen;
-        if (target) root.screen = target;
-    }
+    // Pin to the main screen, falling back to the first output — which on the
+    // laptop is the only one there is.
+    Component.onCompleted: if (Config.pinScreen) root.screen = Config.pinScreen
 
     // Scale lives on Config so the surfaces that aren't cards share it; s() is
     // kept here as a forwarder because every Widget calls it unqualified.
@@ -37,12 +30,12 @@ PanelWindow {
 
     color: "transparent"
     exclusiveZone: 0
-    WlrLayershell.layer: stackLayer
+    WlrLayershell.layer: WlrLayer.Bottom
 
     Rectangle {
         anchors.fill: parent
         color: Theme.base
-        border.color: root.borderColor
+        border.color: Theme.surface0
         border.width: root.s(1)
         radius: Theme.borderRadius
 

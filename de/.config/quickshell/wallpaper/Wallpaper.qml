@@ -13,7 +13,7 @@ Singleton {
     id: root
     property string current: ""
     readonly property string dir: Quickshell.env("HOME") + "/Pictures/bgs"
-    property bool isVideo: false
+    readonly property bool isVideo: root.current.toLowerCase().endsWith(".mp4")
 
     // Single decode size shared by every WallpaperView across all outputs.
     // Because it is byte-identical everywhere, QQuickPixmapCache keys all
@@ -30,18 +30,22 @@ Singleton {
 
     Process {
         id: pick
-        command: ["sh", "-c",
-            "find '" + root.dir + "' -type f \\( -iname '*.jpg' -o -iname '*.png' -o -iname '*.mp4' \\) | shuf -n1"]
-        stdout: StdioCollector { onStreamFinished: root.current = text.trim() || root.current }
+        command: ["find", root.dir, "-type", "f", "(", "-iname", "*.jpg", "-o", "-iname", "*.png", "-o", "-iname", "*.mp4", ")"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const files = text.split("\n").filter(l => l);
+                if (files.length) root.current = files[Math.floor(Math.random() * files.length)];
+            }
+        }
     }
 
     // mpvpaper manages its own layer-shell background surfaces.
     // ponytail: demuxer-max-bytes=512KiB (default 150MB) — 2MB loop file needs nothing more
     function startVideo(): void {
         stopVideo();
-        Quickshell.execDetached(["sh", "-c",
-            "mpvpaper -o 'no-audio loop-file=inf hwdec=auto panscan=1.0 no-cache demuxer-max-bytes=512KiB demuxer-max-back-bytes=0' ALL '"
-            + root.current + "' >/dev/null 2>&1"]);
+        Quickshell.execDetached(["mpvpaper", "-o",
+            "no-audio loop-file=inf hwdec=auto panscan=1.0 no-cache demuxer-max-bytes=512KiB demuxer-max-back-bytes=0",
+            "ALL", root.current]);
     }
 
     Process {
@@ -52,7 +56,6 @@ Singleton {
 
     onCurrentChanged: {
         if (!root.current) return;
-        root.isVideo = root.current.toLowerCase().endsWith(".mp4");
         if (root.isVideo) {
             startVideo();
         } else {

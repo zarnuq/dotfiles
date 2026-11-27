@@ -186,23 +186,15 @@ Picker {
                 // The slot's one control: drag anywhere on the track to set
                 // the level. The row makes room for it; this fills that room.
                 Gauge {
-                    id: track
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
                     height: root.s(6)
                     fraction: Math.max(0, Math.min(1, rowItem.pct / 100))
                     fillColor: rowItem.muted ? Theme.red
                                : rowItem.sel ? Theme.mauve : Theme.surface1
-
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -root.s(10)   // the track is 6px tall; the grab area shouldn't be
-                        onPressed: function (e) { root.selected = rowItem.index; set(e.x); }
-                        onPositionChanged: function (e) { if (pressed) set(e.x); }
-                        function set(x): void {
-                            root.setVolume(rowItem.modelData, (x - root.s(10)) / track.width);
-                        }
-                    }
+                    interactive: true
+                    onPressed: root.selected = rowItem.index
+                    onMoved: f => root.setVolume(rowItem.modelData, f)
                 }
             }
         }

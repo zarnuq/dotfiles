@@ -96,7 +96,7 @@ Scope {
     // Flashed by PowerProfile.apply() — the name (no bar), like the sink mode.
     Connections {
         target: PowerProfile
-        function onFlashed(mode): void { root.flash(PowerProfile.iconFor(mode), 0, false, PowerProfile.labelFor(mode)); }
+        function onFlashed(mode): void { var m = PowerProfile.info(mode); root.flash(m.icon, 0, false, m.label); }
     }
 
     // ---- surface ----------------------------------------------------------

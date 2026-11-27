@@ -2,6 +2,8 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 import Quickshell
 import Quickshell.Io
+import "../Keybinds.js" as Keybinds
+import ".."
 
 // The catalogue behind the launcher's ">" mode: every menu the shell can put on
 // screen, plus the handful of actions that have no surface of their own.
@@ -56,73 +58,18 @@ Singleton {
     // entry above dispatches `qs ipc call <target> <fn>`, and that exact string
     // is what config.zon spawns, which makes the command the join key and a
     // rebind something this list picks up on its own.
-    //
-    // Whatever the shake gesture and the media keys are bound to lands here the
-    // same way: `.cursor.shake`'s `.command` and an `XF86Audio*` key are both
-    // just a spawn of the same string.
     readonly property string configPath:
-        (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/reach/config.zon"
+        Config.configHome + "/reach/config.zon"
 
     FileView { id: cfg; path: root.configPath; blockLoading: true; printErrors: false }
 
-    /// { "<target> <fn>": "Super+R  n" }. A flat scan, not a ZON parse: the two
-    /// shapes that can carry a command are a bind and a chord entry, and both
-    /// put `.key` ahead of the `.spawn`/`.command` on the same line or the one
-    /// after. The only state worth tracking is which chord we are inside, which
-    /// is the brace depth at the `.chord =` that opened it.
+    /// { "<target> <fn>": "Super+R  n" }, from Keybinds.js's rows of the `.binds` block.
     readonly property var binds: {
-        var out = ({});
-        var text = cfg.text();
-        if (!text) return out;
-
-        var lines = text.split("\n");
-        var depth = 0, chordKey = "", chordDepth = -1, pendingKey = "";
-
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-
-            var key = /\.key\s*=\s*"([^"]+)"/.exec(line);
-            var cmd = /\.(?:spawn|command)\s*=\s*"qs ipc call ([^"]+)"/.exec(line);
-
-            if (key && /\.chord\s*=/.test(line)) {
-                chordKey = key[1];
-                chordDepth = depth;
-            } else if (key) {
-                pendingKey = key[1];
-            }
-
-            if (cmd) {
-                // `.command` on the shake block has no `.key` of its own; that
-                // is the gesture, and it is spelled out rather than left blank.
-                var label = pendingKey === "" ? "shake"
-                          : (chordDepth >= 0 && pendingKey !== chordKey)
-                            ? root.pretty(chordKey) + "  " + pendingKey
-                            : root.pretty(pendingKey);
-                out[cmd[1].trim()] = label;
-                pendingKey = "";
-            }
-
-            // Count after the line is read, so a `.chord = .{` opening on this
-            // line puts its children one level deeper than the chord itself.
-            for (var c = 0; c < line.length; c++) {
-                if (line[c] === "{") depth++;
-                else if (line[c] === "}") {
-                    depth--;
-                    if (chordDepth >= 0 && depth <= chordDepth) { chordDepth = -1; chordKey = ""; }
-                }
-            }
-        }
+        // `.cursor.shake`'s `.command` sits outside `.binds` and has no `.key`: the gesture.
+        var shake = cfg.text().match(/\.shake\s*=\s*\.\{[^}]*\.command\s*=\s*"qs ipc call ([^"]+)"/);
+        var out = shake ? { [shake[1]]: "shake" } : {};
+        Keybinds.parse(cfg.text()).forEach(r => { if (r.kind === "bind") out[r.action] = r.key; });
         return out;
-    }
-
-    /// config.zon writes keys the way river names them (`Super+Shift+b`,
-    /// `XF86AudioPlay`); this is only what a human reads on a menu row.
-    function pretty(k) {
-        if (k.indexOf("XF86Audio") === 0) return k.slice(9) + " key";
-        var parts = k.split("+");
-        for (var i = 0; i < parts.length; i++)
-            parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
-        return parts.join("+");
     }
 
     /// The catalogue with each row's key stamped on, since a row that had to go

@@ -14,14 +14,8 @@ Picker {
 
     ipcTarget: "powermode"
 
-    readonly property var modes: [
-        { kind: "mode", id: "performance", icon: "󰓅", label: "Performance", desc: "max clocks, boost" },
-        { kind: "mode", id: "balanced",    icon: "󰾅", label: "Balanced",    desc: "default" },
-        { kind: "mode", id: "saver",       icon: "󰌪", label: "Power saver", desc: "2 GHz cap, no boost" }
-    ]
-
     // Brightness row first, then the modes.
-    rows: [{ kind: "bright" }].concat(root.modes)
+    rows: [{ kind: "bright" }].concat(PowerProfile.modes.map(m => Object.assign({ kind: "mode" }, m)))
     rowHeight: s(40)
     barHeight: s(30)
     minBoxHeight: s(190)
@@ -105,21 +99,15 @@ Picker {
 
                 // Backlight slider — drag anywhere on the track to set it.
                 Gauge {
-                    id: track
                     visible: rowItem.isBright
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
                     height: root.s(6)
                     fraction: Math.max(0, Math.min(1, root.brightPct / 100))
                     fillColor: rowItem.sel ? Theme.mauve : Theme.surface1
-
-                    MouseArea {
-                        anchors.fill: parent
-                        anchors.margins: -root.s(10)
-                        enabled: rowItem.isBright
-                        onPressed: e => { root.selected = rowItem.index; root.setBright((e.x - root.s(10)) / track.width * 100); }
-                        onPositionChanged: e => { if (pressed) root.setBright((e.x - root.s(10)) / track.width * 100); }
-                    }
+                    interactive: rowItem.isBright
+                    onPressed: root.selected = rowItem.index
+                    onMoved: f => root.setBright(f * 100)
                 }
             }
         }

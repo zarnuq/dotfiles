@@ -74,26 +74,39 @@ Widget {
                 text: "No upcoming events"; color: Theme.subtext0; font.pixelSize: root.s(12)
             }
 
-            delegate: ListCard {
+            delegate: Rectangle {
                 id: ev
                 required property var modelData
                 readonly property color tint: root.dayColor(ev.modelData.days_from_today)
                 width: ListView.view.width
-                hMargin: root.s(10)
-                spacing: root.s(2)
-                accent: ev.tint     // border-left accent
+                implicitHeight: body.height + root.s(16)
+                color: Theme.surface0
+                radius: Theme.borderRadius
 
-                Row {
-                    width: parent.width
-                    Txt { text: ev.modelData.day; color: ev.tint; font.bold: true; font.pixelSize: root.s(11) }
-                    Txt { text: ev.modelData.time; color: Theme.subtext0; font.pixelSize: root.s(11)
-                          width: parent.width - x; horizontalAlignment: Text.AlignRight }
+                Rectangle {     // border-left accent
+                    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                    width: root.s(3)
+                    color: ev.tint
                 }
-                Txt { text: ev.modelData.summary; font.pixelSize: root.s(13); width: parent.width; wrapMode: Text.WordWrap }
-                Txt {
-                    visible: ev.modelData.location !== ""
-                    text: "󰍎 " + ev.modelData.location; color: Theme.subtext0; font.pixelSize: root.s(11)
-                    width: parent.width; elide: Text.ElideRight
+
+                Column {
+                    id: body
+                    anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter
+                              leftMargin: root.s(10); rightMargin: root.s(10) }
+                    spacing: root.s(2)
+
+                    Row {
+                        width: parent.width
+                        Txt { text: ev.modelData.day; color: ev.tint; font.bold: true; font.pixelSize: root.s(11) }
+                        Txt { text: ev.modelData.time; color: Theme.subtext0; font.pixelSize: root.s(11)
+                              width: parent.width - x; horizontalAlignment: Text.AlignRight }
+                    }
+                    Txt { text: ev.modelData.summary; font.pixelSize: root.s(13); width: parent.width; wrapMode: Text.WordWrap }
+                    Txt {
+                        visible: ev.modelData.location !== ""
+                        text: "󰍎 " + ev.modelData.location; color: Theme.subtext0; font.pixelSize: root.s(11)
+                        width: parent.width; elide: Text.ElideRight
+                    }
                 }
             }
         }

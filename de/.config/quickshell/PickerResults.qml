@@ -16,7 +16,7 @@ Item {
     // Said instead of rendering a blank box — which is otherwise what an
     // empty list looks like, and indistinguishable from a broken one.
     property string emptyText: ""
-    required property int emptySize
+    property int emptySize: root.picker.s(14)
 
     Txt {
         anchors.centerIn: parent

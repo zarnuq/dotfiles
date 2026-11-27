@@ -28,7 +28,7 @@ Singleton {
 
     FileView {
         id: paletteFile
-        path: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/theme/palette.json"
+        path: Config.stateHome + "/theme/palette.json"
         blockLoading: true
         printErrors: false
         watchChanges: true

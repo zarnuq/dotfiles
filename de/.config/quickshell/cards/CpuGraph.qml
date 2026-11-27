@@ -5,7 +5,7 @@ import ".."   // Theme, Config, Txt, Poll and the root singletons
 
 // Usage and network in one card, bottom of the left stack. Two plot bands
 // because the scales don't mix: cpu/gpu/ram/disk in percent on top, down/up
-// MB/s (/proc/net/dev deltas, scaled to the last 30s peak) below. IPs on one footer line.
+// MB/s (/proc/net/dev deltas, scaled to the last 60s peak) below. IPs on one footer line.
 Widget {
     id: root
     anchors { bottom: true; left: true }
@@ -16,7 +16,7 @@ Widget {
     property real up: 0
     property var ips: []      // [{ iface, ip }]
 
-    // Net plot ceiling: the peak of the last 30 samples (the graph's window),
+    // Net plot ceiling: the peak of the last 60 samples (1s each, the graph's 60s window),
     // floored at 1 MB/s so an idle link isn't scaled up into noise.
     property var _peaks: []
     property real netMax: 1
@@ -40,7 +40,7 @@ Widget {
         if (root._prevRx > 0) root.down = Math.max(0, (rx - root._prevRx) / 1e6);
         if (root._prevTx > 0) root.up   = Math.max(0, (tx - root._prevTx) / 1e6);
         root._peaks.push(Math.max(root.down, root.up));
-        if (root._peaks.length > 30) root._peaks.shift();
+        if (root._peaks.length > 60) root._peaks.shift();
         root.netMax = Math.max(1, Math.max.apply(null, root._peaks));
         root._prevRx = rx;
         root._prevTx = tx;
