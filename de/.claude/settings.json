@@ -3,7 +3,10 @@
     "ask": [
       "Bash(doas *)",
       "Bash(sudo *)",
-      "Bash(su *)"
+      "Bash(su *)",
+      "Bash(git *)",
+      "Bash(nmcli con mod *)",
+      "Bash(nmcli connection modify *)"
     ],
     "defaultMode": "auto"
   },

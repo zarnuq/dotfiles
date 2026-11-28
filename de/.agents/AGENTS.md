@@ -105,4 +105,4 @@ Quality comes first:
 - When compacting, keep: the user's requests and decisions, files changed, open problems, and the scope in force. Drop tool output already acted on.
 
 ## Searching
-Shell searches use `rg`, never `grep -r` or `find -name` (`rg --files -g '*.go'` lists files). It skips hidden and gitignored files; add `--hidden` or `-uu` for full reach. `grep` in a pipe, `git grep`, and `find` with `-exec`/`-delete`/`-mtime`/`-size` are fine. Details: the `rg-search` skill.
+Shell searches use `rg` (the `rg-search` skill), never `grep -r` or `find -name`. `grep` in a pipe and `find` with `-exec`/`-delete`/`-mtime`/`-size` are fine.
